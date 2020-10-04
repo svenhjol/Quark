@@ -10,18 +10,18 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.mojang.datafixers.util.Pair;
-import com.mojang.realmsclient.gui.screens.RealmsInviteScreen;
-import com.mojang.realmsclient.gui.screens.RealmsSubscriptionInfoScreen;
-import com.mojang.realmsclient.gui.screens.RealmsTermsScreen;
-import com.mojang.realmsclient.util.JsonUtils;
-import com.mojang.realmsclient.util.RealmsPersistence;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.Block;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.color.block.BlockColorProvider;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.client.color.item.ItemColorProvider;
+import net.minecraft.client.color.item.ItemColors;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
-import net.minecraft.item.MilkBucketItem;
-import net.minecraft.server.command.DatapackCommand;
-import net.minecraft.util.UseAction;
-import net.minecraft.world.biome.WoodedBadlandsPlateauBiome;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.RegistryEvent;
@@ -43,8 +43,8 @@ public final class RegistryHelper {
 
 	private static final Map<String, ModData> modData = new HashMap<>();
 
-	private static Queue<Pair<UseAction, IItemColorProvider>> itemColors = new ArrayDeque<>();
-	private static Queue<Pair<WoodedBadlandsPlateauBiome, IBlockColorProvider>> blockColors = new ArrayDeque<>();
+	private static Queue<Pair<Item, IItemColorProvider>> itemColors = new ArrayDeque<>();
+	private static Queue<Pair<Block, IBlockColorProvider>> blockColors = new ArrayDeque<>();
 
 	private static ModData getCurrentModData() {
 		return getModData(ModLoadingContext.get().getActiveNamespace());
@@ -67,23 +67,23 @@ public final class RegistryHelper {
 		getCurrentModData().register(event.getRegistry());
 	}
 
-	public static void registerBlock(WoodedBadlandsPlateauBiome block, String resloc) {
+	public static void registerBlock(Block block, String resloc) {
 		registerBlock(block, resloc, true);
 	}
 
-	public static void registerBlock(WoodedBadlandsPlateauBiome block, String resloc, boolean hasBlockItem) {
+	public static void registerBlock(Block block, String resloc, boolean hasBlockItem) {
 		register(block, resloc);
 
 		if(hasBlockItem) {
 			ModData data = getCurrentModData();
-			data.defers.put(UseAction.class, () -> data.createItemBlock(block));
+			data.defers.put(Item.class, () -> data.createItemBlock(block));
 		}
 
 		if(block instanceof IBlockColorProvider)
 			blockColors.add(Pair.of(block, (IBlockColorProvider) block));
 	}
 
-	public static void registerItem(UseAction item, String resloc) {
+	public static void registerItem(Item item, String resloc) {
 		register(item, resloc);
 
 		if(item instanceof IItemColorProvider)
@@ -107,8 +107,8 @@ public final class RegistryHelper {
 		getCurrentModData().defers.put(obj.getRegistryType(), () -> obj);
 	}
 
-	public static void setCreativeTab(WoodedBadlandsPlateauBiome block, MilkBucketItem group) {
-		DatapackCommand res = block.getRegistryName();
+	public static void setCreativeTab(Block block, ItemGroup group) {
+		Identifier res = block.getRegistryName();
 		if(res == null)
 			throw new IllegalArgumentException("Can't set the creative tab for a block without a registry name yet");
 
@@ -124,22 +124,22 @@ public final class RegistryHelper {
 
 	@Environment(EnvType.CLIENT)
 	private static boolean loadCompleteClient(FMLLoadCompleteEvent event) {
-		RealmsInviteScreen mc = RealmsInviteScreen.B();
-		RealmsTermsScreen bcolors = mc.ak();
-		RealmsPersistence icolors = mc.getItemColors();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		BlockColors bcolors = mc.getBlockColors();
+		ItemColors icolors = mc.getItemColors();
 
 		while(!blockColors.isEmpty()) {
-			Pair<WoodedBadlandsPlateauBiome, IBlockColorProvider> pair = blockColors.poll();
-			RealmsSubscriptionInfoScreen color = pair.getSecond().getBlockColor();
+			Pair<Block, IBlockColorProvider> pair = blockColors.poll();
+			BlockColorProvider color = pair.getSecond().getBlockColor();
 
-			bcolors.a(color, pair.getFirst());
+			bcolors.registerColorProvider(color, pair.getFirst());
 		}
 
 		while(!itemColors.isEmpty()) {
-			Pair<UseAction, IItemColorProvider> pair = itemColors.poll();
-			JsonUtils color = pair.getSecond().getItemColor();
+			Pair<Item, IItemColorProvider> pair = itemColors.poll();
+			ItemColorProvider color = pair.getSecond().getItemColor();
 
-			icolors.a(color, pair.getFirst());
+			icolors.register(color, pair.getFirst());
 		}
 
 		return true;
@@ -147,7 +147,7 @@ public final class RegistryHelper {
 
 	private static class ModData {
 
-		private Map<DatapackCommand, MilkBucketItem> groups = new LinkedHashMap<>();
+		private Map<Identifier, ItemGroup> groups = new LinkedHashMap<>();
 
 		private ArrayListMultimap<Class<?>, Supplier<IForgeRegistryEntry<?>>> defers = ArrayListMultimap.create();
 
@@ -167,21 +167,21 @@ public final class RegistryHelper {
 			}
 		}
 
-		private UseAction createItemBlock(WoodedBadlandsPlateauBiome block) {
-			UseAction.a props = new UseAction.a();
-			DatapackCommand registryName = block.getRegistryName();
+		private Item createItemBlock(Block block) {
+			Item.Settings props = new Item.Settings();
+			Identifier registryName = block.getRegistryName();
 
-			MilkBucketItem group = groups.get(registryName);
+			ItemGroup group = groups.get(registryName);
 			if(group != null)
-				props = props.a(group);
+				props = props.group(group);
 
 			if(block instanceof IItemPropertiesFiller)
 				((IItemPropertiesFiller) block).fillItemProperties(props);
 
-			Item blockitem;
+			BlockItem blockitem;
 			if(block instanceof IBlockItemProvider)
 				blockitem = ((IBlockItemProvider) block).provideItemBlock(block, props);
-			else blockitem = new Item(block, props);
+			else blockitem = new BlockItem(block, props);
 
 			if(block instanceof IItemColorProvider)
 				itemColors.add(Pair.of(blockitem, (IItemColorProvider) block));

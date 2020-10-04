@@ -1,21 +1,21 @@
 package vazkii.arl.container.slot;
 
 import java.util.function.Predicate;
-import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.item.EndCrystalItem;
-import net.minecraft.item.Wearable;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.slot.Slot;
 
-public class SlotFiltered extends EndCrystalItem {
+public class SlotFiltered extends Slot {
 
-	private final Predicate<Wearable> pred;
+	private final Predicate<ItemStack> pred;
 	
-	public SlotFiltered(PassiveEntity inventoryIn, int index, int xPosition, int yPosition, Predicate<Wearable> pred) {
+	public SlotFiltered(Inventory inventoryIn, int index, int xPosition, int yPosition, Predicate<ItemStack> pred) {
 		super(inventoryIn, index, xPosition, yPosition);
 		this.pred = pred;
 	}
 	
 	@Override
-	public boolean a(Wearable stack) {
+	public boolean canInsert(ItemStack stack) {
 		return pred.test(stack);
 	}
 	

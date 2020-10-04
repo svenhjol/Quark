@@ -10,9 +10,9 @@
  */
 package vazkii.arl.network;
 
-import net.minecraft.resource.DefaultResourcePack;
-import net.minecraft.server.command.DatapackCommand;
-import net.minecraft.text.TranslationException;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent;
 import net.minecraftforge.fml.network.NetworkRegistry;
@@ -36,7 +36,7 @@ public class NetworkHandler {
 		String protocolStr = Integer.toString(protocol);
 		
 		channel = NetworkRegistry.ChannelBuilder
-				.named(new DatapackCommand(modid, channelName))
+				.named(new Identifier(modid, channelName))
 				.networkProtocolVersion(() -> protocolStr)
 				.clientAcceptedVersions(protocolStr::equals)
 				.serverAcceptedVersions(protocolStr::equals)
@@ -44,9 +44,9 @@ public class NetworkHandler {
 	}
 	
 	public <T extends IMessage> void register(Class<T> clazz, NetworkDirection dir) {
-		BiConsumer<T, TranslationException> encoder = MessageSerializer::writeObject;
+		BiConsumer<T, PacketByteBuf> encoder = MessageSerializer::writeObject;
 		
-		Function<TranslationException, T> decoder = (buf) -> {
+		Function<PacketByteBuf, T> decoder = (buf) -> {
 			try {
 				T msg = clazz.newInstance();
 				MessageSerializer.readObject(msg, buf);
@@ -68,8 +68,8 @@ public class NetworkHandler {
 		i++;
 	}
 
-	public void sendToPlayer(IMessage msg, DefaultResourcePack player) {
-		channel.sendTo(msg, player.resourceClass.manager, NetworkDirection.PLAY_TO_CLIENT);
+	public void sendToPlayer(IMessage msg, ServerPlayerEntity player) {
+		channel.sendTo(msg, player.networkHandler.connection, NetworkDirection.PLAY_TO_CLIENT);
 	}
 	
 	public void sendToServer(IMessage msg) {

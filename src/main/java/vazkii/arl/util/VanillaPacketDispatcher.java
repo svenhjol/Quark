@@ -10,31 +10,31 @@
  */
 package vazkii.arl.util;
 
-import net.minecraft.block.TripwireHookBlock;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.network.packet.s2c.play.LightUpdateS2CPacket;
-import net.minecraft.resource.DefaultResourcePack;
-import net.minecraft.resource.ResourceNotFoundException;
-import net.minecraft.util.CuboidBlockIterator;
-import net.minecraft.world.biome.DeepLukewarmOceanBiome;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 public final class VanillaPacketDispatcher {
 
-	public static void dispatchTEToNearbyPlayers(TripwireHookBlock tile) {
-		DeepLukewarmOceanBiome world = tile.v();
-		if(world instanceof ResourceNotFoundException) {
-			LightUpdateS2CPacket packet = tile.a();
-			CuboidBlockIterator pos = tile.o();
+	public static void dispatchTEToNearbyPlayers(BlockEntity tile) {
+		World world = tile.getWorld();
+		if(world instanceof ServerWorld) {
+			BlockEntityUpdateS2CPacket packet = tile.toUpdatePacket();
+			BlockPos pos = tile.getPos();
 			
-			for(BoatEntity player : world.x()) {
-				if(player instanceof DefaultResourcePack && pointDistancePlane(player.cC(), player.cG(), pos.getX(), pos.getZ()) < 64)
-					((DefaultResourcePack) player).resourceClass.a(packet);
+			for(PlayerEntity player : world.getPlayers()) {
+				if(player instanceof ServerPlayerEntity && pointDistancePlane(player.getX(), player.getZ(), pos.getX(), pos.getZ()) < 64)
+					((ServerPlayerEntity) player).networkHandler.sendPacket(packet);
 			}
 		}
 	}
 
-	public static void dispatchTEToNearbyPlayers(DeepLukewarmOceanBiome world, CuboidBlockIterator pos) {
-		TripwireHookBlock tile = world.c(pos);
+	public static void dispatchTEToNearbyPlayers(World world, BlockPos pos) {
+		BlockEntity tile = world.getBlockEntity(pos);
 		if(tile != null)
 			dispatchTEToNearbyPlayers(tile);
 	}

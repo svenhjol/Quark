@@ -10,14 +10,16 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import net.minecraft.item.Wearable;
-import net.minecraft.loot.function.ConditionalLootFunction;
-import net.minecraft.network.PacketDeflater;
-import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket;
-import net.minecraft.server.command.DatapackCommand;
-import net.minecraft.text.TranslationException;
-import net.minecraft.util.CuboidBlockIterator;
+
 import org.apache.commons.lang3.tuple.Pair;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
 
 @SuppressWarnings({ "unchecked", "rawtypes", "unused" })
 public final class MessageSerializer {
@@ -26,27 +28,27 @@ public final class MessageSerializer {
 	private static final HashMap<Class<?>, Field[]> fieldCache = new HashMap<>();
 
 	static {
-		MessageSerializer.<Byte> mapHandler(byte.class, TranslationException::readByte, TranslationException::writeByte);
-		MessageSerializer.<Short> mapHandler(short.class, TranslationException::readShort, TranslationException::writeShort);
-		MessageSerializer.<Integer> mapHandler(int.class, TranslationException::readInt, TranslationException::writeInt);
-		MessageSerializer.<Long> mapHandler(long.class, TranslationException::readLong, TranslationException::writeLong);
-		MessageSerializer.<Float> mapHandler(float.class, TranslationException::readFloat, TranslationException::writeFloat);
-		MessageSerializer.<Double> mapHandler(double.class, TranslationException::readDouble, TranslationException::writeDouble);
-		MessageSerializer.<Boolean> mapHandler(boolean.class, TranslationException::readBoolean, TranslationException::writeBoolean);
-		MessageSerializer.<Character> mapHandler(char.class, TranslationException::readChar, TranslationException::writeChar);
+		MessageSerializer.<Byte> mapHandler(byte.class, PacketByteBuf::readByte, PacketByteBuf::writeByte);
+		MessageSerializer.<Short> mapHandler(short.class, PacketByteBuf::readShort, PacketByteBuf::writeShort);
+		MessageSerializer.<Integer> mapHandler(int.class, PacketByteBuf::readInt, PacketByteBuf::writeInt);
+		MessageSerializer.<Long> mapHandler(long.class, PacketByteBuf::readLong, PacketByteBuf::writeLong);
+		MessageSerializer.<Float> mapHandler(float.class, PacketByteBuf::readFloat, PacketByteBuf::writeFloat);
+		MessageSerializer.<Double> mapHandler(double.class, PacketByteBuf::readDouble, PacketByteBuf::writeDouble);
+		MessageSerializer.<Boolean> mapHandler(boolean.class, PacketByteBuf::readBoolean, PacketByteBuf::writeBoolean);
+		MessageSerializer.<Character> mapHandler(char.class, PacketByteBuf::readChar, PacketByteBuf::writeChar);
 
-		mapHandler(CuboidBlockIterator.class, TranslationException::e, TranslationException::a);
-		mapHandler(EntityAnimationS2CPacket.class, TranslationException::h, TranslationException::a);
-		mapHandler(UUID.class, TranslationException::k, TranslationException::a);
-		mapHandler(PacketDeflater.class, TranslationException::l, TranslationException::a);
-		mapHandler(Wearable.class, TranslationException::n, MessageSerializer::writeItemStack);
+		mapHandler(BlockPos.class, PacketByteBuf::readBlockPos, PacketByteBuf::writeBlockPos);
+		mapHandler(Text.class, PacketByteBuf::readText, PacketByteBuf::writeText);
+		mapHandler(UUID.class, PacketByteBuf::readUuid, PacketByteBuf::writeUuid);
+		mapHandler(CompoundTag.class, PacketByteBuf::readCompoundTag, PacketByteBuf::writeCompoundTag);
+		mapHandler(ItemStack.class, PacketByteBuf::readItemStack, MessageSerializer::writeItemStack);
 		mapHandler(String.class, MessageSerializer::readString, MessageSerializer::writeString);
-		mapHandler(DatapackCommand.class, TranslationException::p, TranslationException::a);
-		mapHandler(Date.class, TranslationException::q, TranslationException::a);
-		mapHandler(ConditionalLootFunction.class, TranslationException::r, TranslationException::a);
+		mapHandler(Identifier.class, PacketByteBuf::readIdentifier, PacketByteBuf::writeIdentifier);
+		mapHandler(Date.class, PacketByteBuf::readDate, PacketByteBuf::writeDate);
+		mapHandler(BlockHitResult.class, PacketByteBuf::readBlockHitResult, PacketByteBuf::writeBlockHitResult);
 	}
 	
-	public static void readObject(Object obj, TranslationException buf) {
+	public static void readObject(Object obj, PacketByteBuf buf) {
 		try {
 			Class<?> clazz = obj.getClass();
 			Field[] clFields = getClassFields(clazz);
@@ -60,7 +62,7 @@ public final class MessageSerializer {
 		}
 	}
 	
-	public static void writeObject(Object obj, TranslationException buf) {
+	public static void writeObject(Object obj, PacketByteBuf buf) {
 		try {
 			Class<?> clazz = obj.getClass();
 			Field[] clFields = getClassFields(clazz);
@@ -85,12 +87,12 @@ public final class MessageSerializer {
 		}
 	}
 
-	private static void writeField(Object obj, Field f, Class<?> clazz, TranslationException buf) throws IllegalArgumentException, IllegalAccessException {
+	private static void writeField(Object obj, Field f, Class<?> clazz, PacketByteBuf buf) throws IllegalArgumentException, IllegalAccessException {
 		Pair<Reader, Writer> handler = getHandler(clazz);
 		handler.getRight().write(buf, f, f.get(obj));
 	}
 
-	private static void readField(Object obj, Field f, Class<?> clazz, TranslationException buf) throws IllegalArgumentException, IllegalAccessException {
+	private static void readField(Object obj, Field f, Class<?> clazz, PacketByteBuf buf) throws IllegalArgumentException, IllegalAccessException {
 		Pair<Reader, Writer> handler = getHandler(clazz);
 		f.set(obj, handler.getLeft().read(buf, f));
 	}
@@ -110,18 +112,18 @@ public final class MessageSerializer {
 		return  handlers.containsKey(type);
 	}
 
-	private static <T> void mapHandler(Class<T> type, Function<TranslationException, T> readerLower, BiConsumer<TranslationException, T> writerLower) {
+	private static <T> void mapHandler(Class<T> type, Function<PacketByteBuf, T> readerLower, BiConsumer<PacketByteBuf, T> writerLower) {
 		Reader<T> reader = (buf, field) -> readerLower.apply(buf);
 		Writer<T> writer = (buf, field, t) -> writerLower.accept(buf, t);
 		mapHandler(type, reader, writer);
 	}
 
-	private static <T> void mapHandler(Class<T> type, Reader<T> reader, BiConsumer<TranslationException, T> writerLower) {
+	private static <T> void mapHandler(Class<T> type, Reader<T> reader, BiConsumer<PacketByteBuf, T> writerLower) {
 		Writer<T> writer = (buf, field, t) -> writerLower.accept(buf, t);
 		mapHandler(type, reader, writer);	
 	}
 
-	private static <T> void mapHandler(Class<T> type, Function<TranslationException, T> readerLower, Writer<T> writer) {
+	private static <T> void mapHandler(Class<T> type, Function<PacketByteBuf, T> readerLower, Writer<T> writer) {
 		Reader<T> reader = (buf, field) -> readerLower.apply(buf);
 		mapHandler(type, reader, writer);
 	}
@@ -157,16 +159,16 @@ public final class MessageSerializer {
 
 	// Needed because the methods are overloaded
 
-	private static void writeItemStack(TranslationException buf, Wearable stack) {
-		buf.a(stack);
+	private static void writeItemStack(PacketByteBuf buf, ItemStack stack) {
+		buf.writeItemStack(stack);
 	}
 
-	private static String readString(TranslationException buf) {
-		return buf.e(32767);
+	private static String readString(PacketByteBuf buf) {
+		return buf.readString(32767);
 	}
 
-	private static void writeString(TranslationException buf, String string) {
-		buf.a(string);
+	private static void writeString(PacketByteBuf buf, String string) {
+		buf.writeString(string);
 	}
 
 	// ================================================================
@@ -174,11 +176,11 @@ public final class MessageSerializer {
 	// ================================================================
 
 	public static interface Reader<T> {
-		public T read(TranslationException buf, Field field);
+		public T read(PacketByteBuf buf, Field field);
 	}
 
 	public static interface Writer<T> {
-		public void write(TranslationException buf, Field field, T t);
+		public void write(PacketByteBuf buf, Field field, T t);
 	}
 
 }

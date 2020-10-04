@@ -1,7 +1,7 @@
 package vazkii.arl.network.message;
 
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.item.Wearable;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.network.NetworkEvent;
 import vazkii.arl.network.IMessage;
 
@@ -12,19 +12,19 @@ import vazkii.arl.network.IMessage;
 public class MessageSetSelectedItem implements IMessage {
 	private static final long serialVersionUID = -8037505410464752326L;
 
-	public Wearable stack;
+	public ItemStack stack;
 
 	public MessageSetSelectedItem() { }
 
-	public MessageSetSelectedItem(Wearable stack) {
+	public MessageSetSelectedItem(ItemStack stack) {
 		this.stack = stack;
 	}
 
 	public boolean receive(NetworkEvent.Context context) {
 		context.enqueueWork(() -> {
-			BoatEntity player = context.getSender();
+			PlayerEntity player = context.getSender();
 			if (player != null)
-				player.bm.g(stack);
+				player.inventory.setCursorStack(stack);
 		});
 
 		return true;

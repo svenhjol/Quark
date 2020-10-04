@@ -1,9 +1,9 @@
 package vazkii.arl.util;
 
-import com.mojang.realmsclient.gui.screens.RealmsInviteScreen;
-import doq;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.TickEvent.ClientTickEvent;
@@ -40,8 +40,8 @@ public final class ClientTicker {
 	@Environment(EnvType.CLIENT)
 	public static void clientTickEnd(ClientTickEvent event) {
 		if(event.phase == Phase.END) {
-			doq gui = RealmsInviteScreen.B().y;
-			if(gui == null || !gui.ay_()) {
+			Screen gui = MinecraftClient.getInstance().currentScreen;
+			if(gui == null || !gui.isPauseScreen()) {
 				ticksInGame++;
 				partialTicks = 0;
 			}

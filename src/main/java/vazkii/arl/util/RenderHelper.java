@@ -15,13 +15,13 @@ import java.util.Random;
 import org.lwjgl.opengl.GL11;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.realmsclient.gui.screens.RealmsCreateRealmScreen;
-import com.mojang.realmsclient.gui.screens.RealmsInviteScreen;
-import dfh;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.feature.ShulkerHeadFeatureRenderer;
-import net.minecraft.scoreboard.ScoreboardPlayerScore;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -33,7 +33,7 @@ public final class RenderHelper {
 	}
 
 	public static void renderStar(int color, float xScale, float yScale, float zScale, long seed) {
-		ScoreboardPlayerScore tessellator = ScoreboardPlayerScore.a();
+		Tessellator tessellator = Tessellator.getInstance();
 
 		float ticks = (ClientTicker.ticksInGame % 200) + ClientTicker.partialTicks;
 		if (ticks >= 100)
@@ -62,18 +62,18 @@ public final class RenderHelper {
 			RenderSystem.rotatef(random.nextFloat() * 360F, 1F, 0F, 0F);
 			RenderSystem.rotatef(random.nextFloat() * 360F, 0F, 1F, 0F);
 			RenderSystem.rotatef(random.nextFloat() * 360F + f1 * 90F, 0F, 0F, 1F);
-			tessellator.c().a(GL11.GL_TRIANGLE_FAN, dfh.l);
+			tessellator.getBuffer().begin(GL11.GL_TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
 			float f3 = random.nextFloat() * 20F + 5F + f2 * 10F;
 			float f4 = random.nextFloat() * 2F + 1F + f2 * 2F;
 			float r = ((color & 0xFF0000) >> 16) / 255F;
 			float g = ((color & 0xFF00) >> 8) / 255F;
 			float b = (color & 0xFF) / 255F;
-			tessellator.c().a(0, 0, 0).a(r, g, b, 1F - f2).d();
-			tessellator.c().a(-0.866D * f4, f3, -0.5F * f4).a(0, 0, 0, 0).d();
-			tessellator.c().a(0.866D * f4, f3, -0.5F * f4).a(0, 0, 0, 0).d();
-			tessellator.c().a(0, f3, 1F * f4).a(0, 0, 0, 0).d();
-			tessellator.c().a(-0.866D * f4, f3, -0.5F * f4).a(0, 0, 0, 0).d();
-			tessellator.b();
+			tessellator.getBuffer().vertex(0, 0, 0).color(r, g, b, 1F - f2).next();
+			tessellator.getBuffer().vertex(-0.866D * f4, f3, -0.5F * f4).color(0, 0, 0, 0).next();
+			tessellator.getBuffer().vertex(0.866D * f4, f3, -0.5F * f4).color(0, 0, 0, 0).next();
+			tessellator.getBuffer().vertex(0, f3, 1F * f4).color(0, 0, 0, 0).next();
+			tessellator.getBuffer().vertex(-0.866D * f4, f3, -0.5F * f4).color(0, 0, 0, 0).next();
+			tessellator.draw();
 		}
 
 		RenderSystem.depthMask(true);
@@ -88,13 +88,13 @@ public final class RenderHelper {
 
 	public static String getKeyDisplayString(String keyName) {
 		String key = null;
-		RealmsCreateRealmScreen[] keys = RealmsInviteScreen.B().width.aC;
-		for(RealmsCreateRealmScreen otherKey : keys)
-			if(otherKey.g().equals(keyName)) {
-				key = otherKey.l();
+		KeyBinding[] keys = MinecraftClient.getInstance().options.keysAll;
+		for(KeyBinding otherKey : keys)
+			if(otherKey.getTranslationKey().equals(keyName)) {
+				key = otherKey.getBoundKeyTranslationKey();
 				break;
 			}
 
-		return ShulkerHeadFeatureRenderer.a(key);
+		return I18n.translate(key);
 	}
 }

@@ -1,7 +1,8 @@
 package vazkii.arl.util;
 
 import javax.annotation.Nonnull;
-import net.minecraft.item.Wearable;
+
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -10,9 +11,9 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 public class InventoryIIH implements IItemHandlerModifiable {
 
 	private final IItemHandlerModifiable iih;
-	final Wearable stack;
+	final ItemStack stack;
 
-	public InventoryIIH(Wearable stack) {
+	public InventoryIIH(ItemStack stack) {
 		this.stack = stack;
 		LazyOptional<IItemHandler> opt = stack.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null); 
 		
@@ -28,7 +29,7 @@ public class InventoryIIH implements IItemHandlerModifiable {
 	}
 
 	@Override
-	public void setStackInSlot(int slot, @Nonnull Wearable stack) {
+	public void setStackInSlot(int slot, @Nonnull ItemStack stack) {
 		iih.setStackInSlot(slot, stack);
 	}
 
@@ -39,19 +40,19 @@ public class InventoryIIH implements IItemHandlerModifiable {
 
 	@Nonnull
 	@Override
-	public Wearable getStackInSlot(int slot) {
+	public ItemStack getStackInSlot(int slot) {
 		return iih.getStackInSlot(slot);
 	}
 
 	@Nonnull
 	@Override
-	public Wearable insertItem(int slot, @Nonnull Wearable stack, boolean simulate) {
+	public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
 		return iih.insertItem(slot, stack, simulate);
 	}
 
 	@Nonnull
 	@Override
-	public Wearable extractItem(int slot, int amount, boolean simulate) {
+	public ItemStack extractItem(int slot, int amount, boolean simulate) {
 		return iih.extractItem(slot, amount, simulate);
 	}
 
@@ -61,7 +62,7 @@ public class InventoryIIH implements IItemHandlerModifiable {
 	}
 
 	@Override
-	public boolean isItemValid(int slot, Wearable stack) {
+	public boolean isItemValid(int slot, ItemStack stack) {
 		return iih.isItemValid(slot, stack);
 	}
 }

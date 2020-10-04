@@ -3,19 +3,19 @@ package vazkii.arl.util;
 import java.util.concurrent.Callable;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.realmsclient.gui.screens.RealmsInviteScreen;
-import doq;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gui.screen.AddServerScreen;
-import net.minecraft.client.gui.screen.options.ChatOptionsScreen;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.item.EndCrystalItem;
-import net.minecraft.item.Wearable;
-import net.minecraft.recipe.RecipeInputProvider;
-import net.minecraft.resource.DefaultResourcePack;
-import net.minecraft.text.ParsableText;
-import net.minecraft.util.dynamic.GlobalPos;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.Tag;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.Direction;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -45,35 +45,35 @@ public final class DropInHandler {
 	@SubscribeEvent
 	@Environment(EnvType.CLIENT)
 	public static void onDrawScreen(GuiScreenEvent.DrawScreenEvent.Post event) {
-		RealmsInviteScreen mc = RealmsInviteScreen.B();
-		doq gui = mc.y;
-		if(gui instanceof ChatOptionsScreen) {
-			ChatOptionsScreen<?> containerGui = (ChatOptionsScreen<?>) gui;
-			Wearable held = mc.showError.bm.m();
-			if(!held.a()) {
-				RecipeInputProvider container = containerGui.i();
-				EndCrystalItem under = containerGui.getSlotUnderMouse();
-				for(EndCrystalItem s : container.a) {
-					Wearable stack = s.e();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		Screen gui = mc.currentScreen;
+		if(gui instanceof HandledScreen) {
+			HandledScreen<?> containerGui = (HandledScreen<?>) gui;
+			ItemStack held = mc.player.inventory.getCursorStack();
+			if(!held.isEmpty()) {
+				ScreenHandler container = containerGui.getScreenHandler();
+				Slot under = containerGui.getSlotUnderMouse();
+				for(Slot s : container.slots) {
+					ItemStack stack = s.getStack();
 					IDropInItem dropin = getDropInHandler(stack);
-					if(dropin != null && dropin.canDropItemIn(mc.showError, stack, held)) {
+					if(dropin != null && dropin.canDropItemIn(mc.player, stack, held)) {
 						if(s == under) {
 							int x = event.getMouseX();
 							int y = event.getMouseY();
-							int width = gui.k;
-							int height = gui.l;
+							int width = gui.width;
+							int height = gui.height;
 							
 							//This is currently broken so we not worrying bout it
 							//GuiUtils.drawHoveringText(event.getMatrixStack(), dropin.getDropInTooltip(stack), x, y, width, height, -1, mc.fontRenderer);
 						} else {
-							int x = containerGui.getGuiLeft() + s.BLOCK_ITEMS;
-							int y = containerGui.getGuiTop() + s.ATTACK_DAMAGE_MODIFIER_ID;
+							int x = containerGui.getGuiLeft() + s.x;
+							int y = containerGui.getGuiTop() + s.y;
 
 							RenderSystem.pushMatrix();
 							RenderSystem.disableDepthTest();
 							RenderSystem.translatef(0, 0, 500);
 							
-							mc.STATS_ICON_TEXTURE.a(event.getMatrixStack(), "+", x + 10, y + 8, 0xFFFF00);
+							mc.textRenderer.drawWithShadow(event.getMatrixStack(), "+", x + 10, y + 8, 0xFFFF00);
 							RenderSystem.enableDepthTest();
 							RenderSystem.popMatrix();
 						}
@@ -86,20 +86,20 @@ public final class DropInHandler {
 	@SubscribeEvent
 	@Environment(EnvType.CLIENT)
 	public static void onRightClick(GuiScreenEvent.MouseReleasedEvent.Pre event) {
-		RealmsInviteScreen mc = RealmsInviteScreen.B();
-		doq gui = mc.y;
-		if(gui instanceof ChatOptionsScreen && event.getButton() == 1) {
-			ChatOptionsScreen<?> container = (ChatOptionsScreen<?>) gui;
-			EndCrystalItem under = container.getSlotUnderMouse();
-			Wearable held = mc.showError.bm.m();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		Screen gui = mc.currentScreen;
+		if(gui instanceof HandledScreen && event.getButton() == 1) {
+			HandledScreen<?> container = (HandledScreen<?>) gui;
+			Slot under = container.getSlotUnderMouse();
+			ItemStack held = mc.player.inventory.getCursorStack();
 
-			if(under != null && !held.a()) {
-				Wearable stack = under.e();
+			if(under != null && !held.isEmpty()) {
+				ItemStack stack = under.getStack();
 				IDropInItem dropin = getDropInHandler(stack);
 				if(dropin != null) {
-					AutoRegLib.network.sendToServer(container instanceof AddServerScreen ?
+					AutoRegLib.network.sendToServer(container instanceof CreativeInventoryScreen ?
 							new MessageDropInCreative(under.getSlotIndex(), held) :
-							new MessageDropIn(under.d));
+							new MessageDropIn(under.id));
 
 					event.setCanceled(true);
 				}
@@ -107,53 +107,53 @@ public final class DropInHandler {
 		}
 	}
 
-	public static void executeDropIn(BoatEntity player, int slot) {
+	public static void executeDropIn(PlayerEntity player, int slot) {
 		if (player == null)
 			return;
 
-		RecipeInputProvider container = player.bp;
-		EndCrystalItem slotObj = container.a.get(slot);
-		Wearable target = slotObj.e();
+		ScreenHandler container = player.currentScreenHandler;
+		Slot slotObj = container.slots.get(slot);
+		ItemStack target = slotObj.getStack();
 		IDropInItem dropin = getDropInHandler(target);
 
-		Wearable stack = player.bm.m();
+		ItemStack stack = player.inventory.getCursorStack();
 
 		if(dropin != null && dropin.canDropItemIn(player, target, stack)) {
-			Wearable result = dropin.dropItemIn(player, target, stack);
-			slotObj.d(result);
-			player.bm.g(stack);
-			if (player instanceof DefaultResourcePack) {
-				((DefaultResourcePack) player).typeToFileSystem = false;
-				((DefaultResourcePack) player).n();
+			ItemStack result = dropin.dropItemIn(player, target, stack);
+			slotObj.setStack(result);
+			player.inventory.setCursorStack(stack);
+			if (player instanceof ServerPlayerEntity) {
+				((ServerPlayerEntity) player).skipPacketSlotUpdates = false;
+				((ServerPlayerEntity) player).updateCursorStack();
 			}
 		}
 	}
 
-	public static void executeCreativeDropIn(BoatEntity player, int slot, Wearable held) {
-		if (player == null || !player.b_())
+	public static void executeCreativeDropIn(PlayerEntity player, int slot, ItemStack held) {
+		if (player == null || !player.isCreative())
 			return;
 
-		Wearable target = player.bm.a(slot);
+		ItemStack target = player.inventory.getStack(slot);
 		IDropInItem dropin = getDropInHandler(target);
 
 		if(dropin != null && dropin.canDropItemIn(player, target, held)) {
-			Wearable result = dropin.dropItemIn(player, target, held);
-			player.bm.a(slot, result);
-			player.bm.g(held);
-			if (player instanceof DefaultResourcePack)
+			ItemStack result = dropin.dropItemIn(player, target, held);
+			player.inventory.setStack(slot, result);
+			player.inventory.setCursorStack(held);
+			if (player instanceof ServerPlayerEntity)
 				AutoRegLib.network.sendToPlayer(new MessageSetSelectedItem(held),
-					(DefaultResourcePack) player);
+					(ServerPlayerEntity) player);
 		}
 	}
 
 
-	public static IDropInItem getDropInHandler(Wearable stack) {
+	public static IDropInItem getDropInHandler(ItemStack stack) {
 		LazyOptional<IDropInItem> opt = stack.getCapability(DROP_IN_CAPABILITY, null);
 		if(opt.isPresent())
 			return opt.orElseGet(CapabilityFactory.DefaultImpl::new);
 
-		if(stack.b() instanceof IDropInItem)
-			return (IDropInItem) stack.b();
+		if(stack.getItem() instanceof IDropInItem)
+			return (IDropInItem) stack.getItem();
 
 		return null;
 	}
@@ -163,12 +163,12 @@ public final class DropInHandler {
 		private static CapabilityFactory INSTANCE = new CapabilityFactory(); 
 
 		@Override
-		public ParsableText writeNBT(Capability<IDropInItem> capability, IDropInItem instance, GlobalPos side) {
+		public Tag writeNBT(Capability<IDropInItem> capability, IDropInItem instance, Direction side) {
 			return null;
 		}
 
 		@Override
-		public void readNBT(Capability<IDropInItem> capability, IDropInItem instance, GlobalPos side, ParsableText nbt) {
+		public void readNBT(Capability<IDropInItem> capability, IDropInItem instance, Direction side, Tag nbt) {
 			// NO-OP
 		}
 
@@ -180,12 +180,12 @@ public final class DropInHandler {
 		private static class DefaultImpl implements IDropInItem {
 
 			@Override
-			public boolean canDropItemIn(BoatEntity player, Wearable stack, Wearable incoming) {
+			public boolean canDropItemIn(PlayerEntity player, ItemStack stack, ItemStack incoming) {
 				return false;
 			}
 
 			@Override
-			public Wearable dropItemIn(BoatEntity player, Wearable stack, Wearable incoming) {
+			public ItemStack dropItemIn(PlayerEntity player, ItemStack stack, ItemStack incoming) {
 				return incoming;
 			}
 

@@ -12,28 +12,29 @@ package vazkii.arl.util;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.feature.ShulkerHeadFeatureRenderer;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import doq;
+
 import java.util.List;
 
 public final class TooltipHandler {
 
 	@Environment(EnvType.CLIENT)
 	public static void tooltipIfShift(List<String> tooltip, Runnable r) {
-		if(doq.y())
+		if(Screen.hasShiftDown())
 			r.run();
 		else addToTooltip(tooltip, "arl.misc.shift_for_info");
 	}
 
 	@Environment(EnvType.CLIENT)
 	public static void addToTooltip(List<String> tooltip, String s, Object... format) {
-		s = ShulkerHeadFeatureRenderer.a(s).replaceAll("&", "\u00a7");
+		s = I18n.translate(s).replaceAll("&", "\u00a7");
 
 		Object[] formatVals = new String[format.length];
 		for(int i = 0; i < format.length; i++)
-			formatVals[i] = ShulkerHeadFeatureRenderer.a(format[i].toString()).replaceAll("&", "\u00a7");
+			formatVals[i] = I18n.translate(format[i].toString()).replaceAll("&", "\u00a7");
 
 		if(formatVals.length > 0)
 			s = String.format(s, formatVals);

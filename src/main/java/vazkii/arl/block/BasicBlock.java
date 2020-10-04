@@ -1,11 +1,11 @@
 package vazkii.arl.block;
 
-import net.minecraft.world.biome.WoodedBadlandsPlateauBiome;
+import net.minecraft.block.Block;
 import vazkii.arl.util.RegistryHelper;
 
-public class BasicBlock extends WoodedBadlandsPlateauBiome {
+public class BasicBlock extends Block {
 
-	public BasicBlock(String regname, c properties) {
+	public BasicBlock(String regname, Settings properties) {
 		super(properties);
 		
 		RegistryHelper.registerBlock(this, regname);

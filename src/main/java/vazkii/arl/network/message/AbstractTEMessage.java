@@ -10,24 +10,24 @@
  */
 package vazkii.arl.network.message;
 
-import net.minecraft.block.TripwireHookBlock;
-import net.minecraft.block.TurtleEggBlock;
-import net.minecraft.resource.ResourceNotFoundException;
-import net.minecraft.server.command.DatapackCommand;
-import net.minecraft.util.CuboidBlockIterator;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import vazkii.arl.network.IMessage;
 
-public abstract class AbstractTEMessage<T extends TripwireHookBlock> implements IMessage {
+public abstract class AbstractTEMessage<T extends BlockEntity> implements IMessage {
 
 	private static final long serialVersionUID = 4703277631856386752L;
 	
-	public CuboidBlockIterator pos;
-	public DatapackCommand typeExpected;
+	public BlockPos pos;
+	public Identifier typeExpected;
 	
 	public AbstractTEMessage() { }
 
-	public AbstractTEMessage(CuboidBlockIterator pos, TurtleEggBlock<T> type) {
+	public AbstractTEMessage(BlockPos pos, BlockEntityType<T> type) {
 		this.pos = pos;	
 		typeExpected = type.getRegistryName();
 	}
@@ -35,10 +35,10 @@ public abstract class AbstractTEMessage<T extends TripwireHookBlock> implements 
 	@SuppressWarnings({ "deprecation", "unchecked" })
 	@Override
 	public final boolean receive(Context context) {
-		ResourceNotFoundException world = context.getSender().u();
-		if(world.C(pos)) {
-			TripwireHookBlock tile = world.c(pos);
-			if(tile != null && tile.u().getRegistryName().equals(typeExpected))
+		ServerWorld world = context.getSender().getServerWorld();
+		if(world.isChunkLoaded(pos)) {
+			BlockEntity tile = world.getBlockEntity(pos);
+			if(tile != null && tile.getType().getRegistryName().equals(typeExpected))
 				context.enqueueWork(() -> receive((T) tile, context));
 		}
 		

@@ -1,9 +1,9 @@
 package vazkii.arl.interf;
 
-import net.minecraft.util.UseAction;
+import net.minecraft.item.Item;
 
 public interface IItemPropertiesFiller {
 
-	void fillItemProperties(UseAction.a props);
+	void fillItemProperties(Item.Settings props);
 	
 }

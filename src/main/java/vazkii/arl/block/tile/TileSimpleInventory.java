@@ -11,57 +11,57 @@
 package vazkii.arl.block.tile;
 
 import javax.annotation.Nonnull;
-import net.minecraft.block.TurtleEggBlock;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.item.Wearable;
-import net.minecraft.network.PacketDeflater;
-import net.minecraft.network.listener.PacketListener;
-import net.minecraft.util.dynamic.GlobalPos;
-import net.minecraft.util.math.Position;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.Direction;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.wrapper.SidedInvWrapper;
 
-public abstract class TileSimpleInventory extends TileMod implements SpawnReason {
+public abstract class TileSimpleInventory extends TileMod implements SidedInventory {
 
-	public TileSimpleInventory(TurtleEggBlock<?> tileEntityTypeIn) {
+	public TileSimpleInventory(BlockEntityType<?> tileEntityTypeIn) {
 		super(tileEntityTypeIn);
 	}
 
-	protected Position<Wearable> inventorySlots = Position.a(Z_(), Wearable.b);
+	protected DefaultedList<ItemStack> inventorySlots = DefaultedList.ofSize(size(), ItemStack.EMPTY);
 	
 	@Override
-	public void readSharedNBT(PacketDeflater par1NBTTagCompound) {
+	public void readSharedNBT(CompoundTag par1NBTTagCompound) {
 		if(!needsToSyncInventory())
 			return;
 		
-		PacketListener var2 = par1NBTTagCompound.d("Items", 10);
-		Y_();
+		ListTag var2 = par1NBTTagCompound.getList("Items", 10);
+		clear();
 		for(int var3 = 0; var3 < var2.size(); ++var3) {
-			PacketDeflater var4 = var2.a(var3);
-			byte var5 = var4.f("Slot");
+			CompoundTag var4 = var2.getCompound(var3);
+			byte var5 = var4.getByte("Slot");
 			if (var5 >= 0 && var5 < inventorySlots.size())
-				inventorySlots.set(var5, Wearable.a(var4));
+				inventorySlots.set(var5, ItemStack.fromTag(var4));
 		}
 	}
 
 	@Override
-	public void writeSharedNBT(PacketDeflater par1NBTTagCompound) {
+	public void writeSharedNBT(CompoundTag par1NBTTagCompound) {
 		if(!needsToSyncInventory())
 			return;
 		
-		PacketListener var2 = new PacketListener();
+		ListTag var2 = new ListTag();
 		for (int var3 = 0; var3 < inventorySlots.size(); ++var3) {
-			if(!inventorySlots.get(var3).a()) {
-				PacketDeflater var4 = new PacketDeflater();
-				var4.a("Slot", (byte)var3);
-				inventorySlots.get(var3).b(var4);
+			if(!inventorySlots.get(var3).isEmpty()) {
+				CompoundTag var4 = new CompoundTag();
+				var4.putByte("Slot", (byte)var3);
+				inventorySlots.get(var3).toTag(var4);
 				var2.add(var4);
 			}
 		}
-		par1NBTTagCompound.a("Items", var2);
+		par1NBTTagCompound.put("Items", var2);
 	}
 	
 	protected boolean needsToSyncInventory() {
@@ -70,60 +70,60 @@ public abstract class TileSimpleInventory extends TileMod implements SpawnReason
 	
 	@Nonnull
 	@Override
-	public Wearable a(int i) {
+	public ItemStack getStack(int i) {
 		return inventorySlots.get(i);
 	}
 
 	@Nonnull
 	@Override
-	public Wearable a(int i, int j) {
-		if (!inventorySlots.get(i).a()) {
-			Wearable stackAt;
+	public ItemStack removeStack(int i, int j) {
+		if (!inventorySlots.get(i).isEmpty()) {
+			ItemStack stackAt;
 
-			if (inventorySlots.get(i).E() <= j) {
+			if (inventorySlots.get(i).getCount() <= j) {
 				stackAt = inventorySlots.get(i);
-				inventorySlots.set(i, Wearable.b);
+				inventorySlots.set(i, ItemStack.EMPTY);
 				inventoryChanged(i);
 				return stackAt;
 			} else {
-				stackAt = inventorySlots.get(i).a(j);
+				stackAt = inventorySlots.get(i).split(j);
 
-				if (inventorySlots.get(i).E() == 0)
-					inventorySlots.set(i, Wearable.b);
+				if (inventorySlots.get(i).getCount() == 0)
+					inventorySlots.set(i, ItemStack.EMPTY);
 				inventoryChanged(i);
 
 				return stackAt;
 			}
 		}
 
-		return Wearable.b;
+		return ItemStack.EMPTY;
 	}
 
 	@Nonnull
 	@Override
-	public Wearable b(int i) {
-		Wearable stack = a(i);
-		a(i, Wearable.b);
+	public ItemStack removeStack(int i) {
+		ItemStack stack = getStack(i);
+		setStack(i, ItemStack.EMPTY);
 		inventoryChanged(i);
 		return stack;
 	}
 
 	@Override
-	public void a(int i, @Nonnull Wearable itemstack) {
+	public void setStack(int i, @Nonnull ItemStack itemstack) {
 		inventorySlots.set(i, itemstack);
 		inventoryChanged(i);
 	}
 
 	@Override
-	public int V_() {
+	public int getMaxCountPerStack() {
 		return 64;
 	}
 	
 	@Override
-	public boolean c() {
-		for(int i = 0; i < Z_(); i++) {
-			Wearable stack = a(i);
-			if(!stack.a())
+	public boolean isEmpty() {
+		for(int i = 0; i < size(); i++) {
+			ItemStack stack = getStack(i);
+			if(!stack.isEmpty())
 				return false;
 		}
 			
@@ -131,13 +131,13 @@ public abstract class TileSimpleInventory extends TileMod implements SpawnReason
 	}
 
 	@Override
-	public boolean a(@Nonnull BoatEntity entityplayer) {
-		return v().c(o()) == this && entityplayer.h(NORTH_SHAPE.getX() + 0.5D, NORTH_SHAPE.getY() + 0.5D, NORTH_SHAPE.getZ() + 0.5D) <= 64;
+	public boolean canPlayerUse(@Nonnull PlayerEntity entityplayer) {
+		return getWorld().getBlockEntity(getPos()) == this && entityplayer.squaredDistanceTo(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64;
 	}
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, GlobalPos facing) {
+	public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, Direction facing) {
 		if(capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)
 			return (LazyOptional<T>) LazyOptional.of(() -> new SidedInvWrapper(this, facing));
 		
@@ -145,23 +145,23 @@ public abstract class TileSimpleInventory extends TileMod implements SpawnReason
 	}
 
 	@Override
-	public boolean b(int i, @Nonnull Wearable itemstack) {
+	public boolean isValid(int i, @Nonnull ItemStack itemstack) {
 		return true;
 	}
 
 	@Override
-	public void c_(@Nonnull BoatEntity player) {
+	public void onOpen(@Nonnull PlayerEntity player) {
 		// NO-OP
 	}
 
 	@Override
-	public void b_(@Nonnull BoatEntity player) {
+	public void onClose(@Nonnull PlayerEntity player) {
 		// NO-OP
 	}
 
 	@Override
-	public void Y_() {
-		inventorySlots = Position.a(Z_(), Wearable.b);
+	public void clear() {
+		inventorySlots = DefaultedList.ofSize(size(), ItemStack.EMPTY);
 	}
 
 	public void inventoryChanged(int i) {
@@ -173,20 +173,20 @@ public abstract class TileSimpleInventory extends TileMod implements SpawnReason
 	}
 
 	@Override
-	public boolean b(int index, @Nonnull Wearable stack, @Nonnull GlobalPos direction) {
+	public boolean canExtract(int index, @Nonnull ItemStack stack, @Nonnull Direction direction) {
 		return isAutomationEnabled();
 	}
 
 	@Override
-	public boolean a(int index, @Nonnull Wearable itemStackIn, @Nonnull GlobalPos direction) {
+	public boolean canInsert(int index, @Nonnull ItemStack itemStackIn, @Nonnull Direction direction) {
 		return isAutomationEnabled();
 	}
 
 	@Nonnull
 	@Override
-	public int[] a(@Nonnull GlobalPos side) {
+	public int[] getAvailableSlots(@Nonnull Direction side) {
 		if(isAutomationEnabled()) {
-			int[] slots = new int[Z_()];
+			int[] slots = new int[size()];
 			for(int i = 0; i < slots.length; i++)
 				slots[i] = i;
 			return slots;

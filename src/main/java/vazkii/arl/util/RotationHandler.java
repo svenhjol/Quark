@@ -1,36 +1,36 @@
 package vazkii.arl.util;
 
-import net.minecraft.util.BlockMirror;
-import net.minecraft.util.dynamic.GlobalPos;
+import net.minecraft.util.BlockRotation;
+import net.minecraft.util.math.Direction;
 
 public final class RotationHandler {
 
-	private static final BlockMirror[] FACING_TO_ROTATION = new BlockMirror[] {
-			BlockMirror.NONE,
-			BlockMirror.NONE,
-			BlockMirror.NONE,
-			BlockMirror.FRONT_BACK,
-			BlockMirror.directionTransformation,
-			BlockMirror.LEFT_RIGHT
+	private static final BlockRotation[] FACING_TO_ROTATION = new BlockRotation[] {
+			BlockRotation.NONE,
+			BlockRotation.NONE,
+			BlockRotation.NONE,
+			BlockRotation.CLOCKWISE_180,
+			BlockRotation.COUNTERCLOCKWISE_90,
+			BlockRotation.CLOCKWISE_90
 	};
 
-	public static GlobalPos rotateFacing(GlobalPos facing, BlockMirror rot) {
-		return rot.a(facing);
+	public static Direction rotateFacing(Direction facing, BlockRotation rot) {
+		return rot.rotate(facing);
 	}
 
-	public static GlobalPos rotateFacing(GlobalPos facing, GlobalPos rot) {
+	public static Direction rotateFacing(Direction facing, Direction rot) {
 		return rotateFacing(facing, getRotationFromFacing(rot));
 	}
 
-	public static BlockMirror getRotationFromFacing(GlobalPos facing) {
+	public static BlockRotation getRotationFromFacing(Direction facing) {
 		return FACING_TO_ROTATION[facing.ordinal()];
 	}
 
-	public static int[] applyRotation(BlockMirror rot, int x, int z) {
+	public static int[] applyRotation(BlockRotation rot, int x, int z) {
 		switch(rot) {
-			case FRONT_BACK: return new int[] { -x, -z }; 
-			case LEFT_RIGHT: return new int[] { z, -x };
-			case directionTransformation: return new int[] { -z, x };
+			case CLOCKWISE_180: return new int[] { -x, -z }; 
+			case CLOCKWISE_90: return new int[] { z, -x };
+			case COUNTERCLOCKWISE_90: return new int[] { -z, x };
 			default: return new int[] { x, z };
 		}
 	}

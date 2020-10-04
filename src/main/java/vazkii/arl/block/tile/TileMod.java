@@ -11,41 +11,42 @@
 package vazkii.arl.block.tile;
 
 import javax.annotation.Nonnull;
-import net.minecraft.block.TripwireHookBlock;
-import net.minecraft.block.TurtleEggBlock;
-import net.minecraft.client.block.ChestAnimationProgress;
-import net.minecraft.network.PacketDeflater;
-import net.minecraft.network.packet.s2c.play.LightUpdateS2CPacket;
-import net.minecraft.text.LiteralText;
+
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.ClientConnection;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import vazkii.arl.util.VanillaPacketDispatcher;
 
-public abstract class TileMod extends TripwireHookBlock {
+public abstract class TileMod extends BlockEntity {
 
-	public TileMod(TurtleEggBlock<?> tileEntityTypeIn) {
+	public TileMod(BlockEntityType<?> tileEntityTypeIn) {
 		super(tileEntityTypeIn);
 	}
 
 	@Nonnull
 	@Override
-	public PacketDeflater a(PacketDeflater par1nbtTagCompound) {
-		PacketDeflater nbt = super.a(par1nbtTagCompound);
+	public CompoundTag toTag(CompoundTag par1nbtTagCompound) {
+		CompoundTag nbt = super.toTag(par1nbtTagCompound);
 
 		writeSharedNBT(par1nbtTagCompound);
 		return nbt;
 	}
 
 	@Override
-	public void a(ChestAnimationProgress p_230337_1_, PacketDeflater p_230337_2_) {
-		super.a(p_230337_1_, p_230337_2_);
+	public void fromTag(BlockState p_230337_1_, CompoundTag p_230337_2_) {
+		super.fromTag(p_230337_1_, p_230337_2_);
 
 		readSharedNBT(p_230337_2_);
 	}
 
-	public void writeSharedNBT(PacketDeflater cmp) {
+	public void writeSharedNBT(CompoundTag cmp) {
 		// NO-OP
 	}
 
-	public void readSharedNBT(PacketDeflater cmp) {
+	public void readSharedNBT(CompoundTag cmp) {
 		// NO-OP
 	}
 	
@@ -54,16 +55,16 @@ public abstract class TileMod extends TripwireHookBlock {
 	}
 	
 	@Override
-	public LightUpdateS2CPacket a() {
-		PacketDeflater cmp = new PacketDeflater();
+	public BlockEntityUpdateS2CPacket toUpdatePacket() {
+		CompoundTag cmp = new CompoundTag();
 		writeSharedNBT(cmp);
-		return new LightUpdateS2CPacket(o(), 0, cmp);
+		return new BlockEntityUpdateS2CPacket(getPos(), 0, cmp);
 	}
 	
 	@Override
-	public void onDataPacket(LiteralText net, LightUpdateS2CPacket packet) {
+	public void onDataPacket(ClientConnection net, BlockEntityUpdateS2CPacket packet) {
 		super.onDataPacket(net, packet);
-		readSharedNBT(packet.d());
+		readSharedNBT(packet.getCompoundTag());
 	}
 
 }
