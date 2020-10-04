@@ -1,21 +1,21 @@
 package vazkii.quark.client.render.variant;
 
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.LlamaRenderer;
-import net.minecraft.entity.passive.horse.LlamaEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.LlamaEntityRenderer;
+import net.minecraft.entity.passive.LlamaEntity;
+import net.minecraft.util.Identifier;
 import vazkii.quark.client.module.VariantAnimalTexturesModule;
 import vazkii.quark.client.module.VariantAnimalTexturesModule.VariantTextureType;
 
-public class VariantLlamaRenderer extends LlamaRenderer {
+public class VariantLlamaRenderer extends LlamaEntityRenderer {
 
-	public VariantLlamaRenderer(EntityRendererManager renderManagerIn) {
+	public VariantLlamaRenderer(EntityRenderDispatcher renderManagerIn) {
 		super(renderManagerIn);
 	}
 
 	@Override
-	public ResourceLocation getEntityTexture(LlamaEntity entity) {
-		return VariantAnimalTexturesModule.getTextureOrShiny(entity, VariantTextureType.LLAMA, () -> super.getEntityTexture(entity));
+	public Identifier getTexture(LlamaEntity entity) {
+		return VariantAnimalTexturesModule.getTextureOrShiny(entity, VariantTextureType.LLAMA, () -> super.getTexture(entity));
 	}
 	
 }

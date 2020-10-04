@@ -3,7 +3,7 @@ package vazkii.quark.world.gen.underground;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.WorldAccess;
 import vazkii.quark.world.gen.UndergroundBiomeGenerator.Context;
 import vazkii.quark.world.module.underground.PermafrostUndergroundBiomeModule;
 
@@ -17,7 +17,7 @@ public class PermafrostUndergroundBiome extends BasicUndergroundBiome {
 	public void fillFloor(Context context, BlockPos pos, BlockState state) {
 		super.fillFloor(context, pos, state);
 
-		IWorld world = context.world;
+		WorldAccess world = context.world;
 		if(context.random.nextDouble() < 0.015) {
 			int height = 3 + context.random.nextInt(3);
 			for(int i = 0; i < height; i++) {

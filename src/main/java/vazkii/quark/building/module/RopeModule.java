@@ -3,16 +3,16 @@ package vazkii.quark.building.module;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DispenserBlock;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.OptionalDispenseBehavior;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
+import net.minecraft.block.dispenser.FallibleItemDispenserBehavior;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.math.BlockPointer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
@@ -36,42 +36,42 @@ public class RopeModule extends Module {
 	@Override
 	public void construct() {
 		rope = new RopeBlock("rope", this, ItemGroup.DECORATIONS,
-				Block.Properties.create(Material.WOOL, MaterialColor.BROWN)
-						.hardnessAndResistance(0.5f)
-						.sound(SoundType.CLOTH));
+				Block.Properties.of(Material.WOOL, MaterialColor.BROWN)
+						.strength(0.5f)
+						.sounds(BlockSoundGroup.WOOL));
 	}
 	
 	@Override
 	public void configChanged() {
 		if(enableDispenserBehavior)
-			DispenserBlock.DISPENSE_BEHAVIOR_REGISTRY.put(rope.asItem(), new BehaviourRope());
+			DispenserBlock.BEHAVIORS.put(rope.asItem(), new BehaviourRope());
 		else
-			DispenserBlock.DISPENSE_BEHAVIOR_REGISTRY.remove(rope.asItem());
+			DispenserBlock.BEHAVIORS.remove(rope.asItem());
 	}
 	
-	public static class BehaviourRope extends OptionalDispenseBehavior {
+	public static class BehaviourRope extends FallibleItemDispenserBehavior {
 		
 		@Nonnull
 		@Override
-		protected ItemStack dispenseStack(IBlockSource source, ItemStack stack) {
+		protected ItemStack dispenseSilently(BlockPointer source, ItemStack stack) {
 			Direction facing = source.getBlockState().get(DispenserBlock.FACING);
 			BlockPos pos = source.getBlockPos().offset(facing);
 			World world = source.getWorld();
-			this.successful = false;
+			this.success = false;
 			
 			BlockState state = world.getBlockState(pos);
 			if(state.getBlock() == rope) {
 				if(((RopeBlock) rope).pullDown(world, pos)) {
-					this.successful = true;
-					stack.shrink(1);
+					this.success = true;
+					stack.decrement(1);
 					return stack;
 				}
-			} else if(world.isAirBlock(pos) && rope.getDefaultState().isValidPosition(world, pos)) {
-				SoundType soundtype = rope.getSoundType(state, world, pos, null);
+			} else if(world.isAir(pos) && rope.getDefaultState().canPlaceAt(world, pos)) {
+				BlockSoundGroup soundtype = rope.getSoundType(state, world, pos, null);
 				world.setBlockState(pos, rope.getDefaultState());
 				world.playSound(null, pos, soundtype.getPlaceSound(), SoundCategory.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
-				this.successful = true;
-				stack.shrink(1);
+				this.success = true;
+				stack.decrement(1);
 				
 				return stack;
 			}

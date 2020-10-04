@@ -3,7 +3,8 @@ package vazkii.quark.base.module;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.TextureStitchEvent;
@@ -34,7 +35,7 @@ public class Module {
 		// NO-OP
 	}
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void constructClient() {
 		// NO-OP
 	}
@@ -47,7 +48,7 @@ public class Module {
 		// NO-OP
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void configChangedClient() {
 		// NO-OP
 	}
@@ -60,22 +61,22 @@ public class Module {
 		// NO-OP
 	}
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		// NO-OP
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void modelRegistry() {
 		// NO-OP
 	}
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void textureStitch(TextureStitchEvent.Pre event) {
 		// NO-OP
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void postTextureStitch(TextureStitchEvent.Post event) {
 		// NO-OP
 	}

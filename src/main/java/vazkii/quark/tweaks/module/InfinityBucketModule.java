@@ -6,9 +6,8 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 
 import net.minecraft.block.DispenserBlock;
-import net.minecraft.dispenser.DefaultDispenseItemBehavior;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.IDispenseItemBehavior;
+import net.minecraft.block.dispenser.DispenserBehavior;
+import net.minecraft.block.dispenser.ItemDispenserBehavior;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
@@ -18,6 +17,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPointer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.event.AnvilUpdateEvent;
@@ -42,13 +42,13 @@ public class InfinityBucketModule extends Module {
 	@Override
 	public void loadComplete() {
 		if(enabled) {
-			IDispenseItemBehavior behaviour = new DefaultDispenseItemBehavior() {
-				private final DefaultDispenseItemBehavior field_239793_b_ = new DefaultDispenseItemBehavior();
+			DispenserBehavior behaviour = new ItemDispenserBehavior() {
+				private final ItemDispenserBehavior field_239793_b_ = new ItemDispenserBehavior();
 
 				@Override
-				public ItemStack dispenseStack(IBlockSource source, ItemStack stack) {
+				public ItemStack dispenseSilently(BlockPointer source, ItemStack stack) {
 					boolean returnItself = false;
-					if(enabled && EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) > 0) {
+					if(enabled && EnchantmentHelper.getLevel(Enchantments.INFINITY, stack) > 0) {
 						if(!allowDispensersToUse)
 							return field_239793_b_.dispense(source, stack);;
 						
@@ -60,15 +60,15 @@ public class InfinityBucketModule extends Module {
 					
 					BlockPos blockpos = source.getBlockPos().offset(source.getBlockState().get(DispenserBlock.FACING));
 					World world = source.getWorld();
-					if(bucketitem.tryPlaceContainedLiquid(null, world, blockpos, null)) {
-						bucketitem.onLiquidPlaced(world, stack, blockpos);
+					if(bucketitem.placeFluid(null, world, blockpos, null)) {
+						bucketitem.onEmptied(world, stack, blockpos);
 						return returnItself ? copy : new ItemStack(Items.BUCKET);
 					} else
 						return field_239793_b_.dispense(source, stack);
 				}
 			};
 			
-			Map<Item, IDispenseItemBehavior> registry = DispenserBlock.DISPENSE_BEHAVIOR_REGISTRY;
+			Map<Item, DispenserBehavior> registry = DispenserBlock.BEHAVIORS;
 			registry.put(Items.WATER_BUCKET, behaviour);
 		}
 	}
@@ -78,12 +78,12 @@ public class InfinityBucketModule extends Module {
 		ItemStack left = event.getLeft();
 		ItemStack right = event.getRight();
 
-		if(left.getItem() == Items.WATER_BUCKET && right.getItem() == Items.ENCHANTED_BOOK && EnchantmentHelper.getEnchantments(right).get(Enchantments.INFINITY) > 0) {
+		if(left.getItem() == Items.WATER_BUCKET && right.getItem() == Items.ENCHANTED_BOOK && EnchantmentHelper.get(right).get(Enchantments.INFINITY) > 0) {
 			ItemStack result = left.copy();
 
 			Map<Enchantment, Integer> map = new HashMap<>();
 			map.put(Enchantments.INFINITY, 1);
-			EnchantmentHelper.setEnchantments(map, result);
+			EnchantmentHelper.set(map, result);
 
 			event.setOutput(result);
 			event.setCost(cost);
@@ -100,16 +100,16 @@ public class InfinityBucketModule extends Module {
 			Pair<PlayerEntity, Hand> pair = Pair.of(player, hand);
 
 			if(bukkitPlayers.containsKey(pair)) {
-				ItemStack curr = player.getHeldItem(hand);
+				ItemStack curr = player.getStackInHand(hand);
 				if(curr.getItem() == Items.BUCKET)
-					player.setHeldItem(hand, bukkitPlayers.get(pair));
+					player.setStackInHand(hand, bukkitPlayers.get(pair));
 
 				bukkitPlayers.remove(pair);
 			}
 		}		
 		for(Hand hand : Hand.values()) {
-			ItemStack stack = player.getHeldItem(hand);
-			if(stack.getItem() == Items.WATER_BUCKET && EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) > 0)
+			ItemStack stack = player.getStackInHand(hand);
+			if(stack.getItem() == Items.WATER_BUCKET && EnchantmentHelper.getLevel(Enchantments.INFINITY, stack) > 0)
 				bukkitPlayers.put(Pair.of(player, hand), stack.copy());
 		}
 	}

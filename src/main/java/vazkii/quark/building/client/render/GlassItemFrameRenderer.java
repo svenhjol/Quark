@@ -1,42 +1,42 @@
 package vazkii.quark.building.client.render;
 
 import java.util.List;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.datafixers.util.Pair;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.Atlases;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.ItemFrameRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.model.ModelBakery;
-import net.minecraft.client.renderer.model.ModelManager;
-import net.minecraft.client.renderer.model.ModelRenderer;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
-import net.minecraft.client.renderer.texture.AtlasTexture;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.tileentity.BannerTileEntityRenderer;
+import net.minecraft.block.entity.BannerBlockEntity;
+import net.minecraft.block.entity.BannerPattern;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.TexturedRenderLayers;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.BlockRenderManager;
+import net.minecraft.client.render.block.entity.BannerBlockEntityRenderer;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.ItemFrameEntityRenderer;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.BakedModelManager;
+import net.minecraft.client.render.model.ModelLoader;
+import net.minecraft.client.render.model.json.ModelTransformation;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.util.ModelIdentifier;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.item.ItemFrameEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.BannerItem;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
-import net.minecraft.tileentity.BannerPattern;
-import net.minecraft.tileentity.BannerTileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.storage.MapData;
+import net.minecraft.item.map.MapState;
+import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderItemInFrameEvent;
@@ -49,44 +49,44 @@ import vazkii.quark.building.entity.GlassItemFrameEntity;
  * Created at 11:58 AM on 8/25/19.
  */
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class GlassItemFrameRenderer extends EntityRenderer<GlassItemFrameEntity> {
 
-	private static final ModelResourceLocation LOCATION_MODEL = new ModelResourceLocation(new ResourceLocation(Quark.MOD_ID, "glass_frame"), "inventory");
+	private static final ModelIdentifier LOCATION_MODEL = new ModelIdentifier(new Identifier(Quark.MOD_ID, "glass_frame"), "inventory");
 
-	private static BannerTileEntity banner = new BannerTileEntity();
-	private final ModelRenderer bannerModel;
+	private static BannerBlockEntity banner = new BannerBlockEntity();
+	private final ModelPart bannerModel;
 	
-	private final Minecraft mc = Minecraft.getInstance();
+	private final MinecraftClient mc = MinecraftClient.getInstance();
 	private final ItemRenderer itemRenderer;
-	private final ItemFrameRenderer defaultRenderer;
+	private final ItemFrameEntityRenderer defaultRenderer;
 
-	public GlassItemFrameRenderer(EntityRendererManager renderManagerIn, ItemRenderer itemRendererIn) {
+	public GlassItemFrameRenderer(EntityRenderDispatcher renderManagerIn, ItemRenderer itemRendererIn) {
 		super(renderManagerIn);
-		bannerModel = BannerTileEntityRenderer.func_228836_a_();
+		bannerModel = BannerBlockEntityRenderer.createBanner();
 		this.itemRenderer = itemRendererIn;
-		this.defaultRenderer = (ItemFrameRenderer) renderManagerIn.renderers.get(EntityType.ITEM_FRAME);
+		this.defaultRenderer = (ItemFrameEntityRenderer) renderManagerIn.renderers.get(EntityType.ITEM_FRAME);
 	}
 
 	@Override
-	public void render(GlassItemFrameEntity p_225623_1_, float p_225623_2_, float p_225623_3_, MatrixStack p_225623_4_, IRenderTypeBuffer p_225623_5_, int p_225623_6_) {
+	public void render(GlassItemFrameEntity p_225623_1_, float p_225623_2_, float p_225623_3_, MatrixStack p_225623_4_, VertexConsumerProvider p_225623_5_, int p_225623_6_) {
 		super.render(p_225623_1_, p_225623_2_, p_225623_3_, p_225623_4_, p_225623_5_, p_225623_6_);
 		p_225623_4_.push();
 		Direction direction = p_225623_1_.getHorizontalFacing();
-		Vector3d Vector3d = this.getRenderOffset(p_225623_1_, p_225623_3_);
+		Vec3d Vector3d = this.getRenderOffset(p_225623_1_, p_225623_3_);
 		p_225623_4_.translate(-Vector3d.getX(), -Vector3d.getY(), -Vector3d.getZ());
-		p_225623_4_.translate((double)direction.getXOffset() * 0.46875D, (double)direction.getYOffset() * 0.46875D, (double)direction.getZOffset() * 0.46875D);
-		p_225623_4_.rotate(Vector3f.XP.rotationDegrees(p_225623_1_.rotationPitch));
-		p_225623_4_.rotate(Vector3f.YP.rotationDegrees(180.0F - p_225623_1_.rotationYaw));
-		BlockRendererDispatcher blockrendererdispatcher = this.mc.getBlockRendererDispatcher();
-		ModelManager modelmanager = blockrendererdispatcher.getBlockModelShapes().getModelManager();
+		p_225623_4_.translate((double)direction.getOffsetX() * 0.46875D, (double)direction.getOffsetY() * 0.46875D, (double)direction.getOffsetZ() * 0.46875D);
+		p_225623_4_.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(p_225623_1_.pitch));
+		p_225623_4_.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion(180.0F - p_225623_1_.yaw));
+		BlockRenderManager blockrendererdispatcher = this.mc.getBlockRenderManager();
+		BakedModelManager modelmanager = blockrendererdispatcher.getModels().getModelManager();
 
-		ItemStack itemstack = p_225623_1_.getDisplayedItem();
+		ItemStack itemstack = p_225623_1_.getHeldItemStack();
 
 		if (itemstack.isEmpty()) {
 			p_225623_4_.push();
 			p_225623_4_.translate(-0.5D, -0.5D, -0.5D);
-			blockrendererdispatcher.getBlockModelRenderer().renderModelBrightnessColor(p_225623_4_.getLast(), p_225623_5_.getBuffer(Atlases.getCutoutBlockType()), (BlockState)null, modelmanager.getModel(LOCATION_MODEL), 1.0F, 1.0F, 1.0F, p_225623_6_, OverlayTexture.NO_OVERLAY);
+			blockrendererdispatcher.getModelRenderer().render(p_225623_4_.peek(), p_225623_5_.getBuffer(TexturedRenderLayers.getEntityCutout()), (BlockState)null, modelmanager.getModel(LOCATION_MODEL), 1.0F, 1.0F, 1.0F, p_225623_6_, OverlayTexture.DEFAULT_UV);
 			p_225623_4_.pop();
 		} else {
 			renderItemStack(p_225623_1_, p_225623_2_, p_225623_3_, p_225623_4_, p_225623_5_, p_225623_6_, itemstack);
@@ -96,20 +96,20 @@ public class GlassItemFrameRenderer extends EntityRenderer<GlassItemFrameEntity>
 	}
 
 	@Override
-	public Vector3d getRenderOffset(GlassItemFrameEntity p_225627_1_, float p_225627_2_) {
-		return new Vector3d((double)((float)p_225627_1_.getHorizontalFacing().getXOffset() * 0.3F), -0.25D, (double)((float)p_225627_1_.getHorizontalFacing().getZOffset() * 0.3F));
+	public Vec3d getRenderOffset(GlassItemFrameEntity p_225627_1_, float p_225627_2_) {
+		return new Vec3d((double)((float)p_225627_1_.getHorizontalFacing().getOffsetX() * 0.3F), -0.25D, (double)((float)p_225627_1_.getHorizontalFacing().getOffsetZ() * 0.3F));
 	}
 
 	@Override
-	public ResourceLocation getEntityTexture(GlassItemFrameEntity p_110775_1_) {
-		return AtlasTexture.LOCATION_BLOCKS_TEXTURE;
+	public Identifier getEntityTexture(GlassItemFrameEntity p_110775_1_) {
+		return SpriteAtlasTexture.BLOCK_ATLAS_TEX;
 	}
 
 	@Override
 	protected boolean canRenderName(GlassItemFrameEntity p_177070_1_) {
-		if (Minecraft.isGuiEnabled() && !p_177070_1_.getDisplayedItem().isEmpty() && p_177070_1_.getDisplayedItem().hasDisplayName() && this.renderManager.pointedEntity == p_177070_1_) {
-			double d0 = this.renderManager.squareDistanceTo(p_177070_1_);
-			float f = p_177070_1_.isDiscrete() ? 32.0F : 64.0F;
+		if (MinecraftClient.isHudEnabled() && !p_177070_1_.getHeldItemStack().isEmpty() && p_177070_1_.getHeldItemStack().hasCustomName() && this.dispatcher.targetedEntity == p_177070_1_) {
+			double d0 = this.dispatcher.getSquaredDistanceToCamera(p_177070_1_);
+			float f = p_177070_1_.isSneaky() ? 32.0F : 64.0F;
 			return d0 < (double)(f * f);
 		} else {
 			return false;
@@ -117,32 +117,32 @@ public class GlassItemFrameRenderer extends EntityRenderer<GlassItemFrameEntity>
 	}
 
 	@Override
-	protected void renderName(GlassItemFrameEntity p_225629_1_, ITextComponent p_225629_2_, MatrixStack p_225629_3_, IRenderTypeBuffer p_225629_4_, int p_225629_5_) {
-		super.renderName(p_225629_1_, p_225629_1_.getDisplayedItem().getDisplayName(), p_225629_3_, p_225629_4_, p_225629_5_);
+	protected void renderName(GlassItemFrameEntity p_225629_1_, Text p_225629_2_, MatrixStack p_225629_3_, VertexConsumerProvider p_225629_4_, int p_225629_5_) {
+		super.renderLabelIfPresent(p_225629_1_, p_225629_1_.getHeldItemStack().getName(), p_225629_3_, p_225629_4_, p_225629_5_);
 	}
 
-	protected void renderItemStack(ItemFrameEntity itemFrame, float p_225623_2_, float p_225623_3_, MatrixStack matrix, IRenderTypeBuffer buff, int p_225623_6_, ItemStack stack) {
+	protected void renderItemStack(ItemFrameEntity itemFrame, float p_225623_2_, float p_225623_3_, MatrixStack matrix, VertexConsumerProvider buff, int p_225623_6_, ItemStack stack) {
 		if (!stack.isEmpty()) {
 			matrix.push();
-			MapData mapdata = FilledMapItem.getMapData(stack, itemFrame.world);
+			MapState mapdata = FilledMapItem.getOrCreateMapState(stack, itemFrame.world);
 			int rotation = mapdata != null ? itemFrame.getRotation() % 4 * 2 : itemFrame.getRotation();
-			matrix.rotate(Vector3f.ZP.rotationDegrees((float) rotation * 360.0F / 8.0F));
+			matrix.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion((float) rotation * 360.0F / 8.0F));
 			if (!MinecraftForge.EVENT_BUS.post(new RenderItemInFrameEvent(itemFrame, defaultRenderer, matrix, buff, p_225623_6_))) {
 				if (mapdata != null) {
-					matrix.rotate(Vector3f.ZP.rotationDegrees(180.0F));
+					matrix.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(180.0F));
 					matrix.scale(0.0078125F, 0.0078125F, 0.0078125F);
 					matrix.translate(-64.0F, -64.0F, 64F);
-					this.mc.gameRenderer.getMapItemRenderer().renderMap(matrix, buff, mapdata, true, p_225623_6_);
+					this.mc.gameRenderer.getMapRenderer().draw(matrix, buff, mapdata, true, p_225623_6_);
 				} else {
 					float s = 1.5F;
 					if (stack.getItem() instanceof BannerItem) {
-						banner.loadFromItemStack(stack, ((BannerItem) stack.getItem()).getColor());
-						List<Pair<BannerPattern, DyeColor>> patterns = banner.getPatternList();
+						banner.readFrom(stack, ((BannerItem) stack.getItem()).getColor());
+						List<Pair<BannerPattern, DyeColor>> patterns = banner.getPatterns();
 
 						matrix.push();
 						matrix.translate(0.0001F, -0.5001F, 0.55F);
 						matrix.scale(0.799999F, 0.399999F, 0.5F);
-						BannerTileEntityRenderer.func_230180_a_(matrix, buff, p_225623_6_, OverlayTexture.NO_OVERLAY, bannerModel, ModelBakery.LOCATION_BANNER_BASE, true, patterns);
+						BannerBlockEntityRenderer.method_29999(matrix, buff, p_225623_6_, OverlayTexture.DEFAULT_UV, bannerModel, ModelLoader.BANNER_BASE, true, patterns);
 						matrix.pop();
 					}
 					else {
@@ -155,7 +155,7 @@ public class GlassItemFrameRenderer extends EntityRenderer<GlassItemFrameEntity>
 							matrix.scale(s, s, s);
 						}
 						matrix.scale(0.5F, 0.5F, 0.5F);
-						this.itemRenderer.renderItem(stack, ItemCameraTransforms.TransformType.FIXED, p_225623_6_, OverlayTexture.NO_OVERLAY, matrix, buff);
+						this.itemRenderer.renderItem(stack, ModelTransformation.Mode.FIXED, p_225623_6_, OverlayTexture.DEFAULT_UV, matrix, buff);
 					}
 				}
 			}

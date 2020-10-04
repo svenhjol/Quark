@@ -8,34 +8,35 @@ import java.util.UUID;
 import org.lwjgl.opengl.GL11;
 
 import com.google.common.collect.ImmutableMap;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.StairsBlock;
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
+import net.minecraft.block.enums.BlockHalf;
+import net.minecraft.block.enums.SlabType;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.state.Property;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.state.properties.Half;
-import net.minecraft.state.properties.SlabType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.state.property.Properties;
+import net.minecraft.state.property.Property;
+import net.minecraft.text.KeybindText;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.hit.HitResult.Type;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.RayTraceResult.Type;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.KeybindTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -64,10 +65,10 @@ public class LockRotationModule extends Module {
 
 	private static final HashMap<UUID, LockProfile> lockProfiles = new HashMap<>();
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private LockProfile clientProfile;
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private KeyBinding keybind;
 
 	@Override
@@ -81,22 +82,22 @@ public class LockRotationModule extends Module {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		keybind = ModKeybindHandler.init("lock_rotation", "k", ModKeybindHandler.MISC_GROUP);
 	}
 
-	public static BlockState fixBlockRotation(BlockState state, BlockItemUseContext ctx) {
+	public static BlockState fixBlockRotation(BlockState state, ItemPlacementContext ctx) {
 		if (state == null || ctx.getPlayer() == null || !ModuleLoader.INSTANCE.isModuleEnabled(LockRotationModule.class))
 			return state;
 
-		UUID uuid = ctx.getPlayer().getUniqueID();
+		UUID uuid = ctx.getPlayer().getUuid();
 		if(lockProfiles.containsKey(uuid)) {
 			LockProfile profile = lockProfiles.get(uuid);
-			BlockState transformed = getRotatedState(ctx.getWorld(), ctx.getPos(), state, profile.facing.getOpposite(), profile.half);
+			BlockState transformed = getRotatedState(ctx.getWorld(), ctx.getBlockPos(), state, profile.facing.getOpposite(), profile.half);
 			
 			if(!transformed.equals(state))
-				return Block.getValidBlockForPosition(transformed, ctx.getWorld(), ctx.getPos());
+				return Block.postProcessState(transformed, ctx.getWorld(), ctx.getBlockPos());
 		}
 
 		return state;
@@ -104,7 +105,7 @@ public class LockRotationModule extends Module {
 
 	public static BlockState getRotatedState(World world, BlockPos pos, BlockState state, Direction face, int half) {
 		BlockState setState = state;
-		ImmutableMap<Property<?>, Comparable<?>> props = state.getValues();
+		ImmutableMap<Property<?>, Comparable<?>> props = state.getEntries();
 		Block block = state.getBlock();
 
 
@@ -112,37 +113,37 @@ public class LockRotationModule extends Module {
 			setState = ((IRotationLockable) block).applyRotationLock(world, pos, state, face, half);
 		
 		// General Facing
-		else if(props.containsKey(BlockStateProperties.FACING))
-			setState = state.with(BlockStateProperties.FACING, face);
+		else if(props.containsKey(Properties.FACING))
+			setState = state.with(Properties.FACING, face);
 
 		// Vertical Slabs
 		else if (props.containsKey(VerticalSlabBlock.TYPE) && props.get(VerticalSlabBlock.TYPE) != VerticalSlabType.DOUBLE && face.getAxis() != Axis.Y)
 			setState = state.with(VerticalSlabBlock.TYPE, Objects.requireNonNull(VerticalSlabType.fromDirection(face)));
 
 		// Horizontal Facing
-		else if(props.containsKey(BlockStateProperties.HORIZONTAL_FACING) && face.getAxis() != Axis.Y) {
+		else if(props.containsKey(Properties.HORIZONTAL_FACING) && face.getAxis() != Axis.Y) {
 			if(block instanceof StairsBlock)
-				setState = state.with(BlockStateProperties.HORIZONTAL_FACING, face.getOpposite());
-			else setState = state.with(BlockStateProperties.HORIZONTAL_FACING, face);
+				setState = state.with(Properties.HORIZONTAL_FACING, face.getOpposite());
+			else setState = state.with(Properties.HORIZONTAL_FACING, face);
 		} 
 
 		// Pillar Axis
-		else if(props.containsKey(BlockStateProperties.AXIS))
-			setState = state.with(BlockStateProperties.AXIS, face.getAxis());
+		else if(props.containsKey(Properties.AXIS))
+			setState = state.with(Properties.AXIS, face.getAxis());
 
 		// Hopper Facing
-		else if(props.containsKey(BlockStateProperties.FACING_EXCEPT_UP))
-			setState = state.with(BlockStateProperties.FACING_EXCEPT_UP, face == Direction.DOWN ? face : face.getOpposite());
+		else if(props.containsKey(Properties.HOPPER_FACING))
+			setState = state.with(Properties.HOPPER_FACING, face == Direction.DOWN ? face : face.getOpposite());
 
 		// Half
 		if(half != -1) {
 			// Slab type
-			if(props.containsKey(BlockStateProperties.SLAB_TYPE) && props.get(BlockStateProperties.SLAB_TYPE) != SlabType.DOUBLE)
-				setState = setState.with(BlockStateProperties.SLAB_TYPE, half == 1 ? SlabType.TOP : SlabType.BOTTOM);
+			if(props.containsKey(Properties.SLAB_TYPE) && props.get(Properties.SLAB_TYPE) != SlabType.DOUBLE)
+				setState = setState.with(Properties.SLAB_TYPE, half == 1 ? SlabType.TOP : SlabType.BOTTOM);
 			
 			// Half (stairs)
-			else if(props.containsKey(BlockStateProperties.HALF))
-				setState = setState.with(BlockStateProperties.HALF, half == 1 ? Half.TOP : Half.BOTTOM);
+			else if(props.containsKey(Properties.BLOCK_HALF))
+				setState = setState.with(Properties.BLOCK_HALF, half == 1 ? BlockHalf.TOP : BlockHalf.BOTTOM);
 		}
 		
 		return setState;
@@ -150,32 +151,32 @@ public class LockRotationModule extends Module {
 
 	@SubscribeEvent
 	public void onPlayerLogoff(PlayerLoggedOutEvent event) {
-		lockProfiles.remove(event.getPlayer().getUniqueID());
+		lockProfiles.remove(event.getPlayer().getUuid());
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onMouseInput(InputEvent.MouseInputEvent event) {
 		acceptInput();
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onKeyInput(InputEvent.KeyInputEvent event) {
 		acceptInput();
 	}
 
 	private void acceptInput() {
-		Minecraft mc = Minecraft.getInstance();
-		boolean down = keybind.isKeyDown();
-		if(mc.isGameFocused() && down) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		boolean down = keybind.isPressed();
+		if(mc.isWindowFocused() && down) {
 			LockProfile newProfile;
-			RayTraceResult result = mc.objectMouseOver;
+			HitResult result = mc.crosshairTarget;
 
-			if(result instanceof BlockRayTraceResult && result.getType() == Type.BLOCK) {
-				BlockRayTraceResult bresult = (BlockRayTraceResult) result;
-				Vector3d hitVec = bresult.getHitVec();
-				Direction face = bresult.getFace();
+			if(result instanceof BlockHitResult && result.getType() == Type.BLOCK) {
+				BlockHitResult bresult = (BlockHitResult) result;
+				Vec3d hitVec = bresult.getPos();
+				Direction face = bresult.getSide();
 
 				int half = (int) ((hitVec.y - (int) hitVec.y) * 2);
 				if(face.getAxis() == Axis.Y)
@@ -184,8 +185,8 @@ public class LockRotationModule extends Module {
 				newProfile = new LockProfile(face.getOpposite(), half);
 
 			} else {
-				Vector3d look = mc.player.getLookVec();
-				newProfile = new LockProfile(Direction.getFacingFromVector((float) look.x, (float) look.y, (float) look.z), -1);
+				Vec3d look = mc.player.getRotationVector();
+				newProfile = new LockProfile(Direction.getFacing((float) look.x, (float) look.y, (float) look.z), -1);
 			}
 
 			if(clientProfile != null && clientProfile.equals(newProfile))
@@ -196,10 +197,10 @@ public class LockRotationModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onHUDRender(RenderGameOverlayEvent.Post event) {
 		if(event.getType() == ElementType.ALL && clientProfile != null) {
-			Minecraft mc = Minecraft.getInstance();
+			MinecraftClient mc = MinecraftClient.getInstance();
 			MatrixStack matrix = event.getMatrixStack();
 			
 			RenderSystem.pushMatrix();
@@ -210,29 +211,29 @@ public class LockRotationModule extends Module {
 
 			mc.textureManager.bindTexture(MiscUtil.GENERAL_ICONS);
 
-			MainWindow window = event.getWindow();
+			Window window = event.getWindow();
 			int x = window.getScaledWidth() / 2 + 20;
 			int y = window.getScaledHeight() / 2 - 8;
-			Screen.blit(matrix, x, y, clientProfile.facing.ordinal() * 16, 65, 16, 16, 256, 256);
+			Screen.drawTexture(matrix, x, y, clientProfile.facing.ordinal() * 16, 65, 16, 16, 256, 256);
 
 			if(clientProfile.half > -1)
-				Screen.blit(matrix, x + 16, y, clientProfile.half * 16, 81, 16, 16, 256, 256);
+				Screen.drawTexture(matrix, x + 16, y, clientProfile.half * 16, 81, 16, 16, 256, 256);
 
 			RenderSystem.popMatrix();
 		}
 	}
 
 	public static void setProfile(PlayerEntity player, LockProfile profile) {
-		UUID uuid = player.getUniqueID();
+		UUID uuid = player.getUuid();
 		
 		if(profile == null)
 			lockProfiles.remove(uuid);
 		else {
 			boolean locked = player.getPersistentData().getBoolean(TAG_LOCKED_ONCE);
 			if(!locked) {
-				ITextComponent keybind = new KeybindTextComponent("quark.keybind.lock_rotation").func_240701_a_(TextFormatting.AQUA);
-				ITextComponent text = new TranslationTextComponent("quark.misc.rotation_lock", keybind);
-				player.sendMessage(text, UUID.randomUUID());
+				Text keybind = new KeybindText("quark.keybind.lock_rotation").formatted(Formatting.AQUA);
+				Text text = new TranslatableText("quark.misc.rotation_lock", keybind);
+				player.sendSystemMessage(text, UUID.randomUUID());
 
 				player.getPersistentData().putBoolean(TAG_LOCKED_ONCE, true);
 			}
@@ -251,22 +252,22 @@ public class LockRotationModule extends Module {
 			this.half = half;
 		}
 
-		public static LockProfile readProfile(PacketBuffer buf, Field field) {
+		public static LockProfile readProfile(PacketByteBuf buf, Field field) {
 			boolean valid = buf.readBoolean();
 			if(!valid)
 				return null;
 
 			int face = buf.readInt();
 			int half = buf.readInt();
-			return new LockProfile(Direction.byIndex(face), half);
+			return new LockProfile(Direction.byId(face), half);
 		}
 
-		public static void writeProfile(PacketBuffer buf, Field field, LockProfile p) {
+		public static void writeProfile(PacketByteBuf buf, Field field, LockProfile p) {
 			if(p == null)
 				buf.writeBoolean(false);
 			else {
 				buf.writeBoolean(true);
-				buf.writeInt(p.facing.getIndex());
+				buf.writeInt(p.facing.getId());
 				buf.writeInt(p.half);
 			}
 		}

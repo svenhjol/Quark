@@ -6,16 +6,16 @@ import java.util.Random;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.goal.RandomWalkingGoal;
-import net.minecraft.entity.monster.EndermiteEntity;
-import net.minecraft.entity.monster.ShulkerEntity;
-import net.minecraft.util.Direction;
+import net.minecraft.entity.ai.goal.WanderAroundGoal;
+import net.minecraft.entity.mob.EndermiteEntity;
+import net.minecraft.entity.mob.ShulkerEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import vazkii.quark.automation.module.EndermitesFormShulkersModule;
 
-public class FormShulkerGoal extends RandomWalkingGoal {
+public class FormShulkerGoal extends WanderAroundGoal {
 	
 	private final EndermiteEntity endermite;
 	private Direction facing;
@@ -24,21 +24,21 @@ public class FormShulkerGoal extends RandomWalkingGoal {
 	public FormShulkerGoal(EndermiteEntity endermite) {
 		super(endermite, 1.0D, 10);
 		this.endermite = endermite;
-		setMutexFlags(EnumSet.of(Flag.TARGET));
+		setControls(EnumSet.of(Control.TARGET));
 	}
 	
 	@Override
-	public boolean shouldExecute() {
-		if(endermite.getAttackTarget() != null)
+	public boolean canStart() {
+		if(endermite.getTarget() != null)
 			return false;
-		else if(!endermite.getNavigator().noPath())
+		else if(!endermite.getNavigation().isIdle())
 			return false;
 		else {
-			Random random = endermite.getRNG();
+			Random random = endermite.getRandom();
 
 			if(random.nextDouble() < EndermitesFormShulkersModule.chance) {
-				facing = Direction.func_239631_a_(random); // random
-				Vector3d pos = endermite.getPositionVec();
+				facing = Direction.random(random); // random
+				Vec3d pos = endermite.getPos();
 				BlockPos blockpos = (new BlockPos(pos.x, pos.y + 0.5D, pos.z)).offset(facing);
 				BlockState iblockstate = endermite.getEntityWorld().getBlockState(blockpos);
 
@@ -49,22 +49,22 @@ public class FormShulkerGoal extends RandomWalkingGoal {
 			}
 
 			doMerge = false;
-			return super.shouldExecute();
+			return super.canStart();
 		}
 	}
 
 	@Override
-	public boolean shouldContinueExecuting() {
-		return !doMerge && super.shouldContinueExecuting();
+	public boolean shouldContinue() {
+		return !doMerge && super.shouldContinue();
 	}
 	
 	@Override
-	public void startExecuting() {
+	public void start() {
 		if(!doMerge)
-			super.startExecuting();
+			super.start();
 		else {
 			World world = endermite.getEntityWorld();
-			Vector3d pos = endermite.getPositionVec();
+			Vec3d pos = endermite.getPos();
 			BlockPos blockpos = (new BlockPos(pos.x, pos.y + 0.5D, pos.z)).offset(facing);
 			BlockState iblockstate = world.getBlockState(blockpos);
 
@@ -72,13 +72,13 @@ public class FormShulkerGoal extends RandomWalkingGoal {
 				world.removeBlock(blockpos, false);
 
 				ShulkerEntity shulker = new ShulkerEntity(EntityType.SHULKER, world);
-				shulker.setAttachmentPos(blockpos);
-				shulker.setPosition(blockpos.getX() + 0.5, blockpos.getY() + 0.5, blockpos.getZ() + 0.5);
-				world.addEntity(shulker);
+				shulker.setAttachedBlock(blockpos);
+				shulker.updatePosition(blockpos.getX() + 0.5, blockpos.getY() + 0.5, blockpos.getZ() + 0.5);
+				world.spawnEntity(shulker);
 				
 				if(endermite.hasCustomName())
 					shulker.setCustomName(endermite.getCustomName());
-				endermite.spawnExplosionParticle();
+				endermite.playSpawnEffects();
 				endermite.remove();
 			}
 		}

@@ -4,21 +4,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.ai.goal.TemptGoal;
-import net.minecraft.entity.item.ExperienceOrbEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
+import net.minecraft.world.RayTraceContext;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -41,7 +41,7 @@ import vazkii.quark.base.module.config.Config;
  */
 @LoadModule(category = ModuleCategory.AUTOMATION, hasSubscriptions = true)
 public class FeedingTroughModule extends Module {
-    public static TileEntityType<FeedingTroughTileEntity> tileEntityType;
+    public static BlockEntityType<FeedingTroughTileEntity> tileEntityType;
 
     @Config(description = "How long, in game ticks, between animals being able to eat from the trough")
     @Config.Min(1)
@@ -65,7 +65,7 @@ public class FeedingTroughModule extends Module {
         if (event.side == LogicalSide.SERVER) {
             if (event.phase == TickEvent.Phase.START) {
                 breedingOccurred.remove();
-                for (TileEntity tile : event.world.loadedTileEntityList) {
+                for (BlockEntity tile : event.world.blockEntities) {
                     if (tile instanceof FeedingTroughTileEntity)
                         troughs.add((FeedingTroughTileEntity) tile);
                 }
@@ -94,12 +94,12 @@ public class FeedingTroughModule extends Module {
 
     public static PlayerEntity temptWithTroughs(TemptGoal goal, PlayerEntity found) {
         if (!ModuleLoader.INSTANCE.isModuleEnabled(FeedingTroughModule.class) ||
-                (found != null && (goal.isTempting(found.getHeldItemMainhand()) || goal.isTempting(found.getHeldItemOffhand()))))
+                (found != null && (goal.isTemptedBy(found.getMainHandStack()) || goal.isTemptedBy(found.getOffHandStack()))))
             return found;
 
-        if (!(goal.creature instanceof AnimalEntity) ||
-                !((AnimalEntity) goal.creature).canBreed() ||
-                ((AnimalEntity) goal.creature).getGrowingAge() != 0)
+        if (!(goal.mob instanceof AnimalEntity) ||
+                !((AnimalEntity) goal.mob).isReadyToBreed() ||
+                ((AnimalEntity) goal.mob).getBreedingAge() != 0)
             return found;
 
         double shortestDistanceSq = Double.MAX_VALUE;
@@ -109,7 +109,7 @@ public class FeedingTroughModule extends Module {
         Set<FeedingTroughTileEntity> troughs = loadedTroughs.get();
         for (FeedingTroughTileEntity tile : troughs) {
             BlockPos pos = tile.getPos();
-            double distanceSq = pos.distanceSq(goal.creature.getPositionVec(), true);
+            double distanceSq = pos.getSquaredDistance(goal.mob.getPos(), true);
             if (distanceSq <= range * range && distanceSq < shortestDistanceSq) {
                 FakePlayer foodHolder = tile.getFoodHolder(goal);
                 if (foodHolder != null) {
@@ -121,11 +121,11 @@ public class FeedingTroughModule extends Module {
         }
 
         if (target != null) {
-        	Vector3d eyesPos = goal.creature.getPositionVec().add(0, goal.creature.getEyeHeight(), 0);
-            Vector3d targetPos = new Vector3d(location.getX(), location.getY(), location.getZ()).add(0.5, 0.0625, 0.5);
-            BlockRayTraceResult ray = goal.creature.world.rayTraceBlocks(new RayTraceContext(eyesPos, targetPos, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, goal.creature));
+        	Vec3d eyesPos = goal.mob.getPos().add(0, goal.mob.getStandingEyeHeight(), 0);
+            Vec3d targetPos = new Vec3d(location.getX(), location.getY(), location.getZ()).add(0.5, 0.0625, 0.5);
+            BlockHitResult ray = goal.mob.world.rayTrace(new RayTraceContext(eyesPos, targetPos, RayTraceContext.ShapeType.COLLIDER, RayTraceContext.FluidHandling.NONE, goal.mob));
 
-            if (ray.getType() == RayTraceResult.Type.BLOCK && ray.getPos().equals(location))
+            if (ray.getType() == HitResult.Type.BLOCK && ray.getBlockPos().equals(location))
                 return target;
         }
 
@@ -135,8 +135,8 @@ public class FeedingTroughModule extends Module {
     @Override
     public void construct() {
         Block feedingTrough = new FeedingTroughBlock("feeding_trough", this, ItemGroup.DECORATIONS,
-                Block.Properties.create(Material.WOOD).hardnessAndResistance(0.6F).sound(SoundType.WOOD));
-        tileEntityType = TileEntityType.Builder.create(FeedingTroughTileEntity::new, feedingTrough).build(null);
+                Block.Properties.of(Material.WOOD).strength(0.6F).sounds(BlockSoundGroup.WOOD));
+        tileEntityType = BlockEntityType.Builder.create(FeedingTroughTileEntity::new, feedingTrough).build(null);
         RegistryHelper.register(tileEntityType, "feeding_trough");
     }
 }

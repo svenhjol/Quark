@@ -20,16 +20,16 @@ public class RaveGoal extends Goal {
 
 	public RaveGoal(CrabEntity crab) {
 		this.crab = crab;
-		this.setMutexFlags(EnumSet.of(Flag.MOVE, Flag.JUMP));
+		this.setControls(EnumSet.of(Control.MOVE, Control.JUMP));
 	}
 
 	@Override
-	public boolean shouldExecute() {
+	public boolean canStart() {
 		return crab.isRaving();
 	}
 
 	@Override
-	public void startExecuting() {
-		this.crab.getNavigator().clearPath();
+	public void start() {
+		this.crab.getNavigation().stop();
 	}
 }

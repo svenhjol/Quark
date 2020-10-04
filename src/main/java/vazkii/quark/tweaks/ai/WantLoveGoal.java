@@ -6,7 +6,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import vazkii.quark.tweaks.module.PatTheDogsModule;
 
 /**
@@ -18,7 +18,7 @@ public class WantLoveGoal extends Goal {
     private static final String PET_TIME = "quark:PetTime";
 
     public static void setPetTime(TameableEntity entity) {
-        entity.getPersistentData().putLong(PET_TIME, entity.world.getGameTime());
+        entity.getPersistentData().putLong(PET_TIME, entity.world.getTime());
     }
 
     public static boolean canPet(TameableEntity entity) {
@@ -37,7 +37,7 @@ public class WantLoveGoal extends Goal {
             return 0;
 
         long lastPetAt = entity.getPersistentData().getLong(PET_TIME);
-        return entity.world.getGameTime() - lastPetAt;
+        return entity.world.getTime() - lastPetAt;
     }
 
     private final TameableEntity creature;
@@ -47,10 +47,10 @@ public class WantLoveGoal extends Goal {
     public WantLoveGoal(TameableEntity creature, float leapMotion) {
         this.creature = creature;
         this.leapUpMotion = leapMotion;
-        this.setMutexFlags(EnumSet.of(Flag.MOVE, Flag.LOOK, Flag.JUMP, Flag.TARGET));
+        this.setControls(EnumSet.of(Control.MOVE, Control.LOOK, Control.JUMP, Control.TARGET));
     }
 
-    public boolean shouldExecute() {
+    public boolean canStart() {
         if (!needsPets(creature))
             return false;
 
@@ -59,28 +59,28 @@ public class WantLoveGoal extends Goal {
         if (this.leapTarget == null)
             return false;
         else {
-            double distanceToTarget = this.creature.getDistanceSq(this.leapTarget);
+            double distanceToTarget = this.creature.squaredDistanceTo(this.leapTarget);
 
             return 4 <= distanceToTarget && distanceToTarget <= 16 &&
-                    this.creature.onGround && this.creature.getRNG().nextInt(5) == 0;
+                    this.creature.onGround && this.creature.getRandom().nextInt(5) == 0;
         }
     }
 
-    public boolean shouldContinueExecuting() {
+    public boolean shouldContinue() {
         if (!WantLoveGoal.needsPets(creature))
             return false;
         return !this.creature.onGround;
     }
 
-    public void startExecuting() {
-    	Vector3d leapPos = leapTarget.getPositionVec();
-    	Vector3d creaturePos = creature.getPositionVec();
+    public void start() {
+    	Vec3d leapPos = leapTarget.getPos();
+    	Vec3d creaturePos = creature.getPos();
     	
         double dX = leapPos.x - creaturePos.x;
         double dZ = leapPos.z - creaturePos.z;
         float leapMagnitude = MathHelper.sqrt(dX * dX + dZ * dZ);
 
-        Vector3d motion = this.creature.getMotion();
+        Vec3d motion = this.creature.getVelocity();
 
         if (leapMagnitude >= 0.0001) {
             motion = motion.add(
@@ -91,7 +91,7 @@ public class WantLoveGoal extends Goal {
 
         motion = motion.add(0, leapUpMotion, 0);
 
-        this.creature.setMotion(motion);
+        this.creature.setVelocity(motion);
     }
 }
 

@@ -3,15 +3,15 @@ package vazkii.quark.tweaks.module;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -36,26 +36,26 @@ public class DirtToPathModule extends Module {
 		Direction facing = event.getFace();
 		World world = event.getWorld();
 		Hand hand = event.getHand();
-		ItemStack itemstack = player.getHeldItem(hand);
+		ItemStack itemstack = player.getStackInHand(hand);
 		BlockState state = world.getBlockState(pos);
 
-		if(itemstack.getItem() instanceof PickarangItem || !itemstack.getItem().getToolTypes(itemstack).contains(tool) && itemstack.getDestroySpeed(state) > 0)
+		if(itemstack.getItem() instanceof PickarangItem || !itemstack.getItem().getToolTypes(itemstack).contains(tool) && itemstack.getMiningSpeedMultiplier(state) > 0)
 			return;
 
-		if(facing != null && player.canPlayerEdit(pos.offset(facing), facing, itemstack)) {
+		if(facing != null && player.canPlaceOn(pos.offset(facing), facing, itemstack)) {
 			Block block = state.getBlock();
 
 			if(facing != Direction.DOWN && world.getBlockState(pos.up()).getMaterial() == Material.AIR && block == target) {
 				BlockState pathState = result.getDefaultState();
 				world.playSound(player, pos, SoundEvents.ITEM_SHOVEL_FLATTEN, SoundCategory.BLOCKS, 1.0F, 1.0F);
 
-				if(!world.isRemote) {
+				if(!world.isClient) {
 					world.setBlockState(pos, pathState, 11);
 					MiscUtil.damageStack(player, hand, itemstack, 1);
 				}
 
 				event.setCanceled(true);
-				event.setCancellationResult(ActionResultType.SUCCESS);
+				event.setCancellationResult(ActionResult.SUCCESS);
 			}
 		}
 	}

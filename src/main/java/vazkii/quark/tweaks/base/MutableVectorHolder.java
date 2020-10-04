@@ -1,6 +1,6 @@
 package vazkii.quark.tweaks.base;
 
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 
 /**
  * @author WireSegal
@@ -9,7 +9,7 @@ import net.minecraft.util.math.vector.Vector3d;
 public class MutableVectorHolder {
     public double x, y, z;
 
-    public void importFrom(Vector3d vec) {
+    public void importFrom(Vec3d vec) {
         x = vec.x;
         y = vec.y;
         z = vec.z;

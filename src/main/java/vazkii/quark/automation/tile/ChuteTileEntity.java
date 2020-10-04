@@ -2,11 +2,11 @@ package vazkii.quark.automation.tile;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  * @author WireSegal
  * Created at 10:18 AM on 9/29/19.
  */
-public class ChuteTileEntity extends TileEntity {
+public class ChuteTileEntity extends BlockEntity {
     public ChuteTileEntity() {
         super(ChuteModule.tileEntityType);
     }
@@ -57,8 +57,8 @@ public class ChuteTileEntity extends TileEntity {
 
             if(!simulate && world != null && !stack.isEmpty()) {
                 ItemEntity entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() - 0.5, pos.getZ() + 0.5, stack.copy());
-                entity.setMotion(0, 0, 0);
-                world.addEntity(entity);
+                entity.setVelocity(0, 0, 0);
+                world.spawnEntity(entity);
             }
 
             return ItemStack.EMPTY;

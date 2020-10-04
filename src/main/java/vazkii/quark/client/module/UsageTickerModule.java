@@ -5,22 +5,23 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.DiffuseLighting;
+import net.minecraft.client.util.Window;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.EquipmentSlot.Type;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.EquipmentSlotType.Group;
 import net.minecraft.item.ArrowItem;
 import net.minecraft.item.BowItem;
 import net.minecraft.item.CrossbowItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
-import net.minecraft.util.HandSide;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -54,33 +55,33 @@ public class UsageTickerModule extends Module {
 		elements = new ArrayList<>();
 		
 		if(enableMainHand)
-			elements.add(new TickerElement(EquipmentSlotType.MAINHAND));
+			elements.add(new TickerElement(EquipmentSlot.MAINHAND));
 		if(enableOffHand)
-			elements.add(new TickerElement(EquipmentSlotType.OFFHAND));
+			elements.add(new TickerElement(EquipmentSlot.OFFHAND));
 		if(enableArmor) {
-			elements.add(new TickerElement(EquipmentSlotType.HEAD));
-			elements.add(new TickerElement(EquipmentSlotType.CHEST));
-			elements.add(new TickerElement(EquipmentSlotType.LEGS));
-			elements.add(new TickerElement(EquipmentSlotType.FEET));
+			elements.add(new TickerElement(EquipmentSlot.HEAD));
+			elements.add(new TickerElement(EquipmentSlot.CHEST));
+			elements.add(new TickerElement(EquipmentSlot.LEGS));
+			elements.add(new TickerElement(EquipmentSlot.FEET));
 		}
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientTick(ClientTickEvent event) {
 		if(event.phase == Phase.START) {
-			Minecraft mc = Minecraft.getInstance();
+			MinecraftClient mc = MinecraftClient.getInstance();
 			if(mc.player != null)
 				elements.forEach((ticker) -> ticker.tick(mc.player));
 		}
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void renderHUD(RenderGameOverlayEvent.Post event) {
 		if(event.getType() == ElementType.HOTBAR) {
-			MainWindow window = event.getWindow();
-			PlayerEntity player = Minecraft.getInstance().player;
+			Window window = event.getWindow();
+			PlayerEntity player = MinecraftClient.getInstance().player;
 			float partial = event.getPartialTicks();
 			elements.forEach((ticker) -> ticker.render(window, player, invert, partial));
 		}
@@ -92,15 +93,15 @@ public class UsageTickerModule extends Module {
 		private static final int ANIM_TIME = 5;
 
 		public int liveTicks;
-		public final EquipmentSlotType slot;
+		public final EquipmentSlot slot;
 		public ItemStack currStack = ItemStack.EMPTY;
 		public int currCount;
 		
-		public TickerElement(EquipmentSlotType slot) {
+		public TickerElement(EquipmentSlot slot) {
 			this.slot = slot;
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public void tick(PlayerEntity player) {
 			ItemStack heldStack = getStack(player);
 			
@@ -128,8 +129,8 @@ public class UsageTickerModule extends Module {
 			currStack = heldStack;
 		}
 		
-		@OnlyIn(Dist.CLIENT)
-		public void render(MainWindow window, PlayerEntity player, boolean invert, float partialTicks) {
+		@Environment(EnvType.CLIENT)
+		public void render(Window window, PlayerEntity player, boolean invert, float partialTicks) {
 			if(liveTicks > 0) {
 				float animProgress; 
 				
@@ -143,21 +144,21 @@ public class UsageTickerModule extends Module {
 				float y = window.getScaledHeight() - anim;
 				
 				int barWidth = 190;
-				boolean armor = slot.getSlotType() == Group.ARMOR;
+				boolean armor = slot.getType() == Type.ARMOR;
 				
-				HandSide primary = player.getPrimaryHand();
-				HandSide ourSide = (armor != invert) ? primary : primary.opposite();
+				Arm primary = player.getMainArm();
+				Arm ourSide = (armor != invert) ? primary : primary.getOpposite();
 				
 				int slots = armor ? 4 : 2;
-				int index = slots - slot.getIndex() - 1;
-				float mul = ourSide == HandSide.LEFT ? -1 : 1;
+				int index = slots - slot.getEntitySlotId() - 1;
+				float mul = ourSide == Arm.LEFT ? -1 : 1;
 
-				if(ourSide != primary && !player.getHeldItem(Hand.OFF_HAND).isEmpty())
+				if(ourSide != primary && !player.getStackInHand(Hand.OFF_HAND).isEmpty())
 					barWidth += 58;
 				
-				Minecraft mc = Minecraft.getInstance();
+				MinecraftClient mc = MinecraftClient.getInstance();
 				x += (barWidth / 2f) * mul + index * 20;
-				if(ourSide == HandSide.LEFT) {
+				if(ourSide == Arm.LEFT) {
 					x -= slots * 20;
 					x += shiftLeft;
 				} else x += shiftRight;
@@ -166,28 +167,28 @@ public class UsageTickerModule extends Module {
 				
 				RenderSystem.pushMatrix();
 				RenderSystem.translatef(x, y, 0);
-				RenderHelper.enableStandardItemLighting();
-				mc.getItemRenderer().renderItemAndEffectIntoGUI(stack, 0, 0);
-				mc.getItemRenderer().renderItemOverlays(Minecraft.getInstance().fontRenderer, stack, 0, 0);
-				RenderHelper.disableStandardItemLighting();
+				DiffuseLighting.enable();
+				mc.getItemRenderer().renderInGuiWithOverrides(stack, 0, 0);
+				mc.getItemRenderer().renderGuiItemOverlay(MinecraftClient.getInstance().textRenderer, stack, 0, 0);
+				DiffuseLighting.disable();
 				RenderSystem.popMatrix();
 			}
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public boolean shouldChange(ItemStack currStack, ItemStack prevStack, int currentTotal, int pastTotal) {
-			return !prevStack.isItemEqual(currStack) || (currStack.isDamageable() && currStack.getDamage() != prevStack.getDamage()) || currentTotal != pastTotal;
+			return !prevStack.isItemEqualIgnoreDamage(currStack) || (currStack.isDamageable() && currStack.getDamage() != prevStack.getDamage()) || currentTotal != pastTotal;
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public ItemStack getStack(PlayerEntity player) {
-			return player.getItemStackFromSlot(slot);
+			return player.getEquippedStack(slot);
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public ItemStack getDisplayedStack(ItemStack stack, int count) {
 			boolean verifySize = true;
-			if((stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem) && EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) == 0) {
+			if((stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem) && EnchantmentHelper.getLevel(Enchantments.INFINITY, stack) == 0) {
 				stack = new ItemStack(Items.ARROW);
 				verifySize = false;
 			}
@@ -197,7 +198,7 @@ public class UsageTickerModule extends Module {
 				verifySize = false;
 			}
 			
-			if(!stack.isStackable() && slot.getSlotType() == Group.HAND)
+			if(!stack.isStackable() && slot.getType() == Type.HAND)
 				return ItemStack.EMPTY;
 			
 			if(verifySize && stack.isStackable() && count == stack.getCount())
@@ -206,7 +207,7 @@ public class UsageTickerModule extends Module {
 			return stack;
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public ItemStack getRenderedStack(PlayerEntity player) {
 			ItemStack stack = getStack(player);
 			int count = getStackCount(player, stack);
@@ -218,19 +219,19 @@ public class UsageTickerModule extends Module {
 			return displayStack;
 		}
 		
-		@OnlyIn(Dist.CLIENT)
+		@Environment(EnvType.CLIENT)
 		public int getStackCount(PlayerEntity player, ItemStack stack) {
 			if(!stack.isStackable())
 				return 1;
 			
-			Predicate<ItemStack> predicate = (stackAt) -> ItemStack.areItemsEqual(stackAt, stack) && ItemStack.areItemStackTagsEqual(stackAt, stack);
+			Predicate<ItemStack> predicate = (stackAt) -> ItemStack.areItemsEqualIgnoreDamage(stackAt, stack) && ItemStack.areTagsEqual(stackAt, stack);
 			
 			if(stack.getItem() == Items.ARROW)
 				predicate = (stackAt) -> stackAt.getItem() instanceof ArrowItem;
 			
 			int total = 0;
-			for(int i = 0; i < player.inventory.getSizeInventory(); i++) {
-				ItemStack stackAt = player.inventory.getStackInSlot(i);
+			for(int i = 0; i < player.inventory.size(); i++) {
+				ItemStack stackAt = player.inventory.getStack(i);
 				if(predicate.test(stackAt))
 					total += stackAt.getCount();
 			}

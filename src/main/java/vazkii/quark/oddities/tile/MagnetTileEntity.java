@@ -2,17 +2,17 @@ package vazkii.quark.oddities.tile;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.PushReaction;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.piston.PistonBehavior;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.util.Tickable;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import vazkii.quark.oddities.block.MagnetBlock;
 import vazkii.quark.oddities.magnetsystem.MagnetSystem;
 import vazkii.quark.oddities.module.MagnetsModule;
 
-public class MagnetTileEntity extends TileEntity implements ITickableTileEntity {
+public class MagnetTileEntity extends BlockEntity implements Tickable {
 
 	public MagnetTileEntity() {
 		super(MagnetsModule.magnetType);
@@ -20,7 +20,7 @@ public class MagnetTileEntity extends TileEntity implements ITickableTileEntity 
 
 	@Override
 	public void tick() {
-		BlockState state = getBlockState();
+		BlockState state = getCachedState();
 		boolean powered = state.get(MagnetBlock.POWERED);
 
 		if(powered) {
@@ -39,9 +39,9 @@ public class MagnetTileEntity extends TileEntity implements ITickableTileEntity 
 
 		double particleMotion = 0.05 * magnitude;
 		double particleChance = 0.2;
-		double xOff = dir.getXOffset() * particleMotion;
-		double yOff = dir.getYOffset() * particleMotion;
-		double zOff = dir.getZOffset() * particleMotion;
+		double xOff = dir.getOffsetX() * particleMotion;
+		double yOff = dir.getOffsetY() * particleMotion;
+		double zOff = dir.getOffsetZ() * particleMotion;
 
 		for(int i = 1; i <= power; i++) {
 			BlockPos targetPos = pos.offset(dir, i);
@@ -50,9 +50,9 @@ public class MagnetTileEntity extends TileEntity implements ITickableTileEntity 
 			if (targetState.getBlock() == MagnetsModule.magnetized_block)
 				break;
 
-			if(!world.isRemote && targetState.getBlock() != Blocks.MOVING_PISTON && targetState.getBlock() != MagnetsModule.magnetized_block) {
-				PushReaction reaction = MagnetSystem.getPushAction(this, targetPos, targetState, moveDir);
-				if (reaction == PushReaction.IGNORE || reaction == PushReaction.DESTROY) {
+			if(!world.isClient && targetState.getBlock() != Blocks.MOVING_PISTON && targetState.getBlock() != MagnetsModule.magnetized_block) {
+				PistonBehavior reaction = MagnetSystem.getPushAction(this, targetPos, targetState, moveDir);
+				if (reaction == PistonBehavior.IGNORE || reaction == PistonBehavior.DESTROY) {
 					BlockPos frontPos = targetPos.offset(moveDir);
 					BlockState frontState = world.getBlockState(frontPos);
 					if(frontState.isAir(world, frontPos))
@@ -63,7 +63,7 @@ public class MagnetTileEntity extends TileEntity implements ITickableTileEntity 
 			if(!targetState.isAir(world, targetPos))
 				break;
 
-			if (world.isRemote && Math.random() <= particleChance) {
+			if (world.isClient && Math.random() <= particleChance) {
 				double x = targetPos.getX() + (xOff == 0 ? 0.5 : Math.random());
 				double y = targetPos.getY() + (yOff == 0 ? 0.5 : Math.random());
 				double z = targetPos.getZ() + (zOff == 0 ? 0.5 : Math.random());
@@ -81,7 +81,7 @@ public class MagnetTileEntity extends TileEntity implements ITickableTileEntity 
 		
 		for(Direction dir : Direction.values()) {
 			if(dir != opp && dir != curr) {
-				int offPower = world.getRedstonePower(pos.offset(dir), dir);
+				int offPower = world.getEmittedRedstonePower(pos.offset(dir), dir);
 				power = Math.max(offPower, power);
 			}
 		}

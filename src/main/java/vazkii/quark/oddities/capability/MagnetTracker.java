@@ -6,9 +6,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3i;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import vazkii.quark.api.IMagnetTracker;
 
@@ -27,8 +27,8 @@ public class MagnetTracker implements IMagnetTracker {
     }
 
     @Override
-    public Vector3i getNetForce(BlockPos pos) {
-        Vector3i net = Vector3i.NULL_VECTOR;
+    public Vec3i getNetForce(BlockPos pos) {
+        Vec3i net = Vec3i.ZERO;
         for (Force force : forcesActing.get(pos))
             net = force.add(net);
         return net;
@@ -41,17 +41,17 @@ public class MagnetTracker implements IMagnetTracker {
 
     @Override
     public void actOnForces(BlockPos pos) {
-        Vector3i net = getNetForce(pos);
+        Vec3i net = getNetForce(pos);
 
-        if (net.equals(Vector3i.NULL_VECTOR))
+        if (net.equals(Vec3i.ZERO))
             return;
 
-        Direction target = Direction.getFacingFromVector(net.getX(), net.getY(), net.getZ());
+        Direction target = Direction.getFacing(net.getX(), net.getY(), net.getZ());
 
         for (Force force : forcesActing.get(pos)) {
             if (force.getDirection() == target) {
                 BlockState origin = world.getBlockState(force.getOrigin());
-                world.addBlockEvent(force.getOrigin(), origin.getBlock(), force.isPushing() ? 0 : 1, force.getDistance());
+                world.addSyncedBlockEvent(force.getOrigin(), origin.getBlock(), force.isPushing() ? 0 : 1, force.getDistance());
             }
         }
     }

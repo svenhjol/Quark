@@ -1,10 +1,10 @@
 package vazkii.quark.world.module.underground;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import vazkii.quark.base.block.QuarkBlock;
@@ -22,14 +22,14 @@ public class BrimstoneUndergroundBiomeModule extends UndergroundBiomeModule {
 	@Override
 	public void construct() {
 		brimstone = new QuarkBlock("brimstone", this, ItemGroup.BUILDING_BLOCKS, 
-				Block.Properties.create(Material.ROCK, MaterialColor.RED)
-				.func_235861_h_() // needs tool
+				Block.Properties.of(Material.STONE, MaterialColor.RED)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-				.hardnessAndResistance(1.5F, 10F)
-				.sound(SoundType.STONE));
+				.strength(1.5F, 10F)
+				.sounds(BlockSoundGroup.STONE));
 		
 		VariantHandler.addSlabStairsWall(brimstone);
-		VariantHandler.addSlabStairsWall(new QuarkBlock("brimstone_bricks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(brimstone)));
+		VariantHandler.addSlabStairsWall(new QuarkBlock("brimstone_bricks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(brimstone)));
 		
 		super.construct();
 	}

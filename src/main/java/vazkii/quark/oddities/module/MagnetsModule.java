@@ -3,9 +3,10 @@ package vazkii.quark.oddities.module;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -24,8 +25,8 @@ import vazkii.quark.oddities.tile.MagnetizedBlockTileEntity;
 @LoadModule(category = ModuleCategory.ODDITIES, requiredMod = Quark.ODDITIES_ID)
 public class MagnetsModule extends Module {
 	
-    public static TileEntityType<MagnetTileEntity> magnetType;
-    public static TileEntityType<MagnetizedBlockTileEntity> magnetizedBlockType;
+    public static BlockEntityType<MagnetTileEntity> magnetType;
+    public static BlockEntityType<MagnetizedBlockTileEntity> magnetizedBlockType;
     
     @Config(description = "Any items you place in this list will be derived so that any block made of it will become magnetizable") 
     public static List<String> magneticDerivationList = Lists.newArrayList("minecraft:iron_ingot");
@@ -41,15 +42,15 @@ public class MagnetsModule extends Module {
 		magnet = new MagnetBlock(this);
 		magnetized_block = new MovingMagnetizedBlock(this);
 		
-		magnetType = TileEntityType.Builder.create(MagnetTileEntity::new, magnet).build(null);
+		magnetType = BlockEntityType.Builder.create(MagnetTileEntity::new, magnet).build(null);
 		RegistryHelper.register(magnetType, "magnet");
 
-		magnetizedBlockType = TileEntityType.Builder.create(MagnetizedBlockTileEntity::new, magnetized_block).build(null);
+		magnetizedBlockType = BlockEntityType.Builder.create(MagnetizedBlockTileEntity::new, magnetized_block).build(null);
 		RegistryHelper.register(magnetizedBlockType, "magnetized_block");
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		ClientRegistry.bindTileEntityRenderer(magnetizedBlockType, MagnetizedBlockTileEntityRenderer::new);
 	}

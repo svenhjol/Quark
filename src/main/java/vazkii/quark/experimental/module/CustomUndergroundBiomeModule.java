@@ -2,9 +2,9 @@ package vazkii.quark.experimental.module;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.GenerationStep;
 import net.minecraftforge.registries.GameData;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
@@ -137,10 +137,10 @@ public class CustomUndergroundBiomeModule extends Module {
         String[] entries = blockString.split(",");
         for (String entry : entries) {
             String[] split = entry.split("@");
-            ResourceLocation loc = new ResourceLocation(split[0]);
+            Identifier loc = new Identifier(split[0]);
             int weight = split.length == 1 ? 1 : Integer.parseInt(split[1]);
 
-            Block block = GameData.getWrapper(Block.class).getOrDefault(loc);
+            Block block = GameData.getWrapper(Block.class).get(loc);
             if (block != null)
                 list.add(block.getDefaultState(), weight);
         }
@@ -150,6 +150,6 @@ public class CustomUndergroundBiomeModule extends Module {
 
     @Override
     public void setup() {
-        WorldGenHandler.addGenerator(this, new CombinedGenerator(generators), GenerationStage.Decoration.UNDERGROUND_DECORATION, WorldGenWeights.UNDERGROUND_BIOMES);
+        WorldGenHandler.addGenerator(this, new CombinedGenerator(generators), GenerationStep.Feature.UNDERGROUND_DECORATION, WorldGenWeights.UNDERGROUND_BIOMES);
     }
 }

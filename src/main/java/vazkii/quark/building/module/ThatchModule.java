@@ -25,7 +25,7 @@ public class ThatchModule extends Module {
 	
 	@Override
 	public void setup() {
-		ComposterBlock.CHANCES.put(thatch.asItem(), 0.65F);
+		ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.put(thatch.asItem(), 0.65F);
 	}
 	
 }

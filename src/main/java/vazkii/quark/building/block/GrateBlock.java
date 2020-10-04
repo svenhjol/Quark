@@ -6,50 +6,50 @@ import javax.annotation.Nullable;
 import it.unimi.dsi.fastutil.floats.Float2ObjectArrayMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.IWaterLoggable;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.block.Waterloggable;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.PlacementType;
-import net.minecraft.entity.item.ExperienceOrbEntity;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.ExperienceOrbEntity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.SpawnRestriction.Location;
+import net.minecraft.entity.ai.pathing.NavigationType;
+import net.minecraft.entity.ai.pathing.PathNodeType;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.pathfinding.PathNodeType;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.state.BooleanProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.state.properties.BlockStateProperties;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.handler.RenderLayerHandler;
 import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
 import vazkii.quark.base.module.Module;
 
-public class GrateBlock extends QuarkBlock implements IWaterLoggable {
+public class GrateBlock extends QuarkBlock implements Waterloggable {
 
-	private static final VoxelShape TRUE_SHAPE = makeCuboidShape(0, 15, 0, 16, 16, 16);
-	private static final VoxelShape SPAWN_BLOCK_SHAPE = makeCuboidShape(0, 15, 0, 16, 32, 16);
+	private static final VoxelShape TRUE_SHAPE = createCuboidShape(0, 15, 0, 16, 16, 16);
+	private static final VoxelShape SPAWN_BLOCK_SHAPE = createCuboidShape(0, 15, 0, 16, 32, 16);
 	private static final Float2ObjectArrayMap<Float2ObjectArrayMap<VoxelShape>> WALK_BLOCK_CACHE = new Float2ObjectArrayMap<>();
 
-	public static BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+	public static BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 
 	public GrateBlock(Module module) {
 		super("grate", module, ItemGroup.DECORATIONS, 
-				Block.Properties.create(Material.IRON)
-                .hardnessAndResistance(5, 10)
-                .sound(SoundType.METAL)
-                .notSolid());
+				Block.Properties.of(Material.METAL)
+                .strength(5, 10)
+                .sounds(BlockSoundGroup.METAL)
+                .nonOpaque());
 
 		setDefaultState(getDefaultState().with(WATERLOGGED, false));
 		RenderLayerHandler.setRenderType(this, RenderTypeSkeleton.CUTOUT);
@@ -64,21 +64,21 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 			double extraComponent = stepHeight - i * height;
 			if (extraComponent < 1 / height)
 				plateHeight += extraComponent * 16;
-			shape = VoxelShapes.or(shape, makeCuboidShape(0, plateHeight - 1, 0, 16, plateHeight, 16));
+			shape = VoxelShapes.union(shape, createCuboidShape(0, plateHeight - 1, 0, 16, plateHeight, 16));
 		}
 
 		return shape;
 	}
 
 	@Override
-	public boolean isVariableOpacity() {
+	public boolean hasDynamicBounds() {
 		return true;
 	}
 
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
+	public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
 		return TRUE_SHAPE;
 	}
 	
@@ -90,7 +90,7 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public VoxelShape getCollisionShape(@Nonnull BlockState state, @Nonnull IBlockReader world, @Nonnull BlockPos pos, ISelectionContext context) {
+	public VoxelShape getCollisionShape(@Nonnull BlockState state, @Nonnull BlockView world, @Nonnull BlockPos pos, ShapeContext context) {
 		Entity entity = context.getEntity();
 
 		if(entity != null) {
@@ -98,7 +98,7 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 				return VoxelShapes.empty();
 
 			boolean animal = entity instanceof AnimalEntity;
-			boolean leashed = animal && ((AnimalEntity) entity).getLeashHolder() != null;
+			boolean leashed = animal && ((AnimalEntity) entity).getHoldingEntity() != null;
 			
 			if (animal && !leashed)
 				return getCachedShape(entity.stepHeight, entity.getHeight());
@@ -114,7 +114,7 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 
 	@Nullable
 	@Override
-	public PathNodeType getAiPathNodeType(BlockState state, IBlockReader world, BlockPos pos, @Nullable MobEntity entity) {
+	public PathNodeType getAiPathNodeType(BlockState state, BlockView world, BlockPos pos, @Nullable MobEntity entity) {
 		if (entity instanceof AnimalEntity)
 			return PathNodeType.DAMAGE_OTHER;
 		return null;
@@ -124,32 +124,32 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 	@Override
 	@SuppressWarnings("deprecation")
 	public FluidState getFluidState(BlockState state) {
-		return state.get(WATERLOGGED) ? Fluids.WATER.getStillFluidState(false) : super.getFluidState(state);
+		return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
 	}
 	
 	@Override
-	public BlockState getStateForPlacement(BlockItemUseContext context) {
-		return getDefaultState().with(WATERLOGGED, context.getWorld().getFluidState(context.getPos()).getFluid() == Fluids.WATER);
+	public BlockState getPlacementState(ItemPlacementContext context) {
+		return getDefaultState().with(WATERLOGGED, context.getWorld().getFluidState(context.getBlockPos()).getFluid() == Fluids.WATER);
 	}
 
 	@Override
 	@SuppressWarnings("deprecation")
-	public boolean allowsMovement(@Nonnull BlockState state, @Nonnull IBlockReader world, @Nonnull BlockPos pos, PathType path) {
+	public boolean canPathfindThrough(@Nonnull BlockState state, @Nonnull BlockView world, @Nonnull BlockPos pos, NavigationType path) {
 		return false;
 	}
 
 	@Override
-	public boolean propagatesSkylightDown(BlockState state, @Nonnull IBlockReader world, @Nonnull BlockPos pos) {
+	public boolean isTranslucent(BlockState state, @Nonnull BlockView world, @Nonnull BlockPos pos) {
 		return !state.get(WATERLOGGED);
 	}
 	
 	@Override
-	public boolean canCreatureSpawn(BlockState state, IBlockReader world, BlockPos pos, PlacementType type, EntityType<?> entityType) {
+	public boolean canCreatureSpawn(BlockState state, BlockView world, BlockPos pos, Location type, EntityType<?> entityType) {
 		return false;
 	}
 	
 	@Override
-	public boolean isTransparent(BlockState state) {
+	public boolean hasSidedTransparency(BlockState state) {
 		return true;
 	}
 	
@@ -166,12 +166,12 @@ public class GrateBlock extends QuarkBlock implements IWaterLoggable {
 //	}
 
 	@Override
-	public boolean collisionExtendsVertically(BlockState state, IBlockReader world, BlockPos pos, Entity collidingEntity) {
+	public boolean collisionExtendsVertically(BlockState state, BlockView world, BlockPos pos, Entity collidingEntity) {
 		return true;
 	}
 
 	@Override
-	protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
 		builder.add(WATERLOGGED);
 	}
 }

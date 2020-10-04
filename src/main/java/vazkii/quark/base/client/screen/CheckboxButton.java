@@ -1,18 +1,17 @@
 package vazkii.quark.base.client.screen;
 
 import java.util.function.Supplier;
-
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import vazkii.quark.base.client.config.ConfigObject;
 
-public class CheckboxButton extends Button {
+public class CheckboxButton extends ButtonWidget {
 
 	private final Supplier<Boolean> checkedSupplier;
 	
-	public CheckboxButton(int x, int y, Supplier<Boolean> checkedSupplier, IPressable onClick) {
-		super(x, y, 20, 20, new StringTextComponent(""), onClick);
+	public CheckboxButton(int x, int y, Supplier<Boolean> checkedSupplier, PressAction onClick) {
+		super(x, y, 20, 20, new LiteralText(""), onClick);
 		this.checkedSupplier = checkedSupplier;
 	}
 	
@@ -28,8 +27,8 @@ public class CheckboxButton extends Button {
 	}
 	
 	@Override
-	public ITextComponent getMessage() {
-		return new StringTextComponent(checkedSupplier.get() ? "V" : "X");
+	public Text getMessage() {
+		return new LiteralText(checkedSupplier.get() ? "V" : "X");
 	}
 
 }

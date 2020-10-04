@@ -2,22 +2,22 @@ package vazkii.quark.tweaks.module;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.HoeItem;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
-import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
 import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.PlantType;
 import net.minecraftforge.event.world.BlockEvent;
@@ -49,13 +49,13 @@ public class HoeHarvestingModule extends Module {
 
 	@SubscribeEvent
 	public void onBlockBroken(BlockEvent.BreakEvent event) {
-		IWorld world = event.getWorld();
+		WorldAccess world = event.getWorld();
 		if(!(world instanceof World))
 			return;
 		
 		PlayerEntity player = event.getPlayer();
 		BlockPos basePos = event.getPos();
-		ItemStack stack = player.getHeldItemMainhand();
+		ItemStack stack = player.getMainHandStack();
 		if (!stack.isEmpty() && stack.getItem() instanceof HoeItem && canHarvest(player, world, basePos, event.getState())) {
 			int range = getRange(stack);
 
@@ -69,9 +69,9 @@ public class HoeHarvestingModule extends Module {
 					if (canHarvest(player, world, pos, state)) {
 						Block block = state.getBlock();
 						if (block.canHarvestBlock(state, world, pos, player))
-							block.harvestBlock((World) world, player, pos, state, world.getTileEntity(pos), stack);
-						world.destroyBlock(pos, false);
-						world.playEvent(2001, pos, Block.getStateId(state));
+							block.afterBreak((World) world, player, pos, state, world.getBlockEntity(pos), stack);
+						world.breakBlock(pos, false);
+						world.syncWorldEvent(2001, pos, Block.getRawIdFromState(state));
 					}
 				}
 
@@ -79,7 +79,7 @@ public class HoeHarvestingModule extends Module {
 		}
 	}
 
-	private boolean canHarvest(PlayerEntity player, IWorld world, BlockPos pos, BlockState state) {
+	private boolean canHarvest(PlayerEntity player, WorldAccess world, BlockPos pos, BlockState state) {
 		Block block = state.getBlock();
 		if(block instanceof IPlantable) {
 			IPlantable plant = (IPlantable) block;
@@ -87,8 +87,8 @@ public class HoeHarvestingModule extends Module {
 			return type != PlantType.WATER && type != PlantType.DESERT;
 		}
 
-		return state.getMaterial() == Material.PLANTS && state.isReplaceable(new BlockItemUseContext(new ItemUseContext(player, Hand.MAIN_HAND,
-				new BlockRayTraceResult(new Vector3d(0.5, 0.5, 0.5), Direction.DOWN, pos, false))));
+		return state.getMaterial() == Material.PLANT && state.canReplace(new ItemPlacementContext(new ItemUsageContext(player, Hand.MAIN_HAND,
+				new BlockHitResult(new Vec3d(0.5, 0.5, 0.5), Direction.DOWN, pos, false))));
 	}
 
 }

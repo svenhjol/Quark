@@ -2,35 +2,35 @@ package vazkii.quark.base.handler;
 
 import java.util.List;
 import java.util.Map;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.PistonBlockStructureHelper;
-import net.minecraft.client.gui.screen.EnchantmentScreen;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.block.entity.PistonBlockEntity;
+import net.minecraft.block.piston.PistonHandler;
+import net.minecraft.client.gui.screen.ingame.EnchantmentScreen;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.TemptGoal;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.PistonTileEntity;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Direction;
+import net.minecraft.text.MutableText;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.automation.client.render.ChainRenderer;
@@ -65,7 +65,7 @@ public class AsmHooks {
 	// Piston Logic Replacing
 	// ==========================================================================
 
-	public static PistonBlockStructureHelper transformStructureHelper(PistonBlockStructureHelper helper, World world, BlockPos sourcePos, Direction facing, boolean extending) {
+	public static PistonHandler transformStructureHelper(PistonHandler helper, World world, BlockPos sourcePos, Direction facing, boolean extending) {
 		return new QuarkPistonStructureHelper(helper, world, sourcePos, facing, extending);
 	}
 
@@ -81,12 +81,12 @@ public class AsmHooks {
 		return PistonsMoveTileEntitiesModule.shouldMoveTE(parent, state);
 	}
 
-	public static void postPistonPush(PistonBlockStructureHelper helper, World world, Direction direction, boolean extending) {
+	public static void postPistonPush(PistonHandler helper, World world, Direction direction, boolean extending) {
 		PistonsMoveTileEntitiesModule.detachTileEntities(world, helper, direction, extending);
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	public static boolean renderPistonBlock(PistonTileEntity tileEntityIn, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int combinedLightIn, int combinedOverlayIn) {
+	@Environment(EnvType.CLIENT)
+	public static boolean renderPistonBlock(PistonBlockEntity tileEntityIn, float partialTicks, MatrixStack matrixStackIn, VertexConsumerProvider bufferIn, int combinedLightIn, int combinedOverlayIn) {
 		return PistonTileEntityRenderer.renderPistonBlock(tileEntityIn, partialTicks, matrixStackIn, bufferIn, combinedLightIn, combinedOverlayIn);
 	}
 
@@ -118,7 +118,7 @@ public class AsmHooks {
 	// Items In Chat
 	// ==========================================================================
 
-	public static IFormattableTextComponent createStackComponent(IFormattableTextComponent parent, ItemStack stack) {
+	public static MutableText createStackComponent(MutableText parent, ItemStack stack) {
 		return ItemSharingModule.createStackComponent(stack, parent);
 	}
 
@@ -130,7 +130,7 @@ public class AsmHooks {
 	// Springy Slime
 	// ==========================================================================
 
-	public static void applyCollisionLogic(Entity entity, Vector3d attempted, Vector3d actual) {
+	public static void applyCollisionLogic(Entity entity, Vec3d attempted, Vec3d actual) {
 		SpringySlimeModule.onEntityCollision(entity, attempted, actual);
 	}
 
@@ -166,8 +166,8 @@ public class AsmHooks {
 		ChainLinkageModule.onEntityUpdate(entity);
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	public static void renderChain(EntityRenderer render, Entity entity, MatrixStack matrixStack, IRenderTypeBuffer renderBuffer, float partTicks) {
+	@Environment(EnvType.CLIENT)
+	public static void renderChain(EntityRenderer render, Entity entity, MatrixStack matrixStack, VertexConsumerProvider renderBuffer, float partTicks) {
 		ChainRenderer.renderChain(render, entity, matrixStack, renderBuffer, partTicks);
 	}
 
@@ -187,7 +187,7 @@ public class AsmHooks {
 	// Crabs
 	// ==========================================================================
 
-	public static void rave(IWorld world, BlockPos pos, int type, int record) {
+	public static void rave(WorldAccess world, BlockPos pos, int type, int record) {
 		if (type == 1010)
 			CrabEntity.rave(world, pos, record != 0);
 	}
@@ -206,7 +206,7 @@ public class AsmHooks {
     // Rotation Lock
     // ==========================================================================
 
-    public static BlockState alterPlacementState(BlockState state, BlockItemUseContext ctx) {
+    public static BlockState alterPlacementState(BlockState state, ItemPlacementContext ctx) {
         return LockRotationModule.fixBlockRotation(state, ctx);
     }
 
@@ -214,7 +214,7 @@ public class AsmHooks {
 	// Enchanted Book Tooltips
 	// ==========================================================================
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static List<String> captureEnchantingData(List<String> list, EnchantmentScreen screen, Enchantment enchantment, int level) {
 		return EnchantedBookTooltips.captureEnchantingData(list, screen, enchantment, level);
 	}
@@ -227,39 +227,39 @@ public class AsmHooks {
 	// Color Runes
 	// ==========================================================================
 
-	public static void setColorRuneTargetStack(LivingEntity living, EquipmentSlotType slot) {
-		setColorRuneTargetStack(living.getItemStackFromSlot(slot));
+	public static void setColorRuneTargetStack(LivingEntity living, EquipmentSlot slot) {
+		setColorRuneTargetStack(living.getEquippedStack(slot));
 	}
 
 	public static void setColorRuneTargetStack(ItemStack stack) {
 		ColorRunesModule.setTargetStack(stack);
 	}
 
-	public static RenderType getGlint() {
+	public static RenderLayer getGlint() {
 		return ColorRunesModule.getGlint();
 	}
 
-	public static RenderType getEntityGlint() {
+	public static RenderLayer getEntityGlint() {
 		return ColorRunesModule.getEntityGlint();
 	}
 
-	public static RenderType getGlintDirect() {
+	public static RenderLayer getGlintDirect() {
 		return ColorRunesModule.getGlintDirect();
 	}
 
-	public static RenderType getEntityGlintDirect() {
+	public static RenderLayer getEntityGlintDirect() {
 		return ColorRunesModule.getEntityGlint();
 	}
 	
-	public static RenderType getArmorGlint() {
+	public static RenderLayer getArmorGlint() {
 		return ColorRunesModule.getArmorGlint();
 	}
 
-	public static RenderType getArmorEntityGlint() {
+	public static RenderLayer getArmorEntityGlint() {
 		return ColorRunesModule.getArmorEntityGlint();
 	}
 	
-	public static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderType, BufferBuilder> map) {
+	public static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderLayer, BufferBuilder> map) {
 		GlintRenderType.addGlintTypes(map);
 	}
 	
@@ -275,7 +275,7 @@ public class AsmHooks {
 	// Variant Ladders
 	// ==========================================================================
 	
-	public static boolean isTrapdoorLadder(boolean defaultValue, IWorldReader world, BlockPos pos) {
+	public static boolean isTrapdoorLadder(boolean defaultValue, WorldView world, BlockPos pos) {
 		return VariantLaddersModule.isTrapdoorLadder(defaultValue, world, pos);
 	}
 	

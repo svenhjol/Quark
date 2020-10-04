@@ -10,15 +10,15 @@
  */
 package vazkii.quark.base.effect;
 
-import net.minecraft.potion.Effect;
-import net.minecraft.potion.EffectType;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectType;
 import vazkii.arl.util.RegistryHelper;
 
-public class QuarkEffect extends Effect {
+public class QuarkEffect extends StatusEffect {
 
 	protected final String bareName;
 
-	public QuarkEffect(String name, EffectType type, int color) {
+	public QuarkEffect(String name, StatusEffectType type, int color) {
 		super(type, color);
 		RegistryHelper.register(this, name);
 		bareName = name;

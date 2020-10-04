@@ -1,13 +1,15 @@
 package vazkii.quark.base.block;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.base.module.Module;
@@ -20,37 +22,37 @@ import javax.annotation.Nonnull;
  */
 public class QuarkGlassBlock extends QuarkBlock {
 
-    public QuarkGlassBlock(String regname, Module module, ItemGroup creativeTab, Properties properties) {
+    public QuarkGlassBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
         super(regname, module, creativeTab, properties
-                .notSolid()
-                .func_235827_a_((state, world, pos, entityType) -> false)
-                .func_235828_a_((state, world, pos) -> false)
-                .func_235842_b_((state, world, pos) -> false)
-                .func_235847_c_((state, world, pos) -> false));
+                .nonOpaque()
+                .allowsSpawning((state, world, pos, entityType) -> false)
+                .solidBlock((state, world, pos) -> false)
+                .suffocates((state, world, pos) -> false)
+                .blockVision((state, world, pos) -> false));
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @SuppressWarnings("deprecation")
     public boolean isSideInvisible(@Nonnull BlockState state, BlockState adjacentBlockState, @Nonnull Direction side) {
-        return adjacentBlockState.isIn(this) || super.isSideInvisible(state, adjacentBlockState, side);
+        return adjacentBlockState.isOf(this) || super.isSideInvisible(state, adjacentBlockState, side);
     }
 
     @Override
     @Nonnull
     @SuppressWarnings("deprecation")
-    public VoxelShape func_230322_a_(@Nonnull BlockState state, @Nonnull IBlockReader worldIn, @Nonnull BlockPos pos, @Nonnull ISelectionContext context) {
+    public VoxelShape getVisualShape(@Nonnull BlockState state, @Nonnull BlockView worldIn, @Nonnull BlockPos pos, @Nonnull ShapeContext context) {
         return VoxelShapes.empty();
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public float getAmbientOcclusionLightValue(@Nonnull BlockState state, @Nonnull IBlockReader worldIn, @Nonnull BlockPos pos) {
+    @Environment(EnvType.CLIENT)
+    public float getAmbientOcclusionLightLevel(@Nonnull BlockState state, @Nonnull BlockView worldIn, @Nonnull BlockPos pos) {
         return 1.0F;
     }
 
     @Override
-    public boolean propagatesSkylightDown(@Nonnull BlockState state, @Nonnull IBlockReader reader, @Nonnull BlockPos pos) {
+    public boolean isTranslucent(@Nonnull BlockState state, @Nonnull BlockView reader, @Nonnull BlockPos pos) {
         return true;
     }
 

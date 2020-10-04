@@ -10,7 +10,9 @@
  */
 package vazkii.quark.base.network.message;
 
-import net.minecraft.client.Minecraft;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
@@ -41,12 +43,12 @@ public class SyncChainMessage implements IMessage {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public boolean receive(NetworkEvent.Context context) {
 		context.enqueueWork(() -> {
-			World world = Minecraft.getInstance().world;
+			World world = MinecraftClient.getInstance().world;
 			if (world != null) {
-				Entity boatEntity = world.getEntityByID(vehicle);
+				Entity boatEntity = world.getEntityById(vehicle);
 				if (boatEntity == null)
 					ChainLinkageModule.queueChainUpdate(vehicle, other);
 				else

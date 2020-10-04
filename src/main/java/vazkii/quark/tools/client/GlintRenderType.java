@@ -8,29 +8,30 @@ import java.util.Map;
 import com.google.common.base.Function;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.RenderState;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.item.DyeColor;
-import net.minecraft.util.ResourceLocation;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderPhase;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.base.Quark;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class GlintRenderType {
 	
-    public static List<RenderType> glintColor = newRenderList(GlintRenderType::buildGlintRenderType);
-    public static List<RenderType> entityGlintColor = newRenderList(GlintRenderType::buildEntityGlintRenderType);
-    public static List<RenderType> glintDirectColor = newRenderList(GlintRenderType::buildGlintDirectRenderType);
-    public static List<RenderType> entityGlintDirectColor = newRenderList(GlintRenderType::buildEntityGlintDriectRenderType);
+    public static List<RenderLayer> glintColor = newRenderList(GlintRenderType::buildGlintRenderType);
+    public static List<RenderLayer> entityGlintColor = newRenderList(GlintRenderType::buildEntityGlintRenderType);
+    public static List<RenderLayer> glintDirectColor = newRenderList(GlintRenderType::buildGlintDirectRenderType);
+    public static List<RenderLayer> entityGlintDirectColor = newRenderList(GlintRenderType::buildEntityGlintDriectRenderType);
     
-    public static List<RenderType> armorGlintColor = newRenderList(GlintRenderType::buildArmorGlintRenderType);
-    public static List<RenderType> armorEntityGlintColor = newRenderList(GlintRenderType::buildArmorEntityGlintRenderType);
+    public static List<RenderLayer> armorGlintColor = newRenderList(GlintRenderType::buildArmorGlintRenderType);
+    public static List<RenderLayer> armorEntityGlintColor = newRenderList(GlintRenderType::buildArmorEntityGlintRenderType);
 
-    public static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderType, BufferBuilder> map) {
+    public static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderLayer, BufferBuilder> map) {
     	addGlintTypes(map, glintColor);
     	addGlintTypes(map, entityGlintColor);
     	addGlintTypes(map, glintDirectColor);
@@ -39,103 +40,103 @@ public class GlintRenderType {
     	addGlintTypes(map, armorEntityGlintColor);
     }
     
-    private static List<RenderType> newRenderList(Function<String, RenderType> func) {
-    	ArrayList<RenderType> list = new ArrayList<>(17);
+    private static List<RenderLayer> newRenderList(Function<String, RenderLayer> func) {
+    	ArrayList<RenderLayer> list = new ArrayList<>(17);
     	
         for (DyeColor color : DyeColor.values())
-        	list.add(func.apply(color.getTranslationKey()));
+        	list.add(func.apply(color.getName()));
         list.add(func.apply("rainbow"));
         
         return list;
     }
     
-    private static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderType, BufferBuilder> map, List<RenderType> typeList) {
-    	for(RenderType renderType : typeList)
+    private static void addGlintTypes(Object2ObjectLinkedOpenHashMap<RenderLayer, BufferBuilder> map, List<RenderLayer> typeList) {
+    	for(RenderLayer renderType : typeList)
     		if (!map.containsKey(renderType))
-    			map.put(renderType, new BufferBuilder(renderType.getBufferSize()));
+    			map.put(renderType, new BufferBuilder(renderType.getExpectedBufferSize()));
     }
 
-    private static RenderType buildGlintRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildGlintRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
 
-        return RenderType.makeType("glint_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.GLINT_TRANSPARENCY)
-            .target(RenderState.field_241712_U_)
-            .texturing(RenderState.GLINT_TEXTURING)
+        return RenderLayer.of("glint_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_TRANSPARENCY)
+            .target(RenderPhase.ITEM_TARGET)
+            .texturing(RenderPhase.GLINT_TEXTURING)
             .build(false));
     }
 
-    private static RenderType buildEntityGlintRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildEntityGlintRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
 
-        return RenderType.makeType("entity_glint_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.GLINT_TRANSPARENCY)
-            .target(RenderState.field_241712_U_)
-            .texturing(RenderState.ENTITY_GLINT_TEXTURING)
+        return RenderLayer.of("entity_glint_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_TRANSPARENCY)
+            .target(RenderPhase.ITEM_TARGET)
+            .texturing(RenderPhase.ENTITY_GLINT_TEXTURING)
             .build(false));
     }
 
  
-    private static RenderType buildGlintDirectRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildGlintDirectRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
 
-        return RenderType.makeType("glint_direct_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.field_239240_f_)
-            .texturing(RenderState.GLINT_TEXTURING)
+        return RenderLayer.of("glint_direct_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_GUI_TRANSPARENCY)
+            .texturing(RenderPhase.GLINT_TEXTURING)
             .build(false));
     }
 
     
-    private static RenderType buildEntityGlintDriectRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildEntityGlintDriectRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
 
-        return RenderType.makeType("entity_glint_direct_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.field_239240_f_)
-            .texturing(RenderState.ENTITY_GLINT_TEXTURING)
+        return RenderLayer.of("entity_glint_direct_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_GUI_TRANSPARENCY)
+            .texturing(RenderPhase.ENTITY_GLINT_TEXTURING)
             .build(false));
     }
     
-    private static RenderType buildArmorGlintRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildArmorGlintRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
         
-        return RenderType.makeType("entity_glint_direct_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.field_239240_f_)
-            .texturing(RenderState.ENTITY_GLINT_TEXTURING)
-            .layer(RenderState.field_239235_M_)
+        return RenderLayer.of("entity_glint_direct_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_GUI_TRANSPARENCY)
+            .texturing(RenderPhase.ENTITY_GLINT_TEXTURING)
+            .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
             .build(false));
     }
     
-    private static RenderType buildArmorEntityGlintRenderType(String name) {
-        final ResourceLocation res = new ResourceLocation(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
+    private static RenderLayer buildArmorEntityGlintRenderType(String name) {
+        final Identifier res = new Identifier(Quark.MOD_ID, "textures/glint/enchanted_item_glint_" + name + ".png");
 
-        return RenderType.makeType("entity_glint_direct_" + name, DefaultVertexFormats.POSITION_TEX, 7, 256, RenderType.State.getBuilder()
-            .texture(new RenderState.TextureState(res, true, false))
-            .writeMask(RenderState.COLOR_WRITE)
-            .cull(RenderState.CULL_DISABLED)
-            .depthTest(RenderState.DEPTH_EQUAL)
-            .transparency(RenderState.field_239240_f_)
-            .texturing(RenderState.ENTITY_GLINT_TEXTURING)
-            .layer(RenderState.field_239235_M_)
+        return RenderLayer.of("entity_glint_direct_" + name, VertexFormats.POSITION_TEXTURE, 7, 256, RenderLayer.MultiPhaseParameters.builder()
+            .texture(new RenderPhase.Texture(res, true, false))
+            .writeMaskState(RenderPhase.COLOR_MASK)
+            .cull(RenderPhase.DISABLE_CULLING)
+            .depthTest(RenderPhase.EQUAL_DEPTH_TEST)
+            .transparency(RenderPhase.GLINT_GUI_TRANSPARENCY)
+            .texturing(RenderPhase.ENTITY_GLINT_TEXTURING)
+            .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
             .build(false));
     }
 }

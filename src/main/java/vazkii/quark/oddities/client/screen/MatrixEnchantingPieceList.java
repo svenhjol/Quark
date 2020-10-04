@@ -1,19 +1,17 @@
 package vazkii.quark.oddities.client.screen;
 
 import org.lwjgl.opengl.GL11;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.gui.widget.list.ExtendedList;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
 import vazkii.quark.oddities.container.EnchantmentMatrix.Piece;
 
-public class MatrixEnchantingPieceList extends ExtendedList<MatrixEnchantingPieceList.PieceEntry> {
+public class MatrixEnchantingPieceList extends AlwaysSelectedEntryListWidget<MatrixEnchantingPieceList.PieceEntry> {
 
 	private final MatrixEnchantingScreen parent;
 	private final int listWidth;
@@ -25,7 +23,7 @@ public class MatrixEnchantingPieceList extends ExtendedList<MatrixEnchantingPiec
 	}
 
 	@Override
-	protected int getScrollbarPosition() {
+	protected int getScrollbarPositionX() {
 		return getLeft() + this.listWidth - 5;
 	}
 
@@ -47,15 +45,15 @@ public class MatrixEnchantingPieceList extends ExtendedList<MatrixEnchantingPiec
 
 	@Override
 	public void render(MatrixStack stack, int p_render_1_, int p_render_2_, float p_render_3_) {
-		int i = this.getScrollbarPosition();
+		int i = this.getScrollbarPositionX();
 		int j = i + 6;
 		int k = this.getRowLeft();
-		int l = this.y0 + 4 - (int)this.getScrollAmount();
+		int l = this.top + 4 - (int)this.getScrollAmount();
 		
 		fill(stack, getLeft(), getTop(), getLeft() + getWidth() + 1, getTop() + getHeight(), 0xFF2B2B2B);
 		
-		MainWindow main = parent.getMinecraft().getMainWindow();
-		int res = (int) main.getGuiScaleFactor();
+		Window main = parent.getMinecraft().getWindow();
+		int res = (int) main.getScaleFactor();
 		GL11.glEnable(GL11.GL_SCISSOR_TEST);
 		GL11.glScissor(getLeft() * res, (main.getScaledHeight() - getBottom()) * res, getWidth() * res, getHeight() * res);
 		renderList(stack, k, l, p_render_1_, p_render_2_, p_render_3_);
@@ -65,39 +63,39 @@ public class MatrixEnchantingPieceList extends ExtendedList<MatrixEnchantingPiec
 	}
 
 	protected int getMaxScroll2() {
-		return Math.max(0, this.getMaxPosition() - (this.y1 - this.y0 - 4));
+		return Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4));
 	}
 
 	private void renderScroll(int i, int j) {
 		int j1 = this.getMaxScroll2();
 		if (j1 > 0) {
-			int k1 = (int)((float)((this.y1 - this.y0) * (this.y1 - this.y0)) / (float)this.getMaxPosition());
-			k1 = MathHelper.clamp(k1, 32, this.y1 - this.y0 - 8);
-			int l1 = (int)this.getScrollAmount() * (this.y1 - this.y0 - k1) / j1 + this.y0;
-			if (l1 < this.y0) {
-				l1 = this.y0;
+			int k1 = (int)((float)((this.bottom - this.top) * (this.bottom - this.top)) / (float)this.getMaxPosition());
+			k1 = MathHelper.clamp(k1, 32, this.bottom - this.top - 8);
+			int l1 = (int)this.getScrollAmount() * (this.bottom - this.top - k1) / j1 + this.top;
+			if (l1 < this.top) {
+				l1 = this.top;
 			}
 			
 			RenderSystem.disableTexture();
 			Tessellator tessellator = Tessellator.getInstance();
 			BufferBuilder bufferbuilder = tessellator.getBuffer();
-			bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
-			bufferbuilder.pos((double)i, (double)this.y1, 0.0D).tex(0.0F, 1.0F).color(0, 0, 0, 255).endVertex();
-			bufferbuilder.pos((double)j, (double)this.y1, 0.0D).tex(1.0F, 1.0F).color(0, 0, 0, 255).endVertex();
-			bufferbuilder.pos((double)j, (double)this.y0, 0.0D).tex(1.0F, 0.0F).color(0, 0, 0, 255).endVertex();
-			bufferbuilder.pos((double)i, (double)this.y0, 0.0D).tex(0.0F, 0.0F).color(0, 0, 0, 255).endVertex();
+			bufferbuilder.begin(7, VertexFormats.POSITION_TEXTURE_COLOR);
+			bufferbuilder.vertex((double)i, (double)this.bottom, 0.0D).texture(0.0F, 1.0F).color(0, 0, 0, 255).next();
+			bufferbuilder.vertex((double)j, (double)this.bottom, 0.0D).texture(1.0F, 1.0F).color(0, 0, 0, 255).next();
+			bufferbuilder.vertex((double)j, (double)this.top, 0.0D).texture(1.0F, 0.0F).color(0, 0, 0, 255).next();
+			bufferbuilder.vertex((double)i, (double)this.top, 0.0D).texture(0.0F, 0.0F).color(0, 0, 0, 255).next();
 			tessellator.draw();
-			bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
-			bufferbuilder.pos((double)i, (double)(l1 + k1), 0.0D).tex(0.0F, 1.0F).color(128, 128, 128, 255).endVertex();
-			bufferbuilder.pos((double)j, (double)(l1 + k1), 0.0D).tex(1.0F, 1.0F).color(128, 128, 128, 255).endVertex();
-			bufferbuilder.pos((double)j, (double)l1, 0.0D).tex(1.0F, 0.0F).color(128, 128, 128, 255).endVertex();
-			bufferbuilder.pos((double)i, (double)l1, 0.0D).tex(0.0F, 0.0F).color(128, 128, 128, 255).endVertex();
+			bufferbuilder.begin(7, VertexFormats.POSITION_TEXTURE_COLOR);
+			bufferbuilder.vertex((double)i, (double)(l1 + k1), 0.0D).texture(0.0F, 1.0F).color(128, 128, 128, 255).next();
+			bufferbuilder.vertex((double)j, (double)(l1 + k1), 0.0D).texture(1.0F, 1.0F).color(128, 128, 128, 255).next();
+			bufferbuilder.vertex((double)j, (double)l1, 0.0D).texture(1.0F, 0.0F).color(128, 128, 128, 255).next();
+			bufferbuilder.vertex((double)i, (double)l1, 0.0D).texture(0.0F, 0.0F).color(128, 128, 128, 255).next();
 			tessellator.draw();
-			bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
-			bufferbuilder.pos((double)i, (double)(l1 + k1 - 1), 0.0D).tex(0.0F, 1.0F).color(192, 192, 192, 255).endVertex();
-			bufferbuilder.pos((double)(j - 1), (double)(l1 + k1 - 1), 0.0D).tex(1.0F, 1.0F).color(192, 192, 192, 255).endVertex();
-			bufferbuilder.pos((double)(j - 1), (double)l1, 0.0D).tex(1.0F, 0.0F).color(192, 192, 192, 255).endVertex();
-			bufferbuilder.pos((double)i, (double)l1, 0.0D).tex(0.0F, 0.0F).color(192, 192, 192, 255).endVertex();
+			bufferbuilder.begin(7, VertexFormats.POSITION_TEXTURE_COLOR);
+			bufferbuilder.vertex((double)i, (double)(l1 + k1 - 1), 0.0D).texture(0.0F, 1.0F).color(192, 192, 192, 255).next();
+			bufferbuilder.vertex((double)(j - 1), (double)(l1 + k1 - 1), 0.0D).texture(1.0F, 1.0F).color(192, 192, 192, 255).next();
+			bufferbuilder.vertex((double)(j - 1), (double)l1, 0.0D).texture(1.0F, 0.0F).color(192, 192, 192, 255).next();
+			bufferbuilder.vertex((double)i, (double)l1, 0.0D).texture(0.0F, 0.0F).color(192, 192, 192, 255).next();
 			tessellator.draw();
 			RenderSystem.enableTexture();
 		}
@@ -108,7 +106,7 @@ public class MatrixEnchantingPieceList extends ExtendedList<MatrixEnchantingPiec
 		// NO-OP
 	}
 
-	protected class PieceEntry extends ExtendedList.AbstractListEntry<PieceEntry> {
+	protected class PieceEntry extends AlwaysSelectedEntryListWidget.Entry<PieceEntry> {
 
 		final Piece piece;
 		final int index;

@@ -8,10 +8,10 @@ import java.util.Queue;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import vazkii.quark.base.item.QuarkItem;
 import vazkii.quark.base.module.Module;
@@ -19,15 +19,15 @@ import vazkii.quark.base.module.Module;
 public class FloodFillItem extends QuarkItem {
 
 	public FloodFillItem(Module module) {
-		super("flood_filler", module, new Item.Properties());
+		super("flood_filler", module, new Item.Settings());
 	}	
 	
 	@Override
-	public ActionResultType onItemUse(ItemUseContext context) {
+	public ActionResult useOnBlock(ItemUsageContext context) {
 		World world = context.getWorld();
-		floodFill(world, context.getPos());
+		floodFill(world, context.getBlockPos());
 		
-		return ActionResultType.SUCCESS;
+		return ActionResult.SUCCESS;
 	}
 	
 	private void floodFill(World world, BlockPos pos) {
@@ -47,7 +47,7 @@ public class FloodFillItem extends QuarkItem {
 			BlockPos candidate = candidates.poll();
 			for(Direction dir : Direction.values()) {
 				BlockPos newCandidate = candidate.offset(dir);
-				if(clickedBarrier ? world.getBlockState(newCandidate).getBlock() == Blocks.BARRIER : world.isAirBlock(newCandidate)) {
+				if(clickedBarrier ? world.getBlockState(newCandidate).getBlock() == Blocks.BARRIER : world.isAir(newCandidate)) {
 					candidates.add(newCandidate);
 					world.setBlockState(newCandidate, barrier, 0);
 				}

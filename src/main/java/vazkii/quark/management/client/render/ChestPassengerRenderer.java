@@ -1,21 +1,19 @@
 package vazkii.quark.management.client.render;
 
 import javax.annotation.Nonnull;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.model.ItemCameraTransforms.TransformType;
-import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.model.json.ModelTransformation.Mode;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.BoatEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3f;
 import vazkii.quark.management.entity.ChestPassengerEntity;
 
 /**
@@ -24,16 +22,16 @@ import vazkii.quark.management.entity.ChestPassengerEntity;
  */
 public class ChestPassengerRenderer extends EntityRenderer<ChestPassengerEntity> {
 
-    public ChestPassengerRenderer(EntityRendererManager renderManager) {
+    public ChestPassengerRenderer(EntityRenderDispatcher renderManager) {
         super(renderManager);
     }
     
     @Override
-    	public void render(ChestPassengerEntity entity, float yaw, float partialTicks, MatrixStack matrix, IRenderTypeBuffer buffer, int light) {
-        if(!entity.isPassenger())
+    	public void render(ChestPassengerEntity entity, float yaw, float partialTicks, MatrixStack matrix, VertexConsumerProvider buffer, int light) {
+        if(!entity.hasVehicle())
             return;
 
-        Entity riding = entity.getRidingEntity();
+        Entity riding = entity.getVehicle();
         if (riding == null)
             return;
 
@@ -46,24 +44,24 @@ public class ChestPassengerRenderer extends EntityRenderer<ChestPassengerEntity>
 
         matrix.push();
         matrix.translate(0, 0.375, 0);
-        matrix.rotate(Vector3f.YP.rotationDegrees(rot));
-        float timeSinceHit = boat.getTimeSinceHit() - partialTicks;
-        float damageTaken = boat.getDamageTaken() - partialTicks;
+        matrix.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion(rot));
+        float timeSinceHit = boat.getDamageWobbleTicks() - partialTicks;
+        float damageTaken = boat.getDamageWobbleStrength() - partialTicks;
 
         if (damageTaken < 0.0F)
             damageTaken = 0.0F;
 
         if (timeSinceHit > 0.0F) {
-        	double angle = MathHelper.sin(timeSinceHit) * timeSinceHit * damageTaken / 10.0F * boat.getForwardDirection();
-            matrix.rotate(Vector3f.XP.rotationDegrees((float) angle));
+        	double angle = MathHelper.sin(timeSinceHit) * timeSinceHit * damageTaken / 10.0F * boat.getDamageWobbleSide();
+            matrix.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion((float) angle));
         }
 
-        float rock = boat.getRockingAngle(partialTicks);
-        if (!MathHelper.epsilonEquals(rock, 0.0F)) {
-        	 matrix.rotate(Vector3f.XP.rotationDegrees(rock));
+        float rock = boat.interpolateBubbleWobble(partialTicks);
+        if (!MathHelper.approximatelyEquals(rock, 0.0F)) {
+        	 matrix.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(rock));
         }
 
-        if (riding.getPassengers().size() > 1)
+        if (riding.getPassengerList().size() > 1)
         	matrix.translate(0F, 0F, -0.6F);
         else
         	matrix.translate(0F, 0F, -0.45F);
@@ -72,12 +70,12 @@ public class ChestPassengerRenderer extends EntityRenderer<ChestPassengerEntity>
 
         matrix.scale(1.75F, 1.75F, 1.75F);
 
-        Minecraft.getInstance().getItemRenderer().renderItem(stack, TransformType.FIXED, light, OverlayTexture.NO_OVERLAY, matrix, buffer);
+        MinecraftClient.getInstance().getItemRenderer().renderItem(stack, Mode.FIXED, light, OverlayTexture.DEFAULT_UV, matrix, buffer);
         matrix.pop();
     }
 
     @Override
-    public ResourceLocation getEntityTexture(@Nonnull ChestPassengerEntity entity) {
+    public Identifier getEntityTexture(@Nonnull ChestPassengerEntity entity) {
         return null;
     }
 

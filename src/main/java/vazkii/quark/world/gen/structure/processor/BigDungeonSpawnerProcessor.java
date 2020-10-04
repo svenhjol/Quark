@@ -3,18 +3,18 @@ package vazkii.quark.world.gen.structure.processor;
 import java.util.Random;
 
 import net.minecraft.block.SpawnerBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.MobSpawnerBlockEntity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.MobSpawnerTileEntity;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.structure.Structure;
+import net.minecraft.structure.Structure.StructureBlockInfo;
+import net.minecraft.structure.StructurePlacementData;
+import net.minecraft.structure.processor.StructureProcessor;
+import net.minecraft.structure.processor.StructureProcessorType;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorldReader;
-import net.minecraft.world.gen.feature.template.IStructureProcessorType;
-import net.minecraft.world.gen.feature.template.PlacementSettings;
-import net.minecraft.world.gen.feature.template.StructureProcessor;
-import net.minecraft.world.gen.feature.template.Template;
-import net.minecraft.world.gen.feature.template.Template.BlockInfo;
-import net.minecraft.world.spawner.AbstractSpawner;
+import net.minecraft.world.MobSpawnerLogic;
+import net.minecraft.world.WorldView;
 import vazkii.quark.world.gen.structure.BigDungeonStructure;
 
 public class BigDungeonSpawnerProcessor extends StructureProcessor {
@@ -24,25 +24,25 @@ public class BigDungeonSpawnerProcessor extends StructureProcessor {
     }
     
     @Override
-    public BlockInfo process(IWorldReader worldReaderIn, BlockPos pos, BlockPos otherposidk, BlockInfo p_215194_3_, BlockInfo blockInfo, PlacementSettings placementSettingsIn, Template template) {
+    public StructureBlockInfo process(WorldView worldReaderIn, BlockPos pos, BlockPos otherposidk, StructureBlockInfo p_215194_3_, StructureBlockInfo blockInfo, StructurePlacementData placementSettingsIn, Structure template) {
     	if(blockInfo.state.getBlock() instanceof SpawnerBlock) {
     		Random rand = placementSettingsIn.getRandom(blockInfo.pos);
-    		TileEntity tile = TileEntity.func_235657_b_(blockInfo.state, blockInfo.nbt); // create
+    		BlockEntity tile = BlockEntity.createFromTag(blockInfo.state, blockInfo.tag); // create
     		
-    		if(tile instanceof MobSpawnerTileEntity) {
-    			MobSpawnerTileEntity spawner = (MobSpawnerTileEntity) tile;
-    			AbstractSpawner logic = spawner.getSpawnerBaseLogic();
+    		if(tile instanceof MobSpawnerBlockEntity) {
+    			MobSpawnerBlockEntity spawner = (MobSpawnerBlockEntity) tile;
+    			MobSpawnerLogic logic = spawner.getLogic();
     			
     			double val = rand.nextDouble();
     			if(val > 0.95)
-    				logic.setEntityType(EntityType.CREEPER);
+    				logic.setEntityId(EntityType.CREEPER);
     			else if(val > 0.5)
-    				logic.setEntityType(EntityType.SKELETON);
-    			else logic.setEntityType(EntityType.ZOMBIE);
+    				logic.setEntityId(EntityType.SKELETON);
+    			else logic.setEntityId(EntityType.ZOMBIE);
     			
-    			CompoundNBT nbt = new CompoundNBT();
-    			spawner.write(nbt);
-    			return new BlockInfo(blockInfo.pos, blockInfo.state, nbt);
+    			CompoundTag nbt = new CompoundTag();
+    			spawner.toTag(nbt);
+    			return new StructureBlockInfo(blockInfo.pos, blockInfo.state, nbt);
     		}
     	}
     	
@@ -50,7 +50,7 @@ public class BigDungeonSpawnerProcessor extends StructureProcessor {
     }
     
 	@Override
-	protected IStructureProcessorType<?> getType() {
+	protected StructureProcessorType<?> getType() {
 		return BigDungeonStructure.SPAWN_PROCESSOR_TYPE;
 	}
 

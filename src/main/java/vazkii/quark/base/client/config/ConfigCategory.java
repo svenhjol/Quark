@@ -8,13 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.LiteralText;
 import org.apache.commons.lang3.text.WordUtils;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.util.text.StringTextComponent;
 import vazkii.quark.base.client.screen.CheckboxButton;
 import vazkii.quark.base.client.screen.QCategoryScreen;
 import vazkii.quark.base.client.screen.WidgetWrapper;
@@ -108,7 +104,7 @@ public class ConfigCategory extends AbstractConfigElement {
 
 	@Override
 	public void addWidgets(QCategoryScreen parent, List<WidgetWrapper> widgets) {
-		widgets.add(new WidgetWrapper(new Button(230, 3, 20, 20, new StringTextComponent("->"), parent.categoryLink(this))));
+		widgets.add(new WidgetWrapper(new ButtonWidget(230, 3, 20, 20, new LiteralText("->"), parent.categoryLink(this))));
 	}
 
 	@Override

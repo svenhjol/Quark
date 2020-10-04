@@ -2,16 +2,16 @@ package vazkii.quark.building.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.util.Direction;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
 import net.minecraftforge.common.ToolType;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.module.Module;
@@ -20,34 +20,34 @@ import javax.annotation.Nonnull;
 
 public class PaperLanternBlock extends QuarkBlock {
 
-	private static final VoxelShape POST_SHAPE = makeCuboidShape(6, 0, 6, 10, 16, 10);
-	private static final VoxelShape LANTERN_SHAPE = makeCuboidShape(2, 2, 2, 14, 14, 14);
-	private static final VoxelShape SHAPE = VoxelShapes.or(POST_SHAPE, LANTERN_SHAPE);
+	private static final VoxelShape POST_SHAPE = createCuboidShape(6, 0, 6, 10, 16, 10);
+	private static final VoxelShape LANTERN_SHAPE = createCuboidShape(2, 2, 2, 14, 14, 14);
+	private static final VoxelShape SHAPE = VoxelShapes.union(POST_SHAPE, LANTERN_SHAPE);
 
 	public PaperLanternBlock(String regname, Module module) {
 		super(regname, module, ItemGroup.DECORATIONS,
-				Block.Properties.create(Material.WOOD, MaterialColor.SNOW)
-						.sound(SoundType.WOOD)
+				Block.Properties.of(Material.WOOD, MaterialColor.WHITE)
+						.sounds(BlockSoundGroup.WOOD)
 						.harvestTool(ToolType.AXE)
 						.harvestLevel(0)
-						.func_235838_a_(b -> 15) // light level
-						.hardnessAndResistance(1.5F));
+						.lightLevel(b -> 15) // light level
+						.strength(1.5F));
 	}
 
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+	public VoxelShape getOutlineShape(BlockState state, BlockView worldIn, BlockPos pos, ShapeContext context) {
 		return SHAPE;
 	}
 
 	@Override
-	public int getFlammability(BlockState state, IBlockReader world, BlockPos pos, Direction face) {
+	public int getFlammability(BlockState state, BlockView world, BlockPos pos, Direction face) {
 		return 30;
 	}
 
 	@Override
-	public int getFireSpreadSpeed(BlockState state, IBlockReader world, BlockPos pos, Direction face) {
+	public int getFireSpreadSpeed(BlockState state, BlockView world, BlockPos pos, Direction face) {
 		return 60;
 	}
 }

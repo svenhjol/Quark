@@ -16,12 +16,14 @@ import java.util.UUID;
 
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.ActionResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.TickEvent;
@@ -59,7 +61,7 @@ public class ChainLinkageModule extends Module {
 
     public static void drop(Entity vehicle) {
         if (ChainHandler.getLinked(vehicle) != null)
-            vehicle.entityDropItem(new ItemStack(Items.CHAIN), 0f);
+            vehicle.dropStack(new ItemStack(Items.CHAIN), 0f);
     }
 
     @SubscribeEvent
@@ -71,23 +73,23 @@ public class ChainLinkageModule extends Module {
 
         Entity link = ChainHandler.getLinked(entity);
 
-        boolean sneaking = player.isDiscrete();
+        boolean sneaking = player.isSneaky();
 
         List<Entity> linkedToPlayer = new ArrayList<>();
 
-        for (Entity linkCandidate : entity.world.getEntitiesWithinAABB(Entity.class, player.getBoundingBox().grow(ChainHandler.MAX_DISTANCE))) {
+        for (Entity linkCandidate : entity.world.getNonSpectatingEntities(Entity.class, player.getBoundingBox().expand(ChainHandler.MAX_DISTANCE))) {
             if (ChainHandler.getLinked(linkCandidate) == player)
                 linkedToPlayer.add(linkCandidate);
         }
 
         if (ChainHandler.canBeLinked(entity) && linkedToPlayer.isEmpty() && !stack.isEmpty() && stack.getItem() == Items.CHAIN && link == null) {
-            if (!entity.world.isRemote) {
-                ChainHandler.setLink(entity, player.getUniqueID(), true);
+            if (!entity.world.isClient) {
+                ChainHandler.setLink(entity, player.getUuid(), true);
                 if (!player.isCreative())
-                    stack.shrink(1);
+                    stack.decrement(1);
             }
 
-            event.setCancellationResult(ActionResultType.SUCCESS);
+            event.setCancellationResult(ActionResult.SUCCESS);
             event.setCanceled(true);
         } else if (link == player) {
 //            if (!entity.world.isRemote) {
@@ -96,30 +98,30 @@ public class ChainLinkageModule extends Module {
 //                ChainHandler.setLink(entity, null, true);
 //            }
 
-            event.setCancellationResult(ActionResultType.SUCCESS);
+            event.setCancellationResult(ActionResult.SUCCESS);
             event.setCanceled(true);
         } else if (ChainHandler.canBeLinked(entity) && !linkedToPlayer.isEmpty()) {
-            if (!entity.world.isRemote) {
+            if (!entity.world.isClient) {
                 for (Entity linked : linkedToPlayer)
-                    ChainHandler.setLink(linked, entity.getUniqueID(), true);
+                    ChainHandler.setLink(linked, entity.getUuid(), true);
             }
 
-            event.setCancellationResult(ActionResultType.SUCCESS);
+            event.setCancellationResult(ActionResult.SUCCESS);
             event.setCanceled(true);
         } else if (link != null && sneaking) {
-            if (!entity.world.isRemote) {
+            if (!entity.world.isClient) {
                 if (!player.isCreative())
-                    entity.entityDropItem(new ItemStack(Items.CHAIN), 0f);
+                    entity.dropStack(new ItemStack(Items.CHAIN), 0f);
                 ChainHandler.setLink(entity, null, true);
             }
 
-            event.setCancellationResult(ActionResultType.SUCCESS);
+            event.setCancellationResult(ActionResult.SUCCESS);
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void clientUpdateTick(TickEvent.ClientTickEvent event) {
         if (event.side == LogicalSide.CLIENT && event.phase == TickEvent.Phase.START)
             ChainRenderer.updateTick();
@@ -135,10 +137,10 @@ public class ChainLinkageModule extends Module {
     @SubscribeEvent
     public void onVehicleArrive(EntityJoinWorldEvent event) {
         Entity target = event.getEntity();
-        if (event.getWorld().isRemote && ChainHandler.canBeLinked(target)) {
+        if (event.getWorld().isClient && ChainHandler.canBeLinked(target)) {
             int id = target.getEntityId();
             if (AWAIT_MAP.containsKey(id))
-                target.getPersistentData().putUniqueId(ChainHandler.LINKED_TO, AWAIT_MAP.get(id));
+                target.getPersistentData().putUuid(ChainHandler.LINKED_TO, AWAIT_MAP.get(id));
             AWAIT_MAP.remove(id);
         }
     }

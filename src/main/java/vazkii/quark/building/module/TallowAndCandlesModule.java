@@ -2,15 +2,15 @@ package vazkii.quark.building.module;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.SoundType;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.passive.PigEntity;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
@@ -50,21 +50,21 @@ public class TallowAndCandlesModule extends Module {
 
 	@Override
 	public void construct() {
-		tallow = new QuarkItem("tallow", this, new Item.Properties().group(ItemGroup.MATERIALS));
+		tallow = new QuarkItem("tallow", this, new Item.Settings().group(ItemGroup.MATERIALS));
 
 		for(DyeColor dye : DyeColor.values())
-			new CandleBlock(dye.getTranslationKey() + "_candle", this, dye);
+			new CandleBlock(dye.getName() + "_candle", this, dye);
 		
-		tallow_block = new QuarkBlock("tallow_block", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(Blocks.YELLOW_TERRACOTTA).sound(SoundType.CLOTH));
+		tallow_block = new QuarkBlock("tallow_block", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(Blocks.YELLOW_TERRACOTTA).sounds(BlockSoundGroup.WOOL));
 	}
 
 	@SubscribeEvent
 	public void onDrops(LivingDropsEvent event) {
 		LivingEntity e = event.getEntityLiving();
-		if (e instanceof PigEntity && !((PigEntity) e).isChild() && maxDrop > 0 && e.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS)) {
-			int drops = minDrop + e.world.rand.nextInt(maxDrop - minDrop + 1);
+		if (e instanceof PigEntity && !((PigEntity) e).isBaby() && maxDrop > 0 && e.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS)) {
+			int drops = minDrop + e.world.random.nextInt(maxDrop - minDrop + 1);
 			if (drops > 0) {
-				Vector3d pos = e.getPositionVec();
+				Vec3d pos = e.getPos();
 				event.getDrops().add(new ItemEntity(e.world, pos.x, pos.y, pos.z, new ItemStack(tallow, drops)));
 			}
 		}

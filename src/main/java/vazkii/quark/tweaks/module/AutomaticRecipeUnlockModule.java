@@ -6,19 +6,20 @@ import java.util.Objects;
 import java.util.Queue;
 
 import com.google.common.collect.Lists;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.recipebook.IRecipeShownListener;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.toasts.IToast;
-import net.minecraft.client.gui.toasts.RecipeToast;
-import net.minecraft.client.gui.toasts.ToastGui;
-import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.gui.widget.button.ImageButton;
+import net.minecraft.client.gui.screen.recipebook.RecipeBookProvider;
+import net.minecraft.client.gui.widget.AbstractButtonWidget;
+import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.client.toast.RecipeToast;
+import net.minecraft.client.toast.Toast;
+import net.minecraft.client.toast.ToastManager;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.recipe.Recipe;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameRules;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -48,8 +49,8 @@ public class AutomaticRecipeUnlockModule extends Module {
 			ServerPlayerEntity spe = (ServerPlayerEntity) player;
 			MinecraftServer server = spe.getServer();
 			if (server != null) {
-				List<IRecipe<?>> recipes = new ArrayList<>(server.getRecipeManager().getRecipes());
-				recipes.removeIf((recipe) -> ignoredRecipes.contains(Objects.toString(recipe.getId())) || recipe.getRecipeOutput().isEmpty());
+				List<Recipe<?>> recipes = new ArrayList<>(server.getRecipeManager().values());
+				recipes.removeIf((recipe) -> ignoredRecipes.contains(Objects.toString(recipe.getId())) || recipe.getOutput().isEmpty());
 				player.unlockRecipes(recipes);
 
 				if (forceLimitedCrafting)
@@ -59,15 +60,15 @@ public class AutomaticRecipeUnlockModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onInitGui(InitGuiEvent.Post event) {
 		Screen gui = event.getGui();
-		if(disableRecipeBook && gui instanceof IRecipeShownListener) {
-			Minecraft.getInstance().player.getRecipeBook().setGuiOpen(false);
+		if(disableRecipeBook && gui instanceof RecipeBookProvider) {
+			MinecraftClient.getInstance().player.getRecipeBook().setGuiOpen(false);
 
-			List<Widget> widgets = event.getWidgetList();
-			for(Widget w : widgets)
-				if(w instanceof ImageButton) {
+			List<AbstractButtonWidget> widgets = event.getWidgetList();
+			for(AbstractButtonWidget w : widgets)
+				if(w instanceof TexturedButtonWidget) {
 					event.removeWidget(w);
 					return;
 				}
@@ -75,16 +76,16 @@ public class AutomaticRecipeUnlockModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientTick(ClientTickEvent event) {
-		Minecraft mc = Minecraft.getInstance();
-		if(mc.player != null && mc.player.ticksExisted < 20) {
-			ToastGui toasts = mc.getToastGui();
-			Queue<IToast> toastQueue = toasts.toastsQueue;
-			for(IToast toast : toastQueue)
+		MinecraftClient mc = MinecraftClient.getInstance();
+		if(mc.player != null && mc.player.age < 20) {
+			ToastManager toasts = mc.getToastManager();
+			Queue<Toast> toastQueue = toasts.toastQueue;
+			for(Toast toast : toastQueue)
 				if(toast instanceof RecipeToast) {
 					RecipeToast recipeToast = (RecipeToast) toast;
-					List<IRecipe<?>> stacks = recipeToast.recipes;
+					List<Recipe<?>> stacks = recipeToast.recipes;
 					if(stacks.size() > 100) {
 						toastQueue.remove(toast);
 						return;

@@ -1,5 +1,7 @@
 package vazkii.quark.tweaks.client.emote;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.tweaks.module.EmotesModule;
@@ -9,7 +11,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class CustomEmoteTemplate extends EmoteTemplate {
 
 	private String name;

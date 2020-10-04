@@ -1,19 +1,21 @@
 package vazkii.quark.world.module.underground;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
-import net.minecraft.entity.monster.ZombieEntity;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.attribute.DefaultAttributeRegistry;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ToolType;
@@ -46,16 +48,16 @@ public class SpiderNestUndergroundBiomeModule extends UndergroundBiomeModule {
 	@Override
 	public void construct() {
 		cobbedstone = new QuarkBlock("cobbedstone", this, ItemGroup.BUILDING_BLOCKS, 
-				Block.Properties.create(Material.ROCK, MaterialColor.GRAY)
-				.func_235861_h_() // needs tool
+				Block.Properties.of(Material.STONE, MaterialColor.GRAY)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-				.hardnessAndResistance(1.5F, 10F)
-				.sound(SoundType.STONE));
+				.strength(1.5F, 10F)
+				.sounds(BlockSoundGroup.STONE));
 
 		VariantHandler.addSlabStairsWall(cobbedstone);
 
-		wrappedType = EntityType.Builder.create(WrappedEntity::new, EntityClassification.MONSTER)
-				.size(0.6F, 1.95F)
+		wrappedType = EntityType.Builder.create(WrappedEntity::new, SpawnGroup.MONSTER)
+				.setDimensions(0.6F, 1.95F)
 				.setTrackingRange(80)
 				.setUpdateInterval(3)
 				.setCustomClientFactory((spawnEntity, world) -> new WrappedEntity(wrappedType, world))
@@ -68,11 +70,11 @@ public class SpiderNestUndergroundBiomeModule extends UndergroundBiomeModule {
 	
 	@Override
 	public void setup() {
-		GlobalEntityTypeAttributes.put(wrappedType, ZombieEntity.func_234342_eQ_().func_233813_a_());
+		DefaultAttributeRegistry.put(wrappedType, ZombieEntity.createZombieAttributes().build());
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		RenderingRegistry.registerEntityRenderingHandler(wrappedType, WrappedRenderer::new);
 	}
@@ -84,7 +86,7 @@ public class SpiderNestUndergroundBiomeModule extends UndergroundBiomeModule {
 		if(entity.getType() == EntityType.ZOMBIE && entity instanceof MobEntity && enabledWrapped && result != Result.DENY) {
 			MobEntity mob = (MobEntity) entity;
 			 
-			if(result == Result.ALLOW || (mob.canSpawn(entity.world, event.getSpawnReason()) && mob.isNotColliding(entity.world)))
+			if(result == Result.ALLOW || (mob.canSpawn(entity.world, event.getSpawnReason()) && mob.canSpawn(entity.world)))
 				if(changeToWrapped(entity))
 					event.setResult(Result.DENY);
 		}
@@ -99,21 +101,21 @@ public class SpiderNestUndergroundBiomeModule extends UndergroundBiomeModule {
 	}
 	
 	private static boolean changeToWrapped(Entity entity) {
-		BlockPos pos = entity.func_233580_cy_(); // getPosition
+		BlockPos pos = entity.getBlockPos(); // getPosition
 		int i = 0;
 
 		while(i < 4) {
 			pos = pos.down();
 			i++;
-			if(entity.world.isAirBlock(pos))
+			if(entity.world.isAir(pos))
 				continue;
 
 			if(entity.world.getBlockState(pos).getBlock() == cobbedstone) {
 				WrappedEntity wrapped = new WrappedEntity(wrappedType, entity.world);
-				Vector3d epos = entity.getPositionVec();
+				Vec3d epos = entity.getPos();
 				
-				wrapped.setPositionAndRotation(epos.x, epos.y, epos.z, entity.rotationYaw, entity.rotationPitch);
-				entity.world.addEntity(wrapped);
+				wrapped.updatePositionAndAngles(epos.x, epos.y, epos.z, entity.yaw, entity.pitch);
+				entity.world.spawnEntity(wrapped);
 
 				return true;
 			}

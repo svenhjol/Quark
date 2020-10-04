@@ -1,13 +1,15 @@
 package vazkii.quark.tools.module;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.ProjectileDamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.IndirectEntityDamageSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ToolType;
@@ -55,8 +57,8 @@ public class PickarangModule extends Module {
 
 	@Override
 	public void construct() {
-		pickarangType = EntityType.Builder.<PickarangEntity>create(PickarangEntity::new, EntityClassification.MISC)
-				.size(0.4F, 0.4F)
+		pickarangType = EntityType.Builder.<PickarangEntity>create(PickarangEntity::new, SpawnGroup.MISC)
+				.setDimensions(0.4F, 0.4F)
 				.setTrackingRange(80)
 				.setUpdateInterval(3)
 				.setShouldReceiveVelocityUpdates(true)
@@ -68,9 +70,9 @@ public class PickarangModule extends Module {
 		flamerang = new PickarangItem("flamerang", this, propertiesFor(netheriteHarvestLevel, netheriteDurability, true), true);
 	}
 	
-	private static Item.Properties propertiesFor(int level, int durability, boolean netherite) {
-		Item.Properties properties = new Item.Properties()
-				.maxStackSize(1)
+	private static Item.Settings propertiesFor(int level, int durability, boolean netherite) {
+		Item.Settings properties = new Item.Settings()
+				.maxCount(1)
 				.group(ItemGroup.TOOLS)
 				.addToolType(ToolType.PICKAXE, harvestLevel)
 				.addToolType(ToolType.AXE, harvestLevel)
@@ -80,13 +82,13 @@ public class PickarangModule extends Module {
 			properties.maxDamage(durability);
 		
 		if(netherite)
-			properties.func_234689_a_();
+			properties.fireproof();
 		
 		return properties;
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		RenderingRegistry.registerEntityRenderingHandler(pickarangType, PickarangRenderer::new);
 	}
@@ -109,14 +111,14 @@ public class PickarangModule extends Module {
 		if (pickarang == null)
 			return null;
 
-		return new IndirectEntityDamageSource("player", pickarang, player).setProjectile();
+		return new ProjectileDamageSource("player", pickarang, player).setProjectile();
 	}
 	
 	public static boolean getIsFireResistant(boolean vanillaVal, Entity entity) {
 		if(!isEnabled || vanillaVal)
 			return vanillaVal;
 		
-		Entity riding = entity.getRidingEntity();
+		Entity riding = entity.getVehicle();
 		if(riding instanceof PickarangEntity)
 			return ((PickarangEntity) riding).netherite;
 		

@@ -1,7 +1,7 @@
 package vazkii.quark.base.network.message;
 
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import vazkii.arl.network.IMessage;
 import vazkii.quark.oddities.container.MatrixEnchantingContainer;
@@ -27,7 +27,7 @@ public class MatrixEnchanterOperationMessage implements IMessage {
 	public boolean receive(Context context) {
 		context.enqueueWork(() -> {
 			ServerPlayerEntity player = context.getSender();
-			Container container = player.openContainer;
+			ScreenHandler container = player.currentScreenHandler;
 			
 			if(container instanceof MatrixEnchantingContainer) {
 				MatrixEnchantingTableTileEntity enchanter = ((MatrixEnchantingContainer) container).enchanter;

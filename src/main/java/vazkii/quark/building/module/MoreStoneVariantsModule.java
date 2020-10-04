@@ -3,8 +3,8 @@ package vazkii.quark.building.module;
 import java.util.function.BooleanSupplier;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
 import net.minecraftforge.common.ToolType;
 import vazkii.quark.base.block.QuarkBlock;
@@ -48,10 +48,10 @@ public class MoreStoneVariantsModule extends Module {
 	}
 	
 	private void add(String name, MaterialColor color, BooleanSupplier cond) {
-		Block.Properties props = Block.Properties.create(Material.ROCK, color)
-				.func_235861_h_() // needs tool
+		Block.Properties props = Block.Properties.of(Material.STONE, color)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-        		.hardnessAndResistance(1.5F, 6.0F);
+        		.strength(1.5F, 6.0F);
 		
 		QuarkBlock bricks = new QuarkBlock(name + "_bricks", this, ItemGroup.BUILDING_BLOCKS, props).setCondition(() -> cond.getAsBoolean() && enableBricks);
 		VariantHandler.addSlabStairsWall(bricks);

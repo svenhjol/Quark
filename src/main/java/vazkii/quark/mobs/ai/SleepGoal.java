@@ -24,33 +24,33 @@ public class SleepGoal extends Goal {
 
 	public SleepGoal(FoxhoundEntity foxhound) {
 		this.foxhound = foxhound;
-		this.setMutexFlags(EnumSet.of(Flag.MOVE, Flag.JUMP, Flag.LOOK, Flag.TARGET));
+		this.setControls(EnumSet.of(Control.MOVE, Control.JUMP, Control.LOOK, Control.TARGET));
 	}
 
 	@Override
-	public boolean shouldExecute() {
-		if (!this.foxhound.isTamed() || this.foxhound.isInWater() || !this.foxhound.onGround)
+	public boolean canStart() {
+		if (!this.foxhound.isTamed() || this.foxhound.isTouchingWater() || !this.foxhound.onGround)
 			return false;
 		else {
 			LivingEntity living = this.foxhound.getOwner();
 
 			if (living == null) return true;
 			else
-				return (!(this.foxhound.getDistanceSq(living) < 144.0D) || living.getRevengeTarget() == null) && this.isSleeping;
+				return (!(this.foxhound.squaredDistanceTo(living) < 144.0D) || living.getAttacker() == null) && this.isSleeping;
 		}
 	}
 
 	@Override
-	public void startExecuting() {
-		this.foxhound.getNavigator().clearPath();
-		wasSitting = foxhound.func_233684_eK_();
-		this.foxhound.func_233686_v_(true);
+	public void start() {
+		this.foxhound.getNavigation().stop();
+		wasSitting = foxhound.isInSittingPose();
+		this.foxhound.setInSittingPose(true);
 		this.foxhound.setSleeping(true);
 	}
 
 	@Override
-	public void resetTask() {
-		this.foxhound.func_233686_v_(wasSitting);
+	public void stop() {
+		this.foxhound.setInSittingPose(wasSitting);
 		this.foxhound.setSleeping(false);
 	}
 

@@ -9,12 +9,11 @@ import com.google.common.collect.Lists;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep;
 import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.IFeatureConfig;
+import net.minecraft.world.gen.feature.FeatureConfig;
 import net.minecraft.world.gen.feature.OreFeatureConfig;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -68,11 +67,11 @@ public class BigStoneClustersModule extends Module {
 	}
 	
 	private void add(BigStoneClusterConfig config, Block block, BooleanSupplier condition) {
-		WorldGenHandler.addGenerator(this, new BigStoneClusterGenerator(config, block.getDefaultState(), condition), Decoration.UNDERGROUND_DECORATION, WorldGenWeights.BIG_STONE_CLUSTERS);
+		WorldGenHandler.addGenerator(this, new BigStoneClusterGenerator(config, block.getDefaultState(), condition), net.minecraft.world.gen.GenerationStep.Feature.UNDERGROUND_DECORATION, WorldGenWeights.BIG_STONE_CLUSTERS);
 	}
 	
 	private void conditionalize(Block block, BooleanSupplier condition) {
-		BiPredicate<Feature<? extends IFeatureConfig>, IFeatureConfig> pred = (feature, config) -> {
+		BiPredicate<Feature<? extends FeatureConfig>, FeatureConfig> pred = (feature, config) -> {
 			if(config instanceof OreFeatureConfig) {
 				OreFeatureConfig oconfig = (OreFeatureConfig) config;
 				return oconfig.state.getBlock() == block;
@@ -81,7 +80,7 @@ public class BigStoneClustersModule extends Module {
 			return false;
 		};
 		
-		WorldGenHandler.conditionalizeFeatures(GenerationStage.Decoration.UNDERGROUND_ORES, pred, condition);
+		WorldGenHandler.conditionalizeFeatures(GenerationStep.Feature.UNDERGROUND_ORES, pred, condition);
 	}
 	
 	@Override
@@ -99,7 +98,7 @@ public class BigStoneClustersModule extends Module {
 			}
 			
 			String dimFinal = dimension;
-			Block blockObj = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(bname));
+			Block blockObj = ForgeRegistries.BLOCKS.getValue(new Identifier(bname));
 			
 			if(blockObj != null && blockObj != Blocks.AIR) {
 				if(dimension == null)
@@ -111,7 +110,7 @@ public class BigStoneClustersModule extends Module {
 						if(w == null)
 							return false;
 
-						return ((World) w).func_234923_W_().func_240901_a_().toString().equals(dimFinal);
+						return ((World) w).getRegistryKey().getValue().toString().equals(dimFinal);
 					});
 				}
 			}

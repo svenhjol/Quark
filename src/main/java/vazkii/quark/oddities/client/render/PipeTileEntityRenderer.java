@@ -2,35 +2,33 @@ package vazkii.quark.oddities.client.render;
 
 import java.util.Iterator;
 import java.util.Random;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.render.block.entity.BlockEntityRenderer;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.json.ModelTransformation;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.util.math.Direction;
 import vazkii.quark.oddities.tile.PipeTileEntity;
 import vazkii.quark.oddities.tile.PipeTileEntity.PipeItem;
 
-public class PipeTileEntityRenderer extends TileEntityRenderer<PipeTileEntity> {
+public class PipeTileEntityRenderer extends BlockEntityRenderer<PipeTileEntity> {
 
 	private Random random = new Random();
 	
-	public PipeTileEntityRenderer(TileEntityRendererDispatcher p_i226006_1_) {
+	public PipeTileEntityRenderer(BlockEntityRenderDispatcher p_i226006_1_) {
 		super(p_i226006_1_);
 	}
 
 	@Override
-	public void render(PipeTileEntity te, float pticks, MatrixStack matrix, IRenderTypeBuffer buffer, int light, int overlay) {
+	public void render(PipeTileEntity te, float pticks, MatrixStack matrix, VertexConsumerProvider buffer, int light, int overlay) {
 		matrix.push();
 		matrix.translate(0.5, 0.5, 0.5);
-		ItemRenderer render = Minecraft.getInstance().getItemRenderer();
+		ItemRenderer render = MinecraftClient.getInstance().getItemRenderer();
 		Iterator<PipeItem> items = te.getItemIterator();
 
 		while(items.hasNext())
@@ -38,7 +36,7 @@ public class PipeTileEntityRenderer extends TileEntityRenderer<PipeTileEntity> {
 		matrix.pop();
 	}
 	
-	private void renderItem(PipeItem item, ItemRenderer render, MatrixStack matrix, IRenderTypeBuffer buffer, float partial, int light, int overlay) {
+	private void renderItem(PipeItem item, ItemRenderer render, MatrixStack matrix, VertexConsumerProvider buffer, float partial, int light, int overlay) {
 		matrix.push();
 
 		float scale = 0.4F;
@@ -48,17 +46,17 @@ public class PipeTileEntityRenderer extends TileEntityRenderer<PipeTileEntity> {
 		if(fract < 0.5)
 			face = item.incomingFace.getOpposite();
 
-		float offX = (face.getXOffset() * 1F);
-		float offY = (face.getYOffset() * 1F);
-		float offZ = (face.getZOffset() * 1F);
+		float offX = (face.getOffsetX() * 1F);
+		float offY = (face.getOffsetY() * 1F);
+		float offZ = (face.getOffsetZ() * 1F);
 		matrix.translate(offX * shiftFract, offY * shiftFract, offZ * shiftFract);
 
 		matrix.scale(scale, scale, scale);
 
 		float speed = 4F;
-		matrix.rotate(Vector3f.YP.rotationDegrees((item.timeInWorld + partial) * speed));
+		matrix.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion((item.timeInWorld + partial) * speed));
 
-        int seed = item.stack.isEmpty() ? 187 : Item.getIdFromItem(item.stack.getItem());
+        int seed = item.stack.isEmpty() ? 187 : Item.getRawId(item.stack.getItem());
         random.setSeed(seed);
 		
 		int count = getModelCount(item.stack);
@@ -72,7 +70,7 @@ public class PipeTileEntityRenderer extends TileEntityRenderer<PipeTileEntity> {
                 matrix.translate(x, y, z);
 			}
 			
-			render.renderItem(item.stack, ItemCameraTransforms.TransformType.FIXED, light, overlay, matrix, buffer);
+			render.renderItem(item.stack, ModelTransformation.Mode.FIXED, light, overlay, matrix, buffer);
 			matrix.pop();
 		}
 		matrix.pop();

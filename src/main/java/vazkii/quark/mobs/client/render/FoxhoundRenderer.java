@@ -12,28 +12,27 @@ package vazkii.quark.mobs.client.render;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.MobRenderer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.MobEntityRenderer;
+import net.minecraft.util.Identifier;
 import vazkii.quark.base.Quark;
 import vazkii.quark.mobs.client.layer.FoxhoundCollarLayer;
 import vazkii.quark.mobs.client.model.FoxhoundModel;
 import vazkii.quark.mobs.entity.FoxhoundEntity;
 
-public class FoxhoundRenderer extends MobRenderer<FoxhoundEntity, FoxhoundModel> {
-	private static final ResourceLocation FOXHOUND_IDLE = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/foxhound/idle.png");
-	private static final ResourceLocation FOXHOUND_HOSTILE = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/foxhound/hostile.png");
-	private static final ResourceLocation FOXHOUND_SLEEPING = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/foxhound/sleeping.png");
+public class FoxhoundRenderer extends MobEntityRenderer<FoxhoundEntity, FoxhoundModel> {
+	private static final Identifier FOXHOUND_IDLE = new Identifier(Quark.MOD_ID, "textures/model/entity/foxhound/idle.png");
+	private static final Identifier FOXHOUND_HOSTILE = new Identifier(Quark.MOD_ID, "textures/model/entity/foxhound/hostile.png");
+	private static final Identifier FOXHOUND_SLEEPING = new Identifier(Quark.MOD_ID, "textures/model/entity/foxhound/sleeping.png");
 
-	public FoxhoundRenderer(EntityRendererManager render) {
+	public FoxhoundRenderer(EntityRenderDispatcher render) {
 		super(render, new FoxhoundModel(), 0.5F);
-		addLayer(new FoxhoundCollarLayer(this));
+		addFeature(new FoxhoundCollarLayer(this));
 	}
 
 	@Nullable
 	@Override
-	public ResourceLocation getEntityTexture(@Nonnull FoxhoundEntity entity) {
-		return entity.isSleeping() ? FOXHOUND_SLEEPING : (entity.func_230256_F__() > 0 ? FOXHOUND_HOSTILE : FOXHOUND_IDLE);
+	public Identifier getEntityTexture(@Nonnull FoxhoundEntity entity) {
+		return entity.isSleeping() ? FOXHOUND_SLEEPING : (entity.getAngerTime() > 0 ? FOXHOUND_HOSTILE : FOXHOUND_IDLE);
 	}
 }

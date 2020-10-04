@@ -8,33 +8,34 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import net.minecraft.client.renderer.color.IItemColor;
-import net.minecraft.client.renderer.entity.model.BipedModel;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.color.item.ItemColorProvider;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.Attribute;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.InventoryHelper;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.ArmorMaterial;
+import net.minecraft.item.ArmorMaterials;
 import net.minecraft.item.DyeableArmorItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Rarity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.ItemScatterer;
+import net.minecraft.util.Rarity;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -53,21 +54,21 @@ import vazkii.quark.oddities.client.model.BackpackModel;
 import vazkii.quark.oddities.container.BackpackContainer;
 import vazkii.quark.oddities.module.BackpackModule;
 
-public class BackpackItem extends DyeableArmorItem implements IItemColorProvider, INamedContainerProvider {
+public class BackpackItem extends DyeableArmorItem implements IItemColorProvider, NamedScreenHandlerFactory {
 
 	private static final String WORN_TEXTURE = Quark.MOD_ID + ":textures/misc/backpack_worn.png";
 	private static final String WORN_OVERLAY_TEXTURE = Quark.MOD_ID + ":textures/misc/backpack_worn_overlay.png";
 
 	private final Module module;
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	@SuppressWarnings("rawtypes")
-	private BipedModel model;
+	private BipedEntityModel model;
 
 	public BackpackItem(Module module) {
-		super(ArmorMaterial.LEATHER, EquipmentSlotType.CHEST, 
-				new Item.Properties()
-				.maxStackSize(1)
+		super(ArmorMaterials.LEATHER, EquipmentSlot.CHEST, 
+				new Item.Settings()
+				.maxCount(1)
 				.maxDamage(0)
 				.group(ItemGroup.TOOLS)
 				.rarity(Rarity.RARE));
@@ -102,12 +103,12 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 
 	@Override
 	public void inventoryTick(ItemStack stack, World worldIn, Entity entityIn, int itemSlot, boolean isSelected) {
-		if(worldIn.isRemote)
+		if(worldIn.isClient)
 			return;
 
 		boolean hasItems = !BackpackModule.superOpMode && doesBackpackHaveItems(stack);
 
-		Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
+		Map<Enchantment, Integer> enchants = EnchantmentHelper.get(stack);
 		boolean isCursed = enchants.containsKey(Enchantments.BINDING_CURSE);
 		boolean changedEnchants = false;
 
@@ -120,7 +121,7 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 			} else {
 				ItemStack copy = stack.copy();
 				stack.setCount(0);
-				entityIn.entityDropItem(copy, 0);
+				entityIn.dropStack(copy, 0);
 			}
 		} else if(isCursed) {
 			enchants.remove(Enchantments.BINDING_CURSE);
@@ -128,12 +129,12 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 		}
 
 		if(changedEnchants)
-			EnchantmentHelper.setEnchantments(enchants, stack);
+			EnchantmentHelper.set(enchants, stack);
 	}
 
 	@Override
 	public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entityItem) {
-		if(BackpackModule.superOpMode || entityItem.world.isRemote)
+		if(BackpackModule.superOpMode || entityItem.world.isClient)
 			return false;
 
 		if (!ItemNBTHelper.detectNBT(stack))
@@ -150,13 +151,13 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 			ItemStack stackAt = handler.getStackInSlot(i);
 			if(!stackAt.isEmpty()) {
 				ItemStack copy = stackAt.copy();
-				InventoryHelper.spawnItemStack(entityItem.world, entityItem.getPosX(), entityItem.getPosY(), entityItem.getPosZ(), copy);
+				ItemScatterer.spawn(entityItem.world, entityItem.getX(), entityItem.getY(), entityItem.getZ(), copy);
 			}
 		}
 
-		CompoundNBT comp = ItemNBTHelper.getNBT(stack);
+		CompoundTag comp = ItemNBTHelper.getNBT(stack);
 		comp.remove("Inventory");
-		if (comp.size() == 0)
+		if (comp.getSize() == 0)
 			stack.setTag(null);
 
 		return false;
@@ -164,11 +165,11 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 
 	@Nonnull
 	@Override
-	public ICapabilityProvider initCapabilities(ItemStack stack, CompoundNBT oldCapNbt) {
+	public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag oldCapNbt) {
 		ProxiedItemStackHandler handler = new ProxiedItemStackHandler(stack, 27);
 
 		if (oldCapNbt != null && oldCapNbt.contains("Parent")) {
-			CompoundNBT itemData = oldCapNbt.getCompound("Parent");
+			CompoundTag itemData = oldCapNbt.getCompound("Parent");
 			ItemStackHandler stacks = new ItemStackHandler();
 			stacks.deserializeNBT(itemData);
 
@@ -182,19 +183,19 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 	}
 
 	@Override
-	public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlotType slot, ItemStack stack) {
+	public Multimap<EntityAttribute, EntityAttributeModifier> getAttributeModifiers(EquipmentSlot slot, ItemStack stack) {
 		return ImmutableMultimap.of();
 	}
 
 	@Override
-	public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlotType slot, String type) {
+	public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
 		return type != null && type.equals("overlay") ? WORN_OVERLAY_TEXTURE : WORN_TEXTURE;
 	}
 
 	@Override
 	@SuppressWarnings( { "rawtypes", "unchecked" } )
-	@OnlyIn(Dist.CLIENT)
-	public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
+	@Environment(EnvType.CLIENT)
+	public BipedEntityModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlot armorSlot, BipedEntityModel _default) {
 		if(model == null)
 			model = new BackpackModel();
 
@@ -202,7 +203,7 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 	}
 
 	@Override
-	public boolean hasEffect(ItemStack stack) {
+	public boolean hasGlint(ItemStack stack) {
 		return false;
 	}
 
@@ -212,9 +213,9 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 	}
 
 	@Override
-	public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
+	public void appendStacks(@Nonnull ItemGroup group, @Nonnull DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.appendStacks(group, items);
 	}
 
 	public boolean isEnabled() {
@@ -222,18 +223,18 @@ public class BackpackItem extends DyeableArmorItem implements IItemColorProvider
 	}
 
 	@Override
-	public IItemColor getItemColor() {
+	public ItemColorProvider getItemColor() {
 		return (stack, i) -> i > 0 ? -1 : ((DyeableArmorItem) stack.getItem()).getColor(stack);
 	}
 
 	@Override
-	public Container createMenu(int id, PlayerInventory inv, PlayerEntity player) {
+	public ScreenHandler createMenu(int id, PlayerInventory inv, PlayerEntity player) {
 		return new BackpackContainer(id, player);
 	}
 
 	@Override
-	public ITextComponent getDisplayName() {
-		return new TranslationTextComponent(getTranslationKey());
+	public Text getDisplayName() {
+		return new TranslatableText(getTranslationKey());
 	}
 
 }

@@ -4,22 +4,22 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 
 import org.lwjgl.glfw.GLFW;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.SimpleSound;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.client.util.ScreenshotUtils;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.ScreenShotHelper;
-import net.minecraft.util.text.KeybindTextComponent;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.text.KeybindText;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.InputEvent.KeyInputEvent;
@@ -43,35 +43,35 @@ public class CameraModule extends Module {
 	private static final int BORERS = 6;
 	private static final int OVERLAYS = 5;
 
-	private static final ResourceLocation[] SHADERS = new ResourceLocation[] {
+	private static final Identifier[] SHADERS = new Identifier[] {
 			null,
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/grayscale.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/sepia.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/desaturate.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/oversaturate.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/cool.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/warm.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/conjugate.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/grayscale.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/sepia.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/desaturate.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/oversaturate.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/cool.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/warm.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/conjugate.json"),
 
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/redfocus.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/greenfocus.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/bluefocus.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/yellowfocus.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/redfocus.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/greenfocus.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/bluefocus.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/yellowfocus.json"),
 
-			new ResourceLocation("shaders/post/bumpy.json"),
-			new ResourceLocation("shaders/post/notch.json"),
-			new ResourceLocation("shaders/post/creeper.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/enderman.json"),
+			new Identifier("shaders/post/bumpy.json"),
+			new Identifier("shaders/post/notch.json"),
+			new Identifier("shaders/post/creeper.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/enderman.json"),
 
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/bits.json"),
-			new ResourceLocation("shaders/post/blobs.json"),
-			new ResourceLocation("shaders/post/pencil.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/watercolor.json"),
-			new ResourceLocation(Quark.MOD_ID, "shaders/post/monochrome.json"),
-			new ResourceLocation("shaders/post/sobel.json")
+			new Identifier(Quark.MOD_ID, "shaders/post/bits.json"),
+			new Identifier("shaders/post/blobs.json"),
+			new Identifier("shaders/post/pencil.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/watercolor.json"),
+			new Identifier(Quark.MOD_ID, "shaders/post/monochrome.json"),
+			new Identifier("shaders/post/sobel.json")
 	};
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static KeyBinding cameraModeKey;
 	
 	private static int currentHeldItem = -1;
@@ -91,17 +91,17 @@ public class CameraModule extends Module {
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void screenshotTaken(ScreenshotEvent event) {
 		screenshotting = false;
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void keystroke(KeyInputEvent event) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		if(mc.world != null && event.getAction() == GLFW.GLFW_PRESS) {
-			if(cameraModeKey.isKeyDown()) {
+			if(cameraModeKey.isPressed()) {
 				cameraMode = !cameraMode;
 				queuedRefresh = true;
 				return;
@@ -111,7 +111,7 @@ public class CameraModule extends Module {
 				int key = event.getKey();
 				
 				boolean affected = false;
-				boolean sneak = mc.player.isDiscrete();
+				boolean sneak = mc.player.isSneaky();
 				switch(key) {
 				case 49: // 1
 					currShader = cycle(currShader, SHADERS.length, sneak);
@@ -140,30 +140,30 @@ public class CameraModule extends Module {
 					break;
 				case 257: // ENTER
 					if(!queueScreenshot && !screenshotting)
-						mc.getSoundHandler().play(SimpleSound.master(QuarkSounds.ITEM_CAMERA_SHUTTER, 1.0F));
+						mc.getSoundManager().play(PositionedSoundInstance.master(QuarkSounds.ITEM_CAMERA_SHUTTER, 1.0F));
 
 					queueScreenshot = true;
 				}
 
 				if(affected) {
 					queuedRefresh = true;
-					currentHeldItem = mc.player.inventory.currentItem;
+					currentHeldItem = mc.player.inventory.selectedSlot;
 				}
 			}
 		}
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void renderTick(RenderTickEvent event) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		
 		if(mc.world == null)
 			cameraMode = false;
 
 		PlayerEntity player = mc.player;
-		if(player != null && currentHeldItem != -1 && player.inventory.currentItem != currentHeldItem) {
-			player.inventory.currentItem = currentHeldItem;
+		if(player != null && currentHeldItem != -1 && player.inventory.selectedSlot != currentHeldItem) {
+			player.inventory.selectedSlot = currentHeldItem;
 			currentHeldItem = -1;	
 		}
 
@@ -179,17 +179,17 @@ public class CameraModule extends Module {
 
 			if(queueScreenshot) {
 				queueScreenshot = false;
-				ScreenShotHelper.saveScreenshot(mc.gameDir, mc.getMainWindow().getFramebufferWidth(), mc.getMainWindow().getFramebufferHeight(), mc.getFramebuffer(), (msg) -> {
+				ScreenshotUtils.saveScreenshot(mc.runDirectory, mc.getWindow().getFramebufferWidth(), mc.getWindow().getFramebufferHeight(), mc.getFramebuffer(), (msg) -> {
 					mc.execute(() -> {
-						mc.ingameGUI.getChatGUI().printChatMessage(msg);
+						mc.inGameHud.getChatHud().addMessage(msg);
 					});
 				});
 			}
 		}
 	}
 
-	private static void renderCameraHUD(Minecraft mc, MatrixStack matrix) {
-		MainWindow mw = mc.getMainWindow();
+	private static void renderCameraHUD(MinecraftClient mc, MatrixStack matrix) {
+		Window mw = mc.getWindow();
 		int twidth = mw.getScaledWidth();
 		int theight = mw.getScaledHeight();
 		int width = twidth;
@@ -263,12 +263,12 @@ public class CameraModule extends Module {
 			break;
 		case 2: // Postcard
 			String worldName = "N/A";
-			if(mc.getIntegratedServer() != null) 
-				worldName = mc.getIntegratedServer().getName();
-			else if(mc.getCurrentServerData() != null)
-				worldName = mc.getCurrentServerData().serverName;
+			if(mc.getServer() != null) 
+				worldName = mc.getServer().getName();
+			else if(mc.getCurrentServerEntry() != null)
+				worldName = mc.getCurrentServerEntry().name;
 			
-			overlayText = I18n.format("quark.camera.greetings", worldName);
+			overlayText = I18n.translate("quark.camera.greetings", worldName);
 			overlayX = paddingHoriz + 20;
 			overlayY = paddingVert + 20;
 			overlayScale = 3;
@@ -281,14 +281,14 @@ public class CameraModule extends Module {
 			overlayColor = 0x44000000;
 			break;
 		case 4: // Held Item
-			overlayText = mc.player.getHeldItemMainhand().getDisplayName().getString();
-			overlayX = twidth / 2 - mc.fontRenderer.getStringWidth(overlayText);
+			overlayText = mc.player.getMainHandStack().getName().getString();
+			overlayX = twidth / 2 - mc.textRenderer.getWidth(overlayText);
 			overlayY = paddingVert + 40;
 			break;
 		}
 
 		if(overlayX == -1)
-			overlayX = twidth - paddingHoriz - mc.fontRenderer.getStringWidth(overlayText) * (int) overlayScale - 40;
+			overlayX = twidth - paddingHoriz - mc.textRenderer.getWidth(overlayText) * (int) overlayScale - 40;
 		if(overlayY == -1)
 			overlayY = theight - paddingVert - 10 - (10 * (int) overlayScale);
 
@@ -298,8 +298,8 @@ public class CameraModule extends Module {
 			RenderSystem.translatef(overlayX, overlayY, 0);
 			RenderSystem.scaled(overlayScale, overlayScale, 1.0);
 			if(overlayShadow)
-				mc.fontRenderer.drawStringWithShadow(matrix, overlayText, 0, 0, overlayColor);
-			else mc.fontRenderer.drawString(matrix, overlayText, 0, 0, overlayColor);
+				mc.textRenderer.drawWithShadow(matrix, overlayText, 0, 0, overlayColor);
+			else mc.textRenderer.draw(matrix, overlayText, 0, 0, overlayColor);
 			RenderSystem.popMatrix();
 		}
 
@@ -333,34 +333,34 @@ public class CameraModule extends Module {
 			int top = theight - 65;
 
 			// =============================================== DRAW SETTINGS ===============================================
-			ResourceLocation shader = SHADERS[currShader];
+			Identifier shader = SHADERS[currShader];
 			String text = "none";
 			if(shader != null)
 				text = shader.getPath().replaceAll(".+/(.+)\\.json", "$1");
-			text = TextFormatting.BOLD + "[1] " + TextFormatting.RESET + I18n.format("quark.camera.filter") + TextFormatting.GOLD + I18n.format("quark.camera.filter." + text);
-			mc.fontRenderer.drawStringWithShadow(matrix, text, left, top, 0xFFFFFF);
+			text = Formatting.BOLD + "[1] " + Formatting.RESET + I18n.translate("quark.camera.filter") + Formatting.GOLD + I18n.translate("quark.camera.filter." + text);
+			mc.textRenderer.drawWithShadow(matrix, text, left, top, 0xFFFFFF);
 
-			text = TextFormatting.BOLD + "[2] " + TextFormatting.RESET + I18n.format("quark.camera.rulers") + TextFormatting.GOLD + I18n.format("quark.camera.rulers" + currRulers);
-			mc.fontRenderer.drawStringWithShadow(matrix, text, left, top + 12, 0xFFFFFF);
+			text = Formatting.BOLD + "[2] " + Formatting.RESET + I18n.translate("quark.camera.rulers") + Formatting.GOLD + I18n.translate("quark.camera.rulers" + currRulers);
+			mc.textRenderer.drawWithShadow(matrix, text, left, top + 12, 0xFFFFFF);
 
-			text = TextFormatting.BOLD + "[3] " + TextFormatting.RESET + I18n.format("quark.camera.borders") + TextFormatting.GOLD + I18n.format("quark.camera.borders" + currBorders);
-			mc.fontRenderer.drawStringWithShadow(matrix, text, left, top + 24, 0xFFFFFF);
+			text = Formatting.BOLD + "[3] " + Formatting.RESET + I18n.translate("quark.camera.borders") + Formatting.GOLD + I18n.translate("quark.camera.borders" + currBorders);
+			mc.textRenderer.drawWithShadow(matrix, text, left, top + 24, 0xFFFFFF);
 
-			text = TextFormatting.BOLD + "[4] " + TextFormatting.RESET + I18n.format("quark.camera.overlay") + TextFormatting.GOLD + I18n.format("quark.camera.overlay" + currOverlay);
-			mc.fontRenderer.drawStringWithShadow(matrix, text, left, top + 36, 0xFFFFFF);
+			text = Formatting.BOLD + "[4] " + Formatting.RESET + I18n.translate("quark.camera.overlay") + Formatting.GOLD + I18n.translate("quark.camera.overlay" + currOverlay);
+			mc.textRenderer.drawWithShadow(matrix, text, left, top + 36, 0xFFFFFF);
 
-			text = TextFormatting.BOLD + "[5] " + TextFormatting.RESET + I18n.format("quark.camera.reset");
-			mc.fontRenderer.drawStringWithShadow(matrix, text, left, top + 48, 0xFFFFFF);
+			text = Formatting.BOLD + "[5] " + Formatting.RESET + I18n.translate("quark.camera.reset");
+			mc.textRenderer.drawWithShadow(matrix, text, left, top + 48, 0xFFFFFF);
 			
-			text = TextFormatting.AQUA + I18n.format("quark.camera.header");
-			mc.fontRenderer.drawStringWithShadow(matrix, text, twidth / 2 - mc.fontRenderer.getStringWidth(text) / 2, 6, 0xFFFFFF);
+			text = Formatting.AQUA + I18n.translate("quark.camera.header");
+			mc.textRenderer.drawWithShadow(matrix, text, twidth / 2 - mc.textRenderer.getWidth(text) / 2, 6, 0xFFFFFF);
 			
-			text = I18n.format("quark.camera.info", new KeybindTextComponent("quark.keybind.camera_mode").getString());
-			mc.fontRenderer.drawStringWithShadow(matrix, text, twidth / 2 - mc.fontRenderer.getStringWidth(text) / 2, 16, 0xFFFFFF);
+			text = I18n.translate("quark.camera.info", new KeybindText("quark.keybind.camera_mode").getString());
+			mc.textRenderer.drawWithShadow(matrix, text, twidth / 2 - mc.textRenderer.getWidth(text) / 2, 16, 0xFFFFFF);
 			
-			ResourceLocation CAMERA_TEXTURE = new ResourceLocation(Quark.MOD_ID, "textures/misc/camera.png");
+			Identifier CAMERA_TEXTURE = new Identifier(Quark.MOD_ID, "textures/misc/camera.png");
 			mc.textureManager.bindTexture(CAMERA_TEXTURE);
-			Screen.blit(matrix, left - 22, top + 18, 0, 0, 0, 16, 16, 16, 16);
+			Screen.drawTexture(matrix, left - 22, top + 18, 0, 0, 0, 16, 16, 16, 16);
 		}
 	}
 
@@ -368,12 +368,12 @@ public class CameraModule extends Module {
 		if(queuedRefresh)
 			queuedRefresh = false;
 
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		GameRenderer render = mc.gameRenderer;
-		mc.gameSettings.hideGUI = cameraMode;
+		mc.options.hudHidden = cameraMode;
 
 		if(cameraMode) {
-			ResourceLocation shader = SHADERS[currShader];
+			Identifier shader = SHADERS[currShader];
 
 			if(shader != null) {
 				render.loadShader(shader);
@@ -381,7 +381,7 @@ public class CameraModule extends Module {
 			}
 		} 
 
-		render.loadEntityShader(null);
+		render.onCameraEntitySet(null);
 	}
 
 	private static void vruler(MatrixStack matrix, int x, int height) {

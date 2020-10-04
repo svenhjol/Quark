@@ -1,11 +1,13 @@
 package vazkii.quark.client.module;
 
 import com.google.common.collect.Lists;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.color.BlockColors;
-import net.minecraft.client.renderer.color.IBlockColor;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.color.block.BlockColorProvider;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
@@ -54,25 +56,25 @@ public class GreenerGrassModule extends Module {
 		registerGreenerColor(leavesList, true);
 	}
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private void registerGreenerColor(Iterable<String> ids, boolean leaves) {
-		BlockColors colors = Minecraft.getInstance().getBlockColors();
+		BlockColors colors = MinecraftClient.getInstance().getBlockColors();
 
-		Map<IRegistryDelegate<Block>, IBlockColor> map = ObfuscationReflectionHelper.getPrivateValue(BlockColors.class, colors, "field_186725_a"); // colors.colors;
+		Map<IRegistryDelegate<Block>, BlockColorProvider> map = ObfuscationReflectionHelper.getPrivateValue(BlockColors.class, colors, "field_186725_a"); // colors.colors;
 
 		for(String id : ids) {
-			Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
+			Block b = ForgeRegistries.BLOCKS.getValue(new Identifier(id));
 			if(b == null || b.delegate == null)
 				return;
 			
-			IBlockColor color = map.get(b.delegate);
+			BlockColorProvider color = map.get(b.delegate);
 			if(color != null)
-				colors.register(getGreenerColor(color, leaves), b);
+				colors.registerColorProvider(getGreenerColor(color, leaves), b);
 		}
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	private IBlockColor getGreenerColor(IBlockColor color, boolean leaves) {
+	@Environment(EnvType.CLIENT)
+	private BlockColorProvider getGreenerColor(BlockColorProvider color, boolean leaves) {
 		return (state, world, pos, tintIndex) -> {
 			int originalColor = color.getColor(state, world, pos, tintIndex);
 			if(!enabled || (leaves && !affectLeaves))

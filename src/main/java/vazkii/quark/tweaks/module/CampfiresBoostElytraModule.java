@@ -5,7 +5,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.CampfireBlock;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -24,14 +24,14 @@ public class CampfiresBoostElytraModule extends Module {
 	public void onPlayerTick(PlayerTickEvent event) {
 		PlayerEntity player = event.player;
 		
-		if(player.isElytraFlying()) {
-			Vector3d motion = player.getMotion();
+		if(player.isFallFlying()) {
+			Vec3d motion = player.getVelocity();
 			if(motion.getY() < maxSpeed) {
-				BlockPos pos = player.func_233580_cy_(); // getPosition
+				BlockPos pos = player.getBlockPos(); // getPosition
 				World world = player.world;
 				
 				int moves = 0;
-				while(world.isAirBlock(pos) && pos.getY() > 0 && moves < 20) {
+				while(world.isAir(pos) && pos.getY() > 0 && moves < 20) {
 					pos = pos.down();
 					moves++;
 				}
@@ -42,7 +42,7 @@ public class CampfiresBoostElytraModule extends Module {
 					if(moves > 16)
 						force -= (force * (1.0 - ((double) moves - 16.0) / 4.0));
 					
-					player.setMotion(motion.getX(), Math.min(maxSpeed, motion.getY() + force), motion.getZ());
+					player.setVelocity(motion.getX(), Math.min(maxSpeed, motion.getY() + force), motion.getZ());
 				}
 			}
 		}

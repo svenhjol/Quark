@@ -10,30 +10,31 @@
  */
 package vazkii.quark.mobs.client.layer;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.entity.IEntityRenderer;
-import net.minecraft.client.renderer.entity.layers.LayerRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms.TransformType;
-import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.feature.FeatureRenderer;
+import net.minecraft.client.render.entity.feature.FeatureRendererContext;
+import net.minecraft.client.render.model.json.ModelTransformation.Mode;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.vector.Vector3f;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.mobs.client.model.StonelingModel;
 import vazkii.quark.mobs.entity.StonelingEntity;
 
-@OnlyIn(Dist.CLIENT)
-public class StonelingItemLayer extends LayerRenderer<StonelingEntity, StonelingModel> {
+@Environment(EnvType.CLIENT)
+public class StonelingItemLayer extends FeatureRenderer<StonelingEntity, StonelingModel> {
 
-	public StonelingItemLayer(IEntityRenderer<StonelingEntity, StonelingModel> renderer) {
+	public StonelingItemLayer(FeatureRendererContext<StonelingEntity, StonelingModel> renderer) {
 		super(renderer);
 	}
 	
-	public void render(MatrixStack matrix, IRenderTypeBuffer buffer, int light, StonelingEntity stoneling,  float limbAngle, float limbDistance, float tickDelta, float customAngle, float headYaw, float headPitch) {
+	public void render(MatrixStack matrix, VertexConsumerProvider buffer, int light, StonelingEntity stoneling,  float limbAngle, float limbDistance, float tickDelta, float customAngle, float headYaw, float headPitch) {
 		ItemStack stack = stoneling.getCarryingItem();
 		if (!stack.isEmpty()) {
 			boolean isBlock = stack.getItem() instanceof BlockItem;
@@ -41,13 +42,13 @@ public class StonelingItemLayer extends LayerRenderer<StonelingEntity, Stoneling
 			matrix.push();
 			matrix.translate(0F, 0.5F, 0F);
 			if(!isBlock) {
-				matrix.rotate(Vector3f.YP.rotationDegrees(stoneling.getItemAngle() + 180));
-				matrix.rotate(Vector3f.XP.rotationDegrees(90F));
-			} else matrix.rotate(Vector3f.XP.rotationDegrees(180F));
+				matrix.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion(stoneling.getItemAngle() + 180));
+				matrix.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(90F));
+			} else matrix.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(180F));
 			
 			matrix.scale(0.725F, 0.725F, 0.725F);
-			Minecraft mc = Minecraft.getInstance();
-			mc.getItemRenderer().renderItem(stack, TransformType.FIXED, light, OverlayTexture.NO_OVERLAY, matrix, buffer);
+			MinecraftClient mc = MinecraftClient.getInstance();
+			mc.getItemRenderer().renderItem(stack, Mode.FIXED, light, OverlayTexture.DEFAULT_UV, matrix, buffer);
 			matrix.pop();
 		}
 	}

@@ -2,13 +2,13 @@ package vazkii.quark.world.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.common.ToolType;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.module.Module;
@@ -17,15 +17,15 @@ public class BiotiteOreBlock extends QuarkBlock {
 
 	public BiotiteOreBlock(Module module) {
 		super("biotite_ore", module, ItemGroup.BUILDING_BLOCKS, 
-				Block.Properties.create(Material.ROCK, MaterialColor.SAND)
-				.func_235861_h_() // needs tool
+				Block.Properties.of(Material.STONE, MaterialColor.SAND)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-				.hardnessAndResistance(3.2F, 15F)
-				.sound(SoundType.STONE));
+				.strength(3.2F, 15F)
+				.sounds(BlockSoundGroup.STONE));
 	}
 	
 	@Override
-	public int getExpDrop(BlockState state, IWorldReader world, BlockPos pos, int fortune, int silktouch) {
+	public int getExpDrop(BlockState state, WorldView world, BlockPos pos, int fortune, int silktouch) {
 		return silktouch == 0 ? MathHelper.nextInt(RANDOM, 2, 5) : 0;
 	}
 	

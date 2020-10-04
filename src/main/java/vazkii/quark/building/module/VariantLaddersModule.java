@@ -7,10 +7,9 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LadderBlock;
-import net.minecraft.block.TrapDoorBlock;
-import net.minecraft.state.properties.BlockStateProperties;
+import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.WorldView;
 import vazkii.quark.base.handler.FuelHandler;
 import vazkii.quark.base.handler.ItemOverrideHandler;
 import vazkii.quark.base.handler.MiscUtil;
@@ -55,15 +54,15 @@ public class VariantLaddersModule extends Module {
 		ItemOverrideHandler.changeBlockLocalizationKey(Blocks.LADDER, "block.quark.oak_ladder", changeNames && enabled);
 	}
 
-	public static boolean isTrapdoorLadder(boolean defaultValue, IWorldReader world, BlockPos pos) {
+	public static boolean isTrapdoorLadder(boolean defaultValue, WorldView world, BlockPos pos) {
 		if(defaultValue || !moduleEnabled)
 			return defaultValue;
 
 		BlockState curr = world.getBlockState(pos);
-		if(curr.get(TrapDoorBlock.OPEN)) {
+		if(curr.get(TrapdoorBlock.OPEN)) {
 			BlockState down = world.getBlockState(pos.down());
 			if(down.getBlock() instanceof LadderBlock)
-				return down.get(LadderBlock.FACING) == curr.get(TrapDoorBlock.HORIZONTAL_FACING);
+				return down.get(LadderBlock.FACING) == curr.get(TrapdoorBlock.FACING);
 		}
 
 		return false;

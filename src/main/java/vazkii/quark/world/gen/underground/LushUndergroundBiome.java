@@ -2,11 +2,10 @@ package vazkii.quark.world.gen.underground;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.IGrowable;
 import net.minecraft.block.VineBlock;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.WorldAccess;
 import vazkii.quark.base.handler.MiscUtil;
 import vazkii.quark.world.gen.UndergroundBiomeGenerator.Context;
 
@@ -24,7 +23,7 @@ public class LushUndergroundBiome extends BasicUndergroundBiome {
 
 	@Override
 	public void finalWallPass(Context context, BlockPos pos) {
-		IWorld world = context.world;
+		WorldAccess world = context.world;
 		for(Direction facing : MiscUtil.HORIZONTALS) {
 			BlockPos off = pos.offset(facing);
 			BlockPos up = off.up();
@@ -32,7 +31,7 @@ public class LushUndergroundBiome extends BasicUndergroundBiome {
 				BlockState stateAt = world.getBlockState(off); 
 				boolean did = false;
 				while(stateAt.getBlock().isAir(stateAt, world, off) && off.getY() > 0) {
-					world.setBlockState(off, Blocks.VINE.getDefaultState().with(VineBlock.getPropertyFor(facing.getOpposite()), true), 2);
+					world.setBlockState(off, Blocks.VINE.getDefaultState().with(VineBlock.getFacingProperty(facing.getOpposite()), true), 2);
 					off = off.down();
 					stateAt = world.getBlockState(off);
 					did = true;

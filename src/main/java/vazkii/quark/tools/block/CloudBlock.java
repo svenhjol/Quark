@@ -2,24 +2,24 @@ package vazkii.quark.tools.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.module.Module;
@@ -30,60 +30,60 @@ public class CloudBlock extends QuarkBlock {
 
 	public CloudBlock(Module module) {
 		super("cloud", module, null, 
-				Block.Properties.create(Material.CLAY)
-				.sound(SoundType.CLOTH)
-				.hardnessAndResistance(0)
-				.notSolid());
+				Block.Properties.of(Material.ORGANIC_PRODUCT)
+				.sounds(BlockSoundGroup.WOOL)
+				.strength(0)
+				.nonOpaque());
 	}
 	
 	@Override
-	public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult raytrace) {
-		ItemStack stack = player.getHeldItem(hand);
+	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult raytrace) {
+		ItemStack stack = player.getStackInHand(hand);
 		
 		if(stack.getItem() == Items.GLASS_BOTTLE) {
-			fillBottle(player, player.inventory.currentItem);
+			fillBottle(player, player.inventory.selectedSlot);
 			world.removeBlock(pos, false);
-			return ActionResultType.SUCCESS;
+			return ActionResult.SUCCESS;
 		}
 		
 		if(stack.getItem() instanceof BlockItem) {
 			BlockItem bitem = (BlockItem) stack.getItem();
 			Block block = bitem.getBlock();
 			
-			ItemUseContext context = new ItemUseContext(player, hand, new BlockRayTraceResult(new Vector3d(0.5F, 1F, 0.5F), raytrace.getFace(), pos, false));
-			BlockItemUseContext bcontext = new BlockItemUseContext(context);
+			ItemUsageContext context = new ItemUsageContext(player, hand, new BlockHitResult(new Vec3d(0.5F, 1F, 0.5F), raytrace.getSide(), pos, false));
+			ItemPlacementContext bcontext = new ItemPlacementContext(context);
 			
-			BlockState stateToPlace = block.getStateForPlacement(bcontext);
-			if(stateToPlace != null && stateToPlace.isValidPosition(world, pos)) {
+			BlockState stateToPlace = block.getPlacementState(bcontext);
+			if(stateToPlace != null && stateToPlace.canPlaceAt(world, pos)) {
 				world.setBlockState(pos, stateToPlace);
-				world.playSound(player, pos, stateToPlace.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1F, 1F);
+				world.playSound(player, pos, stateToPlace.getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1F, 1F);
 				
 				if(!player.isCreative()) {
-					stack.shrink(1);
+					stack.decrement(1);
 					fillBottle(player, 0);
 				}
 				
-				return ActionResultType.SUCCESS;
+				return ActionResult.SUCCESS;
 			}
 		}
 		
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 	
 	@Override
-	public ItemStack getPickBlock(BlockState state, RayTraceResult target, IBlockReader world, BlockPos pos, PlayerEntity player) {
+	public ItemStack getPickBlock(BlockState state, HitResult target, BlockView world, BlockPos pos, PlayerEntity player) {
 		return ItemStack.EMPTY;
 	}
 	
 	private void fillBottle(PlayerEntity player, int startIndex) {
 		PlayerInventory inv = player.inventory;
-		for(int i = startIndex ; i < inv.getSizeInventory(); i++) {
-			ItemStack stackInSlot = inv.getStackInSlot(i);
+		for(int i = startIndex ; i < inv.size(); i++) {
+			ItemStack stackInSlot = inv.getStack(i);
 			if(stackInSlot.getItem() == Items.GLASS_BOTTLE) {
-				stackInSlot.shrink(1);
+				stackInSlot.decrement(1);
 				
 				ItemStack give = new ItemStack(BottledCloudModule.bottled_cloud);
-				if(!player.addItemStackToInventory(give))
+				if(!player.giveItemStack(give))
 					player.dropItem(give, false);
 				return;
 			}
@@ -96,7 +96,7 @@ public class CloudBlock extends QuarkBlock {
 	}
 	
 	@Override
-	public TileEntity createTileEntity(BlockState state, IBlockReader world) {
+	public BlockEntity createTileEntity(BlockState state, BlockView world) {
 		return new CloudTileEntity();
 	}
 

@@ -1,6 +1,6 @@
 package vazkii.quark.tweaks.module;
 
-import net.minecraft.entity.item.ArmorStandEntity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.quark.base.module.LoadModule;
@@ -17,13 +17,13 @@ public class ArmedArmorStandsModule extends Module {
     public void entityConstruct(EntityEvent.EntityConstructing event) {
         if(event.getEntity() instanceof ArmorStandEntity) {
             ArmorStandEntity stand = (ArmorStandEntity) event.getEntity();
-            if(!stand.getShowArms())
+            if(!stand.shouldShowArms())
                 setShowArms(stand, true);
         }
     }
 
     private void setShowArms(ArmorStandEntity e, boolean showArms) {
-        e.getDataManager().set(ArmorStandEntity.STATUS, setBit(e.getDataManager().get(ArmorStandEntity.STATUS), 4, showArms));
+        e.getDataTracker().set(ArmorStandEntity.ARMOR_STAND_FLAGS, setBit(e.getDataTracker().get(ArmorStandEntity.ARMOR_STAND_FLAGS), 4, showArms));
     }
 
     private byte setBit(byte status, int bitFlag, boolean value) {

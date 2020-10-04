@@ -1,9 +1,9 @@
 package vazkii.quark.automation.module;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import vazkii.quark.automation.block.RedstoneInductorBlock;
 import vazkii.quark.automation.block.RedstoneRandomizerBlock;
 import vazkii.quark.base.module.LoadModule;
@@ -24,8 +24,8 @@ public class RedstoneCircuitModule extends Module {
     @Override
     public void construct() {
         new RedstoneRandomizerBlock("redstone_randomizer", this, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.MISCELLANEOUS).hardnessAndResistance(0).sound(SoundType.WOOD));
+                Block.Properties.of(Material.SUPPORTED).strength(0).sounds(BlockSoundGroup.WOOD));
         new RedstoneInductorBlock("redstone_inductor", this, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.MISCELLANEOUS).hardnessAndResistance(0).sound(SoundType.WOOD));
+                Block.Properties.of(Material.SUPPORTED).strength(0).sounds(BlockSoundGroup.WOOD));
     }
 }

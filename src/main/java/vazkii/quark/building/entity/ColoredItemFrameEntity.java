@@ -11,20 +11,20 @@
 package vazkii.quark.building.entity;
 
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.item.ItemFrameEntity;
-import net.minecraft.item.DyeColor;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Packet;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 
 public class ColoredItemFrameEntity extends ItemFrameEntity implements IEntityAdditionalSpawnData {
 
-	private static final DataParameter<Integer> COLOR = EntityDataManager.createKey(ColoredItemFrameEntity.class, DataSerializers.VARINT);
+	private static final TrackedData<Integer> COLOR = DataTracker.registerData(ColoredItemFrameEntity.class, TrackedDataHandlerRegistry.INTEGER);
 	private static final String TAG_COLOR = "DyeColor";
 
 	private boolean didHackery = false;
@@ -46,16 +46,16 @@ public class ColoredItemFrameEntity extends ItemFrameEntity implements IEntityAd
 
 	public ColoredItemFrameEntity(World worldIn, BlockPos blockPos, Direction face, int color) {
 		super(ItemFramesModule.coloredFrameEntity, worldIn);
-		hangingPosition = blockPos;
-		this.updateFacingWithBoundingBox(face);
-		dataManager.set(COLOR, color);
+		attachmentPos = blockPos;
+		this.setFacing(face);
+		dataTracker.set(COLOR, color);
 	}
 
 	@Override
-	protected void registerData() {
-		super.registerData();
+	protected void initDataTracker() {
+		super.initDataTracker();
 
-		dataManager.register(COLOR, 0);
+		dataTracker.startTracking(COLOR, 0);
 	}
 
 	public DyeColor getColor() {
@@ -63,24 +63,24 @@ public class ColoredItemFrameEntity extends ItemFrameEntity implements IEntityAd
 	}
 
 	public int getColorIndex() {
-		return dataManager.get(COLOR);
+		return dataTracker.get(COLOR);
 	}
 
 	@Nullable
 	@Override
-	public ItemEntity entityDropItem(@Nonnull ItemStack stack, float offset) {
+	public ItemEntity dropStack(@Nonnull ItemStack stack, float offset) {
 		if (stack.getItem() == Items.ITEM_FRAME && !didHackery) {
 			stack = new ItemStack(ItemFramesModule.getColoredFrame(getColor()));
 			didHackery = true;
 		}
 			
-		return super.entityDropItem(stack, offset);
+		return super.dropStack(stack, offset);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack getPickedResult(RayTraceResult target) {
-		ItemStack held = getDisplayedItem();
+	public ItemStack getPickedResult(HitResult target) {
+		ItemStack held = getHeldItemStack();
 		if (held.isEmpty())
 			return new ItemStack(ItemFramesModule.getColoredFrame(getColor()));
 		else
@@ -88,34 +88,34 @@ public class ColoredItemFrameEntity extends ItemFrameEntity implements IEntityAd
 	}
 
 	@Override
-	public void writeAdditional(CompoundNBT compound) {
-		super.writeAdditional(compound);
+	public void writeCustomDataToTag(CompoundTag compound) {
+		super.writeCustomDataToTag(compound);
 		compound.putInt(TAG_COLOR, getColorIndex());
 	}
 
 	@Override
-	public void readAdditional(CompoundNBT compound) {
-		super.readAdditional(compound);
-		dataManager.set(COLOR, compound.getInt(TAG_COLOR));
+	public void readCustomDataFromTag(CompoundTag compound) {
+		super.readCustomDataFromTag(compound);
+		dataTracker.set(COLOR, compound.getInt(TAG_COLOR));
 	}
 
 	@Nonnull
 	@Override
-	public IPacket<?> createSpawnPacket() {
+	public Packet<?> createSpawnPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
-	public void writeSpawnData(PacketBuffer buffer) {
+	public void writeSpawnData(PacketByteBuf buffer) {
 		buffer.writeVarInt(this.getColorIndex());
-		buffer.writeBlockPos(this.hangingPosition);
-		buffer.writeVarInt(this.facingDirection.getIndex());
+		buffer.writeBlockPos(this.attachmentPos);
+		buffer.writeVarInt(this.facing.getId());
 	}
 
 	@Override
-	public void readSpawnData(PacketBuffer buffer) {
-		dataManager.set(COLOR, buffer.readVarInt());
-		this.hangingPosition = buffer.readBlockPos();
-		this.updateFacingWithBoundingBox(Direction.byIndex(buffer.readVarInt()));
+	public void readSpawnData(PacketByteBuf buffer) {
+		dataTracker.set(COLOR, buffer.readVarInt());
+		this.attachmentPos = buffer.readBlockPos();
+		this.setFacing(Direction.byId(buffer.readVarInt()));
 	}
 }

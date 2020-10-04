@@ -5,9 +5,9 @@ import java.util.function.BooleanSupplier;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.WorldGenRegion;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 import vazkii.quark.base.world.generator.multichunk.ClusterBasedGenerator;
 import vazkii.quark.world.config.BigStoneClusterConfig;
 import vazkii.quark.world.module.BigStoneClustersModule;
@@ -24,12 +24,12 @@ public class BigStoneClusterGenerator extends ClusterBasedGenerator {
 	}
 
 	@Override
-	public boolean isSourceValid(WorldGenRegion world, ChunkGenerator generator, BlockPos pos) {
+	public boolean isSourceValid(ChunkRegion world, ChunkGenerator generator, BlockPos pos) {
 		return config.biomes.canSpawn(getBiome(world, pos));
 	}
 
 	@Override
-	public BlockPos[] getSourcesInChunk(WorldGenRegion world, Random random, ChunkGenerator generator, BlockPos chunkLeft) {
+	public BlockPos[] getSourcesInChunk(ChunkRegion world, Random random, ChunkGenerator generator, BlockPos chunkLeft) {
 		int chance = config.rarity;
 
 		BlockPos[] sources;
@@ -51,14 +51,14 @@ public class BigStoneClusterGenerator extends ClusterBasedGenerator {
 	}
 
 	@Override
-	public IGenerationContext createContext(BlockPos src, ChunkGenerator generator, Random random, BlockPos chunkCorner, WorldGenRegion world) {
+	public IGenerationContext createContext(BlockPos src, ChunkGenerator generator, Random random, BlockPos chunkCorner, ChunkRegion world) {
 		return pos -> {
 			if(canPlaceBlock(world, pos))
 				world.setBlockState(pos, placeState, 0);
 		};
 	}
 	
-	private boolean canPlaceBlock(IWorld world, BlockPos pos) {
+	private boolean canPlaceBlock(WorldAccess world, BlockPos pos) {
 		return BigStoneClustersModule.blockReplacePredicate.test(world.getWorld(), world.getBlockState(pos).getBlock());
 	}
 	

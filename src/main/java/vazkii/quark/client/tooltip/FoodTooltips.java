@@ -1,20 +1,20 @@
 package vazkii.quark.client.tooltip;
 
 import java.util.List;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.AbstractGui;
-import net.minecraft.item.Food;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.EffectType;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffectType;
+import net.minecraft.item.FoodComponent;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Formatting;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderTooltipEvent;
@@ -24,12 +24,12 @@ import vazkii.quark.client.module.ImprovedTooltipsModule;
 
 public class FoodTooltips {
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static void makeTooltip(ItemTooltipEvent event) {
 		if(event.getItemStack().isFood()) {
-			Food food = event.getItemStack().getItem().getFood();
+			FoodComponent food = event.getItemStack().getItem().getFoodComponent();
 			if (food != null) {
-				int pips = food.getHealing();
+				int pips = food.getHunger();
 				int len = (int) Math.ceil((double) pips / ImprovedTooltipsModule.foodDivisor);
 
 				StringBuilder s = new StringBuilder(" ");
@@ -37,7 +37,7 @@ public class FoodTooltips {
 					s.append("  ");
 
 				int saturationSimplified = 0;
-				float saturation = food.getSaturation();
+				float saturation = food.getSaturationModifier();
 				if(saturation < 1) {
 					if(saturation > 0.7)
 						saturationSimplified = 1;
@@ -48,9 +48,9 @@ public class FoodTooltips {
 					else saturationSimplified = 4;
 				}
 
-				ITextComponent spaces = new StringTextComponent(s.toString());
-				ITextComponent saturationText = new TranslationTextComponent("quark.misc.saturation" + saturationSimplified).func_240701_a_(TextFormatting.GRAY);
-				List<ITextComponent> tooltip = event.getToolTip();
+				Text spaces = new LiteralText(s.toString());
+				Text saturationText = new TranslatableText("quark.misc.saturation" + saturationSimplified).formatted(Formatting.GRAY);
+				List<Text> tooltip = event.getToolTip();
 
 				if (tooltip.isEmpty()) {
 					tooltip.add(spaces);
@@ -66,21 +66,21 @@ public class FoodTooltips {
 		}
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static void renderTooltip(RenderTooltipEvent.PostText event) {
 		if(event.getStack().isFood()) {
-			Food food = event.getStack().getItem().getFood();
+			FoodComponent food = event.getStack().getItem().getFoodComponent();
 			if (food != null) {
 				RenderSystem.pushMatrix();
 				RenderSystem.color3f(1F, 1F, 1F);
-				Minecraft mc = Minecraft.getInstance();
+				MinecraftClient mc = MinecraftClient.getInstance();
 				MatrixStack matrix = event.getMatrixStack();
-				mc.getTextureManager().bindTexture(ForgeIngameGui.GUI_ICONS_LOCATION);
-				int pips = food.getHealing();
+				mc.getTextureManager().bindTexture(ForgeIngameGui.GUI_ICONS_TEXTURE);
+				int pips = food.getHunger();
 
 				boolean poison = false;
-				for (Pair<EffectInstance, Float> effect : food.getEffects()) {
-					if (effect.getFirst() != null && effect.getFirst().getPotion() != null && effect.getFirst().getPotion().getEffectType() == EffectType.HARMFUL) {
+				for (Pair<StatusEffectInstance, Float> effect : food.getStatusEffects()) {
+					if (effect.getFirst() != null && effect.getFirst().getEffectType() != null && effect.getFirst().getEffectType().getType() == StatusEffectType.HARMFUL) {
 						poison = true;
 						break;
 					}
@@ -97,7 +97,7 @@ public class FoodTooltips {
 						u += 117;
 					int v = 27;
 
-					AbstractGui.blit(matrix, x, y, u, v, 9, 9, 256, 256);
+					DrawableHelper.drawTexture(matrix, x, y, u, v, 9, 9, 256, 256);
 
 					u = 52;
 					if (pips % 2 != 0 && i == 0)
@@ -105,7 +105,7 @@ public class FoodTooltips {
 					if (poison)
 						u += 36;
 
-					AbstractGui.blit(matrix, x, y, u, v, 9, 9, 256, 256);
+					DrawableHelper.drawTexture(matrix, x, y, u, v, 9, 9, 256, 256);
 				}
 
 				RenderSystem.popMatrix();

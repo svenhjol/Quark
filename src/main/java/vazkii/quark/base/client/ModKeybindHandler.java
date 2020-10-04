@@ -1,13 +1,15 @@
 package vazkii.quark.base.client;
 
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.client.util.InputMappings;
-import net.minecraft.client.util.InputMappings.Type;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.InputUtil.Type;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class ModKeybindHandler {
 	
 	public static final String MISC_GROUP = "quark.gui.keygroup.misc";
@@ -32,8 +34,8 @@ public class ModKeybindHandler {
 	
 	public static KeyBinding init(String s, String key, String keyType, String group, boolean prefix) {
 		KeyBinding kb = new KeyBinding(prefix ? ("quark.keybind." + s) : s, (keyType.contains("mouse") ? Type.MOUSE : Type.KEYSYM),
-				(key == null ? InputMappings.INPUT_INVALID :
-						InputMappings.getInputByName(keyType + key)).getKeyCode(),
+				(key == null ? InputUtil.UNKNOWN_KEY :
+						InputUtil.fromTranslationKey(keyType + key)).getCode(),
 				group);
 		ClientRegistry.registerKeyBinding(kb);
 		return kb;
@@ -41,8 +43,8 @@ public class ModKeybindHandler {
 
 	public static KeyBinding init(String s, String key, String keyType, String group, int sortPriority, boolean prefix) {
 		KeyBinding kb = new SortedKeyBinding(prefix ? ("quark.keybind." + s) : s, (keyType.contains("mouse") ? Type.MOUSE : Type.KEYSYM),
-				(key == null ? InputMappings.INPUT_INVALID :
-						InputMappings.getInputByName(keyType + key)).getKeyCode(),
+				(key == null ? InputUtil.UNKNOWN_KEY :
+						InputUtil.fromTranslationKey(keyType + key)).getCode(),
 				group, sortPriority);
 		ClientRegistry.registerKeyBinding(kb);
 		return kb;

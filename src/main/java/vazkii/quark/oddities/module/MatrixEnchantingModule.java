@@ -6,19 +6,19 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.client.gui.ScreenManager;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.extensions.IForgeContainerType;
@@ -43,8 +43,8 @@ import vazkii.quark.oddities.tile.MatrixEnchantingTableTileEntity;
 @LoadModule(category = ModuleCategory.ODDITIES, requiredMod = Quark.ODDITIES_ID, hasSubscriptions = true, subscribeOn = Dist.CLIENT)
 public class MatrixEnchantingModule extends Module {
 
-	public static TileEntityType<MatrixEnchantingTableTileEntity> tileEntityType;
-	public static ContainerType<MatrixEnchantingContainer> containerType;
+	public static BlockEntityType<MatrixEnchantingTableTileEntity> tileEntityType;
+	public static ScreenHandlerType<MatrixEnchantingContainer> containerType;
 
 	@Config(description = "The maximum enchanting power the matrix enchanter can accept")
 	public static int maxBookshelves = 15;
@@ -136,24 +136,24 @@ public class MatrixEnchantingModule extends Module {
 		containerType = IForgeContainerType.create(MatrixEnchantingContainer::fromNetwork);
 		RegistryHelper.register(containerType, "matrix_enchanting");
 
-		tileEntityType = TileEntityType.Builder.create(MatrixEnchantingTableTileEntity::new, matrixEnchanter).build(null);
+		tileEntityType = BlockEntityType.Builder.create(MatrixEnchantingTableTileEntity::new, matrixEnchanter).build(null);
 		RegistryHelper.register(tileEntityType, "matrix_enchanting");
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
-		ScreenManager.registerFactory(containerType, MatrixEnchantingScreen::new);
+		HandledScreens.register(containerType, MatrixEnchantingScreen::new);
 		ClientRegistry.bindTileEntityRenderer(tileEntityType, MatrixEnchantingTableTileEntityRenderer::new);	
 	}
 	
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onTooltip(ItemTooltipEvent event) {
 		ItemStack stack = event.getItemStack();
 		if(showTooltip && ItemNBTHelper.verifyExistence(stack, MatrixEnchantingTableTileEntity.TAG_STACK_MATRIX))
-			event.getToolTip().add(new TranslationTextComponent("quark.gui.enchanting.pending").func_240701_a_(TextFormatting.AQUA));
+			event.getToolTip().add(new TranslatableText("quark.gui.enchanting.pending").formatted(Formatting.AQUA));
 	}
 
 	@Override
@@ -180,7 +180,7 @@ public class MatrixEnchantingModule extends Module {
 			for (String enchStr : tokens) {
 				enchStr = enchStr.trim();
 
-				Enchantment ench = ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(enchStr));
+				Enchantment ench = ForgeRegistries.ENCHANTMENTS.getValue(new Identifier(enchStr));
 				if (ench == null)
 					Quark.LOG.error("Matrix Enchanting Influencing: Enchantment " + enchStr + " does not exist!");
 				else

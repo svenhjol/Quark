@@ -8,18 +8,18 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SaplingBlock;
-import net.minecraft.block.trees.Tree;
+import net.minecraft.block.sapling.SaplingGenerator;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.world.gen.Heightmap;
-import net.minecraft.world.gen.blockstateprovider.SimpleBlockStateProvider;
-import net.minecraft.world.gen.feature.BaseTreeFeatureConfig;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.TwoLayerFeature;
-import net.minecraft.world.gen.foliageplacer.FancyFoliagePlacer;
-import net.minecraft.world.gen.trunkplacer.FancyTrunkPlacer;
+import net.minecraft.world.gen.feature.TreeFeatureConfig;
+import net.minecraft.world.gen.feature.size.TwoLayersFeatureSize;
+import net.minecraft.world.gen.foliage.LargeOakFoliagePlacer;
+import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider;
+import net.minecraft.world.gen.trunk.LargeOakTrunkPlacer;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.block.IQuarkBlock;
 import vazkii.quark.base.handler.RenderLayerHandler;
@@ -34,7 +34,7 @@ public class BlossomSaplingBlock extends SaplingBlock implements IQuarkBlock {
 	private BooleanSupplier enabledSupplier = () -> true;
 
 	public BlossomSaplingBlock(String colorName, Module module, BlossomTree tree, Block leaf) {
-		super(tree, Block.Properties.from(Blocks.OAK_SAPLING));
+		super(tree, Block.Properties.copy(Blocks.OAK_SAPLING));
 		this.module = module;
 
 		RegistryHelper.registerBlock(this, colorName + "_blossom_sapling");
@@ -45,9 +45,9 @@ public class BlossomSaplingBlock extends SaplingBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 	@Override
@@ -66,28 +66,28 @@ public class BlossomSaplingBlock extends SaplingBlock implements IQuarkBlock {
 		return enabledSupplier.getAsBoolean();
 	}
 
-	public static class BlossomTree extends Tree {
+	public static class BlossomTree extends SaplingGenerator {
 
-		public final BaseTreeFeatureConfig config;
+		public final TreeFeatureConfig config;
 		public final BlockState leaf;
 		public BlossomSaplingBlock sapling;
 
 		public BlossomTree(Block leafBlock) {
-			config = (new BaseTreeFeatureConfig.Builder(
+			config = (new TreeFeatureConfig.Builder(
 					new SimpleBlockStateProvider(Blocks.SPRUCE_LOG.getDefaultState()),
 					new SimpleBlockStateProvider(leafBlock.getDefaultState()), 
-					new FancyFoliagePlacer(2, 0, 4, 0, 4), 
-					new FancyTrunkPlacer(3, 11, 0), 
-					new TwoLayerFeature(0, 0, 0, OptionalInt.of(4))))
-					.func_236700_a_().func_236702_a_(Heightmap.Type.MOTION_BLOCKING)
+					new LargeOakFoliagePlacer(2, 0, 4, 0, 4), 
+					new LargeOakTrunkPlacer(3, 11, 0), 
+					new TwoLayersFeatureSize(0, 0, 0, OptionalInt.of(4))))
+					.ignoreVines().heightmap(Heightmap.Type.MOTION_BLOCKING)
 					.build();
 			
 			leaf = leafBlock.getDefaultState();
 		}
 
 		@Override
-		protected ConfiguredFeature<BaseTreeFeatureConfig, ?> getTreeFeature(Random rand, boolean hjskfsd) {
-			return Feature.field_236291_c_.withConfiguration(config); // tree
+		protected ConfiguredFeature<TreeFeatureConfig, ?> createTreeFeature(Random rand, boolean hjskfsd) {
+			return Feature.TREE.configure(config); // tree
 		}
 		
 	}

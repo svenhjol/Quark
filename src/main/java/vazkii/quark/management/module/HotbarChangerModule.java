@@ -1,19 +1,19 @@
 package vazkii.quark.management.module;
 
 import org.lwjgl.opengl.GL11;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.settings.KeyBinding;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.render.DiffuseLighting;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.InputEvent;
@@ -32,10 +32,10 @@ import vazkii.quark.base.network.message.ChangeHotbarMessage;
 @LoadModule(category = ModuleCategory.MANAGEMENT, hasSubscriptions = true, subscribeOn = Dist.CLIENT)
 public class HotbarChangerModule extends Module {
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static KeyBinding changeHotbarKey;
 
-	private static final ResourceLocation WIDGETS = new ResourceLocation("textures/gui/widgets.png");
+	private static final Identifier WIDGETS = new Identifier("textures/gui/widgets.png");
 
 	private static final int ANIMATION_TIME = 10;
 	private static final int MAX_HEIGHT = 90;
@@ -53,31 +53,31 @@ public class HotbarChangerModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onMouseInput(InputEvent.MouseInputEvent event) {
 		acceptInput();
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onKeyInput(InputEvent.KeyInputEvent event) {
 		acceptInput();
 	}
 
 	private void acceptInput() {
-		Minecraft mc = Minecraft.getInstance();
-		boolean down = changeHotbarKey.isKeyDown();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		boolean down = changeHotbarKey.isPressed();
 		boolean wasDown = keyDown;
 		keyDown = down;
-		if(mc.isGameFocused()) {
+		if(mc.isWindowFocused()) {
 			if(down && !wasDown)
 				hotbarChangeOpen = !hotbarChangeOpen;
 			else if(hotbarChangeOpen)
 				for(int i = 0; i < 3; i++)
-					if(mc.gameSettings.keyBindsHotbar[i].isKeyDown()) {
+					if(mc.options.keysHotbar[i].isPressed()) {
 						QuarkNetwork.sendToServer(new ChangeHotbarMessage(i + 1));
 						hotbarChangeOpen = false;
-						currentHeldItem = mc.player.inventory.currentItem;
+						currentHeldItem = mc.player.inventory.selectedSlot;
 						return;
 					}
 
@@ -85,7 +85,7 @@ public class HotbarChangerModule extends Module {
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void hudPre(RenderGameOverlayEvent.Pre event) {
 		float shift = -getRealHeight(event.getPartialTicks()) + 22;
 		if(shift < 0)
@@ -99,17 +99,17 @@ public class HotbarChangerModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void hudPost(RenderGameOverlayEvent.Post event) {
 		if(height <= 0)
 			return;
 
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		PlayerEntity player = mc.player;
 		MatrixStack matrix = event.getMatrixStack();
 
 		if(event.getType() == ElementType.HOTBAR) {
-			MainWindow res = event.getWindow();
+			Window res = event.getWindow();
 			float realHeight = getRealHeight(event.getPartialTicks());
 			float xStart = res.getScaledWidth() / 2f - 91;
 			float yStart = res.getScaledHeight() - realHeight;
@@ -125,37 +125,37 @@ public class HotbarChangerModule extends Module {
 				RenderSystem.pushMatrix();
 				RenderSystem.color4f(1F, 1F, 1F, 0.75F);
 				RenderSystem.translatef(xStart, yStart + i * 21, 0);
-				mc.ingameGUI.blit(matrix, 0, 0, 0, 0, 182, 22);
+				mc.inGameHud.drawTexture(matrix, 0, 0, 0, 0, 182, 22);
 				RenderSystem.popMatrix();
 			}
 
 			for(int i = 0; i < 3; i++)
-				mc.fontRenderer.drawStringWithShadow(matrix, TextFormatting.BOLD + Integer.toString(i + 1), xStart - 9, yStart + i * 21 + 7, 0xFFFFFF);
+				mc.textRenderer.drawWithShadow(matrix, Formatting.BOLD + Integer.toString(i + 1), xStart - 9, yStart + i * 21 + 7, 0xFFFFFF);
 
-			RenderHelper.enableStandardItemLighting();
+			DiffuseLighting.enable();
 
 			RenderSystem.translatef(xStart, yStart, 0);
 			for(int i = 0; i < 27; i++) {
-				ItemStack invStack = player.inventory.getStackInSlot(i + 9);
+				ItemStack invStack = player.inventory.getStack(i + 9);
 				int x = (i % 9) * 20 + 3;
 				int y = (i / 9) * 21 + 3;
 
-				render.renderItemAndEffectIntoGUI(invStack, x, y);
-				render.renderItemOverlays(mc.fontRenderer, invStack, x, y);
+				render.renderInGuiWithOverrides(invStack, x, y);
+				render.renderGuiItemOverlay(mc.textRenderer, invStack, x, y);
 			}
-			RenderHelper.disableStandardItemLighting();
+			DiffuseLighting.disable();
 
 			RenderSystem.popMatrix();
 		}
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onTick(ClientTickEvent event) {
 		if(event.phase == Phase.END) {
-			PlayerEntity player = Minecraft.getInstance().player;
-			if(player != null && currentHeldItem != -1 && player.inventory.currentItem != currentHeldItem) {
-				player.inventory.currentItem = currentHeldItem;
+			PlayerEntity player = MinecraftClient.getInstance().player;
+			if(player != null && currentHeldItem != -1 && player.inventory.selectedSlot != currentHeldItem) {
+				player.inventory.selectedSlot = currentHeldItem;
 				currentHeldItem = -1;	
 			}
 		} 

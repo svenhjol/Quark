@@ -16,7 +16,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.SlimeBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 import vazkii.quark.base.module.ModuleLoader;
 import vazkii.quark.tweaks.module.SpringySlimeModule;
@@ -26,7 +25,7 @@ import javax.annotation.Nonnull;
 public class SpringySlimeBlock extends SlimeBlock {
 	
     public SpringySlimeBlock() {
-        super(Block.Properties.from(Blocks.SLIME_BLOCK));
+        super(Block.Properties.copy(Blocks.SLIME_BLOCK));
     }
 
     @Override

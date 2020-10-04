@@ -3,7 +3,7 @@ package vazkii.quark.base.handler;
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public class SimilarBlockTypeHandler {
         return !stack.isEmpty() && isShulkerBox(stack.getItem().getRegistryName());
     }
 
-    public static boolean isShulkerBox(ResourceLocation loc) {
+    public static boolean isShulkerBox(Identifier loc) {
         if (loc == null)
             return false;
 

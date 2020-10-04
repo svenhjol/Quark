@@ -2,12 +2,11 @@ package vazkii.quark.base.world.generator.multichunk;
 
 import java.util.Random;
 import java.util.stream.IntStream;
-
-import net.minecraft.util.SharedSeedRandom;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.gen.PerlinNoiseGenerator;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.noise.OctaveSimplexNoiseSampler;
+import net.minecraft.world.gen.ChunkRandom;
 import vazkii.quark.base.handler.GeneralConfig;
 import vazkii.quark.base.world.config.BiomeTypeConfig;
 import vazkii.quark.base.world.config.ClusterSizeConfig;
@@ -15,10 +14,10 @@ import vazkii.quark.base.world.config.ClusterSizeConfig;
 public class ClusterShape {
 	
 	private final BlockPos src;
-	private final Vector3d radius;
-	private final PerlinNoiseGenerator noiseGenerator;
+	private final Vec3d radius;
+	private final OctaveSimplexNoiseSampler noiseGenerator;
 	
-	public ClusterShape(BlockPos src, Vector3d radius, PerlinNoiseGenerator noiseGenerator) {
+	public ClusterShape(BlockPos src, Vec3d radius, OctaveSimplexNoiseSampler noiseGenerator) {
 		this.src = src;
 		this.radius = radius;
 		this.noiseGenerator = noiseGenerator;
@@ -43,12 +42,12 @@ public class ClusterShape {
 		// use phi, theta + the src pos to get noisemap uv
 		double xn = phi + src.getX();
 		double yn = theta + src.getZ();
-		double noise = noiseGenerator.noiseAt(xn, yn, false);
+		double noise = noiseGenerator.sample(xn, yn, false);
 		
 		// when nearing the end of the loop, lerp back to the start to prevent it cutting off
 		double cutoff = 0.75 * Math.PI;
 		if(phi > cutoff) {
-			double noise0 = noiseGenerator.noiseAt(-Math.PI + src.getX(), yn, false); 
+			double noise0 = noiseGenerator.sample(-Math.PI + src.getX(), yn, false); 
 			noise = MathHelper.lerp((phi - cutoff) / (Math.PI - cutoff), noise, noise0);
 		}
 		
@@ -68,11 +67,11 @@ public class ClusterShape {
 	public static class Provider {
 		
 		private final ClusterSizeConfig config;
-		private final PerlinNoiseGenerator noiseGenerator;
+		private final OctaveSimplexNoiseSampler noiseGenerator;
 		
 		public Provider(ClusterSizeConfig config, long seed) {
 			this.config = config;
-			noiseGenerator = new PerlinNoiseGenerator(new SharedSeedRandom(seed), IntStream.rangeClosed(-4, 4));
+			noiseGenerator = new OctaveSimplexNoiseSampler(new ChunkRandom(seed), IntStream.rangeClosed(-4, 4));
 		}
 		
 		public ClusterShape around(BlockPos src) {
@@ -82,7 +81,7 @@ public class ClusterShape {
 			int radiusY = config.verticalSize + rand.nextInt(config.verticalVariation);
 			int radiusZ = config.horizontalSize + rand.nextInt(config.horizontalVariation);
 					
-			return new ClusterShape(src, new Vector3d(radiusX, radiusY, radiusZ), noiseGenerator);
+			return new ClusterShape(src, new Vec3d(radiusX, radiusY, radiusZ), noiseGenerator);
 		}
 		
 		public int getRadius() {

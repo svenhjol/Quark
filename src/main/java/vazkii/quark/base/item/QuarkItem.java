@@ -2,7 +2,7 @@ package vazkii.quark.base.item;
 
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.collection.DefaultedList;
 import vazkii.arl.item.BasicItem;
 import vazkii.quark.base.module.Module;
 
@@ -14,15 +14,15 @@ public class QuarkItem extends BasicItem {
 	private final Module module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkItem(String regname, Module module, Properties properties) {
+	public QuarkItem(String regname, Module module, Settings properties) {
 		super(regname, properties);
 		this.module = module;
 	}
 
 	@Override
-	public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
+	public void appendStacks(@Nonnull ItemGroup group, @Nonnull DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.appendStacks(group, items);
 	}
 
 	public QuarkItem setCondition(BooleanSupplier enabledSupplier) {

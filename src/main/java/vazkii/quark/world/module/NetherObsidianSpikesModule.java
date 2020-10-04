@@ -1,6 +1,6 @@
 package vazkii.quark.world.module;
 
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
 import vazkii.quark.base.module.ModuleCategory;
@@ -28,7 +28,7 @@ public class NetherObsidianSpikesModule extends Module {
 	
 	@Override
 	public void setup() {
-		WorldGenHandler.addGenerator(this, new ObsidianSpikeGenerator(dimensions), Decoration.UNDERGROUND_DECORATION, WorldGenWeights.OBSIDIAN_SPIKES);
+		WorldGenHandler.addGenerator(this, new ObsidianSpikeGenerator(dimensions), Feature.UNDERGROUND_DECORATION, WorldGenWeights.OBSIDIAN_SPIKES);
 	}
 	
 }

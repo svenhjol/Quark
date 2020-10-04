@@ -1,20 +1,20 @@
 package vazkii.quark.client.render.variant;
 
-import net.minecraft.client.renderer.entity.CowRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
+import net.minecraft.client.render.entity.CowEntityRenderer;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.entity.passive.CowEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import vazkii.quark.client.module.VariantAnimalTexturesModule;
 import vazkii.quark.client.module.VariantAnimalTexturesModule.VariantTextureType;
 
-public class VariantCowRenderer extends CowRenderer {
+public class VariantCowRenderer extends CowEntityRenderer {
 
-	public VariantCowRenderer(EntityRendererManager renderManagerIn) {
+	public VariantCowRenderer(EntityRenderDispatcher renderManagerIn) {
 		super(renderManagerIn);
 	}
 	
 	@Override
-	public ResourceLocation getEntityTexture(CowEntity entity) {
+	public Identifier getTexture(CowEntity entity) {
 		return VariantAnimalTexturesModule.getTextureOrShiny(entity, VariantTextureType.COW, VariantAnimalTexturesModule.enableCow);
 	}
 	

@@ -32,17 +32,16 @@ import org.lwjgl.glfw.GLFW;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.ConfirmOpenLinkScreen;
-import net.minecraft.client.gui.screen.MultiplayerScreen;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ConfirmChatLinkScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.WorldSelectionScreen;
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
+import net.minecraft.client.gui.screen.world.SelectWorldScreen;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -108,15 +107,15 @@ public class GoVoteHandler {
 
 	@SubscribeEvent
 	public static void clientTick(GuiOpenEvent event) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		Screen curr = event.getGui();
-		if ((curr instanceof WorldSelectionScreen || curr instanceof MultiplayerScreen) && shouldShow(mc)) {
+		if ((curr instanceof SelectWorldScreen || curr instanceof MultiplayerScreen) && shouldShow(mc)) {
 			event.setGui(new GoVoteScreen(curr));
 			shownThisSession = true;
 		}
 	}
 
-	private static boolean shouldShow(Minecraft mc) {
+	private static boolean shouldShow(MinecraftClient mc) {
 		if (!isEnglish(mc) || shownThisSession || isAfterElectionDay() || markerAlreadyExists) {
 			return false;
 		}
@@ -124,20 +123,20 @@ public class GoVoteHandler {
 		return "US".equals(countryCode);
 	}
 
-	private static boolean isEnglish(Minecraft mc) {
+	private static boolean isEnglish(MinecraftClient mc) {
 		return mc.getLanguageManager() != null
-				&& mc.getLanguageManager().getCurrentLanguage() != null
-				&& "English".equals(mc.getLanguageManager().getCurrentLanguage().getName());
+				&& mc.getLanguageManager().getLanguage() != null
+				&& "English".equals(mc.getLanguageManager().getLanguage().getName());
 	}
 
 	private static class GoVoteScreen extends Screen {
 		private static final int TICKS_PER_GROUP = 50;
 		private final Screen parent;
 		private int ticksElapsed = 0;
-		private final List<List<ITextComponent>> message = new ArrayList<>();
+		private final List<List<Text>> message = new ArrayList<>();
 
 		protected GoVoteScreen(Screen parent) {
-			super(new StringTextComponent(""));
+			super(new LiteralText(""));
 			this.parent = parent;
 			addGroup(s("Please read the following message from " + BRAND + "."));
 			addGroup(s("We are at a unique crossroads in the history of our country."));
@@ -145,24 +144,24 @@ public class GoVoteHandler {
 					s("breakdown of political decorum, and fear,"));
 			addGroup(s("it is tempting to succumb to apathy,"),
 					s("to think that nothing you do will matter."));
-			addGroup(StringTextComponent.field_240750_d_, s("But power is still in the hands of We, the People."));
+			addGroup(LiteralText.EMPTY, s("But power is still in the hands of We, the People."));
 			addGroup(s("The Constitution and its amendments guarantee every citizen the right to vote."));
 			addGroup(s("And it is not only our right, but our ")
-					.func_230529_a_(s("responsibility").func_240701_a_(TextFormatting.ITALIC, TextFormatting.GOLD))
-					.func_230529_a_(s(" to do so.")));
+					.append(s("responsibility").formatted(Formatting.ITALIC, Formatting.GOLD))
+					.append(s(" to do so.")));
 			addGroup(s("Your vote matters. Always."));
-			addGroup(StringTextComponent.field_240750_d_, s("Click anywhere to check if you are registered to vote."),
+			addGroup(LiteralText.EMPTY, s("Click anywhere to check if you are registered to vote."),
 					s("The website is an official government site, unaffiliated with " + BRAND + "."));
 			addGroup(s("Press ESC to exit. (This screen will not show up again.)"));
 		}
 
 		// Each group appears at the same time
-		private void addGroup(ITextComponent... lines) {
+		private void addGroup(Text... lines) {
 			message.add(Arrays.asList(lines));
 		}
 
-		private static StringTextComponent s(String txt) {
-			return new StringTextComponent(txt);
+		private static LiteralText s(String txt) {
+			return new LiteralText(txt);
 		}
 
 		@Override
@@ -179,17 +178,17 @@ public class GoVoteHandler {
 			int middle = width / 2;
 			int dist = 12;
 
-			ITextComponent note1 = s("Note: If you can't vote in the United States,").func_240701_a_(TextFormatting.ITALIC);
-			ITextComponent note2 = s("Please press ESC and carry on.").func_240701_a_(TextFormatting.ITALIC);
-			drawCenteredString(mstack, font, note1, middle, 10, 0xFFFFFF);
-			drawCenteredString(mstack, font, note2, middle, 22, 0xFFFFFF);
+			Text note1 = s("Note: If you can't vote in the United States,").formatted(Formatting.ITALIC);
+			Text note2 = s("Please press ESC and carry on.").formatted(Formatting.ITALIC);
+			drawCenteredText(mstack, textRenderer, note1, middle, 10, 0xFFFFFF);
+			drawCenteredText(mstack, textRenderer, note2, middle, 22, 0xFFFFFF);
 
 			int y = 46;
 			for (int groupIdx = 0; groupIdx < message.size(); groupIdx++) {
-				List<ITextComponent> group = message.get(groupIdx);
+				List<Text> group = message.get(groupIdx);
 				if ((ticksElapsed - 20) > groupIdx * TICKS_PER_GROUP) {
-					for (ITextComponent line : group) {
-						drawCenteredString(mstack, font, line, middle, y, 0xFFFFFF);
+					for (Text line : group) {
+						drawCenteredText(mstack, textRenderer, line, middle, y, 0xFFFFFF);
 						y += dist;
 					}
 				}
@@ -200,8 +199,8 @@ public class GoVoteHandler {
 		@Override
 		public String getNarrationMessage() {
 			StringBuilder builder = new StringBuilder();
-			for (List<ITextComponent> group : message) {
-				for (ITextComponent line : group) {
+			for (List<Text> group : message) {
+				for (Text line : group) {
 					builder.append(line.getString());
 				}
 			}
@@ -211,7 +210,7 @@ public class GoVoteHandler {
 		@Override
 		public boolean keyPressed(int keycode, int scanCode, int modifiers) {
 			if (keycode == GLFW.GLFW_KEY_ESCAPE) {
-				minecraft.displayGuiScreen(parent);
+				client.openScreen(parent);
 			}
 
 			return super.keyPressed(keycode, scanCode, modifiers);
@@ -224,7 +223,7 @@ public class GoVoteHandler {
 			}
 
 			if (modifiers == 0) {
-				minecraft.displayGuiScreen(new ConfirmOpenLinkScreen(this::consume, LINK, true));
+				client.openScreen(new ConfirmChatLinkScreen(this::consume, LINK, true));
 				return true;
 			}
 
@@ -232,9 +231,9 @@ public class GoVoteHandler {
 		}
 
 		private void consume(boolean doIt) {
-			minecraft.displayGuiScreen(this);
+			client.openScreen(this);
 			if (doIt) {
-				Util.getOSType().openURI(LINK);
+				Util.getOperatingSystem().open(LINK);
 			}
 		}
 

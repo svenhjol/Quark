@@ -5,14 +5,14 @@ import java.util.Set;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.Material;
-import net.minecraft.util.Direction;
+import net.minecraft.block.Material;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.WorldAccess;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.structure.StructureManager;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.Tags;
 import vazkii.quark.base.world.config.DimensionConfig;
@@ -26,7 +26,7 @@ public class FairyRingGenerator extends Generator {
 	}
 	
 	@Override
-	public void generateChunk(WorldGenRegion worldIn, ChunkGenerator generator, StructureManager structureManager, Random rand, BlockPos corner) {
+	public void generateChunk(ChunkRegion worldIn, ChunkGenerator generator, StructureAccessor structureManager, Random rand, BlockPos corner) {
 		int x = corner.getX() + rand.nextInt(16);
 		int z = corner.getZ() + rand.nextInt(16);
 		BlockPos center = new BlockPos(x, 128, z);
@@ -43,17 +43,17 @@ public class FairyRingGenerator extends Generator {
 			BlockPos pos = center;
 			BlockState state = worldIn.getBlockState(pos);
 			
-			while(state.getMaterial() != Material.ORGANIC && pos.getY() > 30) {
+			while(state.getMaterial() != Material.SOLID_ORGANIC && pos.getY() > 30) {
 				pos = pos.down();
 				state = worldIn.getBlockState(pos);
 			}
 			
-			if(state.getMaterial() == Material.ORGANIC)
+			if(state.getMaterial() == Material.SOLID_ORGANIC)
 				spawnFairyRing(worldIn, pos.down(), rand);
 		}		
 	}
 	
-	public static void spawnFairyRing(IWorld world, BlockPos pos, Random rand) {
+	public static void spawnFairyRing(WorldAccess world, BlockPos pos, Random rand) {
 		BlockState flower = Blocks.OXEYE_DAISY.getDefaultState();
 		
 		for(int i = -3; i <= 3; i++)
@@ -66,7 +66,7 @@ public class FairyRingGenerator extends Generator {
 					BlockPos fpos = pos.add(i, k, j);
 					BlockPos fposUp = fpos.up();
 					BlockState state = world.getBlockState(fpos);	
-					if(state.getMaterial() == Material.ORGANIC && world.isAirBlock(fposUp)) {
+					if(state.getMaterial() == Material.SOLID_ORGANIC && world.isAir(fposUp)) {
 						world.setBlockState(fpos.up(), flower, 2);
 						break;
 					}

@@ -5,7 +5,7 @@ import javax.annotation.Nullable;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.WorldView;
 import vazkii.quark.base.block.QuarkGlassBlock;
 import vazkii.quark.base.handler.RenderLayerHandler;
 import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
@@ -19,14 +19,14 @@ public class DirtyGlassBlock extends QuarkGlassBlock {
 
     private static final float[] BEACON_COLOR_MULTIPLIER = new float[] { 0.25F, 0.125F, 0F };
 
-    public DirtyGlassBlock(String regname, Module module, ItemGroup creativeTab, Properties properties) {
+    public DirtyGlassBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
         super(regname, module, creativeTab, properties);
         RenderLayerHandler.setRenderType(this, RenderTypeSkeleton.TRANSLUCENT);
     }
 
     @Nullable
     @Override
-    public float[] getBeaconColorMultiplier(BlockState state, IWorldReader world, BlockPos pos, BlockPos beaconPos) {
+    public float[] getBeaconColorMultiplier(BlockState state, WorldView world, BlockPos pos, BlockPos beaconPos) {
         return BEACON_COLOR_MULTIPLIER;
     }
 

@@ -1,14 +1,16 @@
 package vazkii.quark.tools.module;
 
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.item.DyeColor;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootEntry;
 import net.minecraft.loot.LootTables;
-import net.minecraft.loot.TagLootEntry;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.loot.entry.LootPoolEntry;
+import net.minecraft.loot.entry.TagEntry;
+import net.minecraft.tag.ItemTags;
+import net.minecraft.tag.Tag;
+import net.minecraft.util.DyeColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -40,7 +42,7 @@ public class ColorRunesModule extends Module {
     public static final String TAG_RUNE_COLOR = Quark.MOD_ID + ":RuneColor";
 
     private static final ThreadLocal<ItemStack> targetStack = new ThreadLocal<>();
-    public static ITag<Item> runesTag, runesLootableTag;
+    public static Tag<Item> runesTag, runesLootableTag;
 
     @Config public static int dungeonWeight = 10;
     @Config public static int netherFortressWeight = 8;
@@ -66,75 +68,75 @@ public class ColorRunesModule extends Module {
         if (!ItemNBTHelper.getBoolean(target, TAG_RUNE_ATTACHED, false))
             return -1;
 
-        ItemStack proxied = ItemStack.read(ItemNBTHelper.getCompound(target, TAG_RUNE_COLOR, false));
+        ItemStack proxied = ItemStack.fromTag(ItemNBTHelper.getCompound(target, TAG_RUNE_COLOR, false));
         LazyOptional<IRuneColorProvider> proxyCap = get(proxied);
         return proxyCap.orElse((s) -> -1).getRuneColor(target);
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getGlint() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getGlint() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.glintColor.get(color) : RenderType.getGlint();
+        return color >= 0 && color <= 16 ? GlintRenderType.glintColor.get(color) : RenderLayer.getGlint();
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getEntityGlint() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getEntityGlint() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.entityGlintColor.get(color) : RenderType.getEntityGlint();
+        return color >= 0 && color <= 16 ? GlintRenderType.entityGlintColor.get(color) : RenderLayer.getEntityGlint();
     }
     
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getGlintDirect() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getGlintDirect() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.glintDirectColor.get(color) : RenderType.func_239273_n_(); // getGlintDirect
+        return color >= 0 && color <= 16 ? GlintRenderType.glintDirectColor.get(color) : RenderLayer.getGlintDirect(); // getGlintDirect
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getEntityGlintDirect() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getEntityGlintDirect() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.entityGlintDirectColor.get(color) : RenderType.func_239274_p_(); // getEntityGlintDirect
+        return color >= 0 && color <= 16 ? GlintRenderType.entityGlintDirectColor.get(color) : RenderLayer.getEntityGlintDirect(); // getEntityGlintDirect
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getArmorGlint() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getArmorGlint() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.armorGlintColor.get(color) : RenderType.func_239270_k_(); // getArmorGlint
+        return color >= 0 && color <= 16 ? GlintRenderType.armorGlintColor.get(color) : RenderLayer.getArmorGlint(); // getArmorGlint
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static RenderType getArmorEntityGlint() {
+    @Environment(EnvType.CLIENT)
+    public static RenderLayer getArmorEntityGlint() {
         int color = changeColor();
-        return color >= 0 && color <= 16 ? GlintRenderType.armorEntityGlintColor.get(color) : RenderType.func_239271_l_(); // getArmorEntityGlint
+        return color >= 0 && color <= 16 ? GlintRenderType.armorEntityGlintColor.get(color) : RenderLayer.getArmorEntityGlint(); // getArmorEntityGlint
     }
     
     @Override
     public void construct() {
         for(DyeColor color : DyeColor.values())
-            new RuneItem(color.func_176610_l() + "_rune", this, color.getId());
+            new RuneItem(color.asString() + "_rune", this, color.getId());
         new RuneItem("rainbow_rune", this, 16);
     }
 
     @Override
     public void setup() {
-        runesTag = ItemTags.makeWrapperTag(Quark.MOD_ID + ":runes");
-        runesLootableTag = ItemTags.makeWrapperTag(Quark.MOD_ID + ":runes_lootable");
+        runesTag = ItemTags.register(Quark.MOD_ID + ":runes");
+        runesLootableTag = ItemTags.register(Quark.MOD_ID + ":runes_lootable");
     }
 
     @SubscribeEvent
     public void onLootTableLoad(LootTableLoadEvent event) {
         int weight = 0;
 
-        if(event.getName().equals(LootTables.CHESTS_SIMPLE_DUNGEON))
+        if(event.getName().equals(LootTables.SIMPLE_DUNGEON_CHEST))
             weight = dungeonWeight;
-        else if(event.getName().equals(LootTables.CHESTS_NETHER_BRIDGE))
+        else if(event.getName().equals(LootTables.NETHER_BRIDGE_CHEST))
             weight = netherFortressWeight;
-        else if(event.getName().equals(LootTables.CHESTS_JUNGLE_TEMPLE))
+        else if(event.getName().equals(LootTables.JUNGLE_TEMPLE_CHEST))
             weight = jungleTempleWeight;
-        else if(event.getName().equals(LootTables.CHESTS_DESERT_PYRAMID))
+        else if(event.getName().equals(LootTables.DESERT_PYRAMID_CHEST))
             weight = desertTempleWeight;
 
         if(weight > 0) {
-            LootEntry entry = TagLootEntry.func_216176_b(runesLootableTag) // withTag
+            LootPoolEntry entry = TagEntry.builder(runesLootableTag) // withTag
                 .weight(weight)
                 .quality(itemQuality)
                 .build();
@@ -148,7 +150,7 @@ public class ColorRunesModule extends Module {
         ItemStack right = event.getRight();
         ItemStack output = event.getOutput();
 
-        if(!left.isEmpty() && !right.isEmpty() && left.isEnchanted() && right.getItem().isIn(runesTag)) {
+        if(!left.isEmpty() && !right.isEmpty() && left.hasEnchantments() && right.getItem().isIn(runesTag)) {
             ItemStack out = (output.isEmpty() ? left : output).copy();
             ItemNBTHelper.setBoolean(out, TAG_RUNE_ATTACHED, true);
             ItemNBTHelper.setCompound(out, TAG_RUNE_COLOR, right.serializeNBT());

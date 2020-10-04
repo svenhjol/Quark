@@ -1,16 +1,16 @@
 package vazkii.quark.mobs.module;
 
-import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.PlacementType;
-import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnRestriction.Location;
+import net.minecraft.entity.attribute.DefaultAttributeRegistry;
 import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.item.Food;
+import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.potion.Potions;
-import net.minecraft.world.gen.Heightmap.Type;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.world.Heightmap.Type;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import vazkii.arl.util.RegistryHelper;
@@ -43,37 +43,37 @@ public class FrogsModule extends Module {
 
 	@Override
 	public void construct() {
-		new QuarkItem("frog_leg", this, new Item.Properties()
+		new QuarkItem("frog_leg", this, new Item.Settings()
 				.group(ItemGroup.FOOD)
-				.food(new Food.Builder()
+				.food(new FoodComponent.Builder()
 						.meat()
 						.hunger(2)
-						.saturation(0.3F)
+						.saturationModifier(0.3F)
 						.build()));
 
-		new QuarkItem("cooked_frog_leg", this, new Item.Properties()
+		new QuarkItem("cooked_frog_leg", this, new Item.Settings()
 				.group(ItemGroup.FOOD)
-				.food(new Food.Builder()
+				.food(new FoodComponent.Builder()
 						.meat()
 						.hunger(4)
-						.saturation(1.25F)
+						.saturationModifier(1.25F)
 						.build()));
 
-		Item goldenLeg = new QuarkItem("golden_frog_leg", this, new Item.Properties()
+		Item goldenLeg = new QuarkItem("golden_frog_leg", this, new Item.Settings()
 				.group(ItemGroup.BREWING)
-				.food(new Food.Builder()
+				.food(new FoodComponent.Builder()
 						.meat()
 						.hunger(4)
-						.saturation(2.5F)
+						.saturationModifier(2.5F)
 						.build()))
 				.setCondition(() -> enableBrewing);
 		
 		BrewingHandler.addPotionMix("frog_brewing",
-				() -> new FlagIngredient(Ingredient.fromItems(goldenLeg), "frogs"),
+				() -> new FlagIngredient(Ingredient.ofItems(goldenLeg), "frogs"),
 				Potions.LEAPING, Potions.LONG_LEAPING, Potions.STRONG_LEAPING);
 		
-		frogType = EntityType.Builder.<FrogEntity>create(FrogEntity::new, EntityClassification.CREATURE)
-				.size(0.65F, 0.5F)
+		frogType = EntityType.Builder.<FrogEntity>create(FrogEntity::new, SpawnGroup.CREATURE)
+				.setDimensions(0.65F, 0.5F)
 				.setTrackingRange(80)
 				.setUpdateInterval(3)
 				.setShouldReceiveVelocityUpdates(true)
@@ -81,13 +81,13 @@ public class FrogsModule extends Module {
 				.build("frog");
 		RegistryHelper.register(frogType, "frog");
 		
-		EntitySpawnHandler.registerSpawn(this, frogType, EntityClassification.CREATURE, PlacementType.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, AnimalEntity::canAnimalSpawn, spawnConfig);
+		EntitySpawnHandler.registerSpawn(this, frogType, SpawnGroup.CREATURE, Location.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, AnimalEntity::isValidNaturalSpawn, spawnConfig);
 		EntitySpawnHandler.addEgg(frogType, 0xbc9869, 0xffe6ad, spawnConfig);
 	}
 	
 	@Override
 	public void setup() {
-		GlobalEntityTypeAttributes.put(frogType, FrogEntity.prepareAttributes().func_233813_a_());
+		DefaultAttributeRegistry.put(frogType, FrogEntity.prepareAttributes().build());
 	}
 	
 	@Override

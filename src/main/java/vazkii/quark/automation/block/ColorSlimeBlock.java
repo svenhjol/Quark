@@ -5,13 +5,13 @@ import java.util.Locale;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.block.SlimeBlock;
-import net.minecraft.block.material.MaterialColor;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.api.INonSticky;
@@ -25,7 +25,7 @@ public class ColorSlimeBlock extends SlimeBlock implements INonSticky {
 	private final Module module;
 
 	public ColorSlimeBlock(SlimeColor color, Module module) {
-		super(Block.Properties.from(Blocks.SLIME_BLOCK));
+		super(Block.Properties.copy(Blocks.SLIME_BLOCK));
 
 		RegistryHelper.registerBlock(this, color.name().toLowerCase(Locale.ROOT) + "_slime_block");
 		RegistryHelper.setCreativeTab(this, ItemGroup.DECORATIONS);
@@ -37,9 +37,9 @@ public class ColorSlimeBlock extends SlimeBlock implements INonSticky {
 	}
 
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
 		if (module.enabled || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 	@Override

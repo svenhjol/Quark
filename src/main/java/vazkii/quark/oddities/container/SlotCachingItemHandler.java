@@ -1,10 +1,9 @@
 package vazkii.quark.oddities.container;
 
 import javax.annotation.Nonnull;
-
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
@@ -23,20 +22,20 @@ public class SlotCachingItemHandler extends SlotItemHandler {
 
 	@Nonnull
 	@Override
-	public ItemStack decrStackSize(int amount) {
+	public ItemStack takeStack(int amount) {
 		if (caching) {
 			ItemStack newStack = cached.copy();
 			int trueAmount = Math.min(amount, cached.getCount());
-			cached.shrink(trueAmount);
+			cached.decrement(trueAmount);
 			newStack.setCount(trueAmount);
 			return newStack;
 		}
-		return super.decrStackSize(amount);
+		return super.takeStack(amount);
 	}
 
 	@Override
-	public void putStack(@Nonnull ItemStack stack) {
-		super.putStack(stack);
+	public void setStack(@Nonnull ItemStack stack) {
+		super.setStack(stack);
 		if (caching)
 			cached = stack;
 	}
@@ -45,8 +44,8 @@ public class SlotCachingItemHandler extends SlotItemHandler {
 
 	private boolean caching = false;
 
-	public static void cache(Container container) {
-		for (Slot slot : container.inventorySlots) {
+	public static void cache(ScreenHandler container) {
+		for (Slot slot : container.slots) {
 			if (slot instanceof SlotCachingItemHandler) {
 				SlotCachingItemHandler thisSlot = (SlotCachingItemHandler) slot;
 				thisSlot.cached = slot.getStack();
@@ -55,12 +54,12 @@ public class SlotCachingItemHandler extends SlotItemHandler {
 		}
 	}
 
-	public static void applyCache(Container container) {
-		for (Slot slot : container.inventorySlots) {
+	public static void applyCache(ScreenHandler container) {
+		for (Slot slot : container.slots) {
 			if (slot instanceof SlotCachingItemHandler) {
 				SlotCachingItemHandler thisSlot = (SlotCachingItemHandler) slot;
 				if (thisSlot.caching) {
-					slot.putStack(thisSlot.cached);
+					slot.setStack(thisSlot.cached);
 					thisSlot.caching = false;
 				}
 			}

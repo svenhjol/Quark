@@ -13,35 +13,36 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.gui.screen.MainMenuScreen;
+import net.minecraft.block.Material;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootEntry;
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
-import net.minecraft.network.play.server.SUpdateTileEntityPacket;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
+import net.minecraft.loot.entry.LootPoolEntry;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.server.world.ServerChunkManager;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.vector.Vector2f;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec2f;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.LightType;
+import net.minecraft.world.WorldAccess;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.server.ServerChunkProvider;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent.KeyboardKeyPressedEvent;
@@ -56,7 +57,7 @@ import vazkii.quark.base.Quark;
 @EventBusSubscriber(modid = Quark.MOD_ID)
 public class MiscUtil {
 
-	public static final ResourceLocation GENERAL_ICONS = new ResourceLocation(Quark.MOD_ID, "textures/gui/general_icons.png");
+	public static final Identifier GENERAL_ICONS = new Identifier(Quark.MOD_ID, "textures/gui/general_icons.png");
 
 	private static final MethodHandle LOOT_TABLE_POOLS, LOOT_POOL_ENTRIES;
 
@@ -101,7 +102,7 @@ public class MiscUtil {
 			"warped"
 	};
 
-	public static void addToLootTable(LootTable table, LootEntry entry) {
+	public static void addToLootTable(LootTable table, LootPoolEntry entry) {
 		List<LootPool> pools = getPools(table);
 		if (!pools.isEmpty()) {
 			getEntries(pools.get(0)).add(entry);
@@ -119,9 +120,9 @@ public class MiscUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static List<LootEntry> getEntries(LootPool pool) {
+	public static List<LootPoolEntry> getEntries(LootPool pool) {
 		try {
-			return (List<LootEntry>) LOOT_POOL_ENTRIES.invokeExact(pool);
+			return (List<LootPoolEntry>) LOOT_POOL_ENTRIES.invokeExact(pool);
 		} catch (Throwable throwable) {
 			Throwables.throwIfUnchecked(throwable);
 			throw new RuntimeException(throwable);
@@ -129,7 +130,7 @@ public class MiscUtil {
 	}
 
 	public static void damageStack(PlayerEntity player, Hand hand, ItemStack stack, int dmg) {
-		stack.damageItem(dmg, player, (p) -> p.sendBreakAnimation(hand));
+		stack.damage(dmg, player, (p) -> p.sendToolBreakStatus(hand));
 	}
 
 	public static <T, V> void editFinalField(Class<T> clazz, String fieldName, Object obj, V value) {
@@ -154,14 +155,14 @@ public class MiscUtil {
 	public static void initializeEnchantmentList(Iterable<String> enchantNames, List<Enchantment> enchants) {
 		enchants.clear();
 		for(String s : enchantNames) {
-			ResourceLocation r = new ResourceLocation(s);
+			Identifier r = new Identifier(s);
 			Enchantment e = ForgeRegistries.ENCHANTMENTS.getValue(r);
 			if(e != null)
 				enchants.add(e);
 		}
 	}
 
-	public static Vector2f getMinecraftAngles(Vector3d direction) {
+	public static Vec2f getMinecraftAngles(Vec3d direction) {
 		// <sin(-y) * cos(p), -sin(-p), cos(-y) * cos(p)>
 
 		direction = direction.normalize();
@@ -169,52 +170,52 @@ public class MiscUtil {
 		double pitch = Math.asin(direction.y);
 		double yaw = Math.asin(direction.x / Math.cos(pitch));
 
-		return new Vector2f((float) (pitch * 180 / Math.PI), (float) (-yaw * 180 / Math.PI));
+		return new Vec2f((float) (pitch * 180 / Math.PI), (float) (-yaw * 180 / Math.PI));
 	}
 
 	public static boolean isEntityInsideOpaqueBlock(Entity entity) {
-		BlockPos pos = entity.func_233580_cy_(); // getPosition
-		return !entity.noClip && entity.world.getBlockState(pos).isSuffocating(entity.world, pos);
+		BlockPos pos = entity.getBlockPos(); // getPosition
+		return !entity.noClip && entity.world.getBlockState(pos).shouldSuffocate(entity.world, pos);
 	}
 
-	public static boolean validSpawnLight(IWorld world, BlockPos pos, Random rand) {
-		if (world.getLightFor(LightType.SKY, pos) > rand.nextInt(32)) {
+	public static boolean validSpawnLight(WorldAccess world, BlockPos pos, Random rand) {
+		if (world.getLightLevel(LightType.SKY, pos) > rand.nextInt(32)) {
 			return false;
 		} else {
-			int light = world.getWorld().isThundering() ? world.getNeighborAwareLightSubtracted(pos, 10) : world.getLight(pos);
+			int light = world.getWorld().isThundering() ? world.getLightLevel(pos, 10) : world.getLightLevel(pos);
 			return light <= rand.nextInt(8);
 		}
 	}
 
-	public static boolean validSpawnLocation(@Nonnull EntityType<? extends MobEntity> type, @Nonnull IWorld world, SpawnReason reason, BlockPos pos) {
+	public static boolean validSpawnLocation(@Nonnull EntityType<? extends MobEntity> type, @Nonnull WorldAccess world, SpawnReason reason, BlockPos pos) {
 		BlockPos below = pos.down();
 		if (reason == SpawnReason.SPAWNER)
 			return true;
 		BlockState state = world.getBlockState(below);
-		return state.getMaterial() == Material.ROCK && state.canEntitySpawn(world, below, type);
+		return state.getMaterial() == Material.STONE && state.allowsSpawning(world, below, type);
 	}
 
 	public static <T extends IForgeRegistryEntry<T>> List<T> massRegistryGet(Collection<String> coll, IForgeRegistry<T> registry) {
-		return coll.stream().map(ResourceLocation::new).map(registry::getValue).filter(Predicates.notNull()).collect(Collectors.toList());
+		return coll.stream().map(Identifier::new).map(registry::getValue).filter(Predicates.notNull()).collect(Collectors.toList());
 	}
 
-	public static void syncTE(TileEntity tile) {
-		SUpdateTileEntityPacket packet = tile.getUpdatePacket();
+	public static void syncTE(BlockEntity tile) {
+		BlockEntityUpdateS2CPacket packet = tile.toUpdatePacket();
 
 		if(packet != null && tile.getWorld() instanceof ServerWorld) {
-			((ServerChunkProvider) tile.getWorld().getChunkProvider()).chunkManager
-			.getTrackingPlayers(new ChunkPos(tile.getPos()), false)
-			.forEach(e -> e.connection.sendPacket(packet));
+			((ServerChunkManager) tile.getWorld().getChunkManager()).threadedAnvilChunkStorage
+			.getPlayersWatchingChunk(new ChunkPos(tile.getPos()), false)
+			.forEach(e -> e.networkHandler.sendPacket(packet));
 		}
 	}
 	
 	public static BlockPos locateBiome(ServerWorld world, Biome biomeToFind, BlockPos start) {
-		return world.func_241116_a_(biomeToFind, start, 6400, 8); // magic numbers from LocateBiomeCommand
+		return world.locateBiome(biomeToFind, start, 6400, 8); // magic numbers from LocateBiomeCommand
 	}
 
 	private static int progress;
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static void onKeystroke(KeyboardKeyPressedEvent.Pre event) {
 		final String[] ids = new String[] {
 				"FCYE87P5L0","mybsDDymrsc","6a4BWpBJppI","thpTOAS1Vgg","ZNcBZM5SvbY","_qJEoSa3Ie0", 
@@ -223,13 +224,13 @@ public class MiscUtil {
 				"8Vto_qUIjcA"
 		};
 		final int[] keys = new int[] { 265, 265, 264, 264, 263, 262, 263, 262, 66, 65 };
-		if(event.getGui() instanceof MainMenuScreen) {
+		if(event.getGui() instanceof TitleScreen) {
 			if(keys[progress] == event.getKeyCode()) {
 				progress++;
 
 				if(progress >= keys.length) {
 					progress = 0;
-					Util.getOSType().openURI("https://www.youtube.com/watch?v=" + ids[new Random().nextInt(ids.length)]);
+					Util.getOperatingSystem().open("https://www.youtube.com/watch?v=" + ids[new Random().nextInt(ids.length)]);
 				}
 			} else progress = 0;
 		}

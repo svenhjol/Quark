@@ -3,14 +3,14 @@ package vazkii.quark.world.module;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.entity.boss.dragon.EnderDragonEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -44,16 +44,16 @@ public class BiotiteModule extends Module {
 	
 	@Override
 	public void construct() {
-		new QuarkItem("biotite", this, new Item.Properties().group(ItemGroup.MATERIALS));
+		new QuarkItem("biotite", this, new Item.Settings().group(ItemGroup.MATERIALS));
 		
 		Block biotite_ore = new BiotiteOreBlock(this);
 		oregen = new OreGenerator(dimensions, oreSettings, biotite_ore.getDefaultState(), OreGenerator.ENDSTONE_MATCHER, () -> generateNaturally);
-		WorldGenHandler.addGenerator(this, oregen, Decoration.UNDERGROUND_ORES, WorldGenWeights.BIOTITE);
+		WorldGenHandler.addGenerator(this, oregen, Feature.UNDERGROUND_ORES, WorldGenWeights.BIOTITE);
 		
-		Block.Properties props = Block.Properties.create(Material.ROCK, MaterialColor.BLACK)
-				.func_235861_h_() // needs tool
+		Block.Properties props = Block.Properties.of(Material.STONE, MaterialColor.BLACK)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-        		.hardnessAndResistance(0.8F);
+        		.strength(0.8F);
 		
 		VariantHandler.addSlabAndStairs(new QuarkBlock("biotite_block", this, ItemGroup.BUILDING_BLOCKS, props));
 		VariantHandler.addSlabAndStairs(new QuarkBlock("smooth_biotite", this, ItemGroup.BUILDING_BLOCKS, props));
@@ -64,13 +64,13 @@ public class BiotiteModule extends Module {
 	
 	@SubscribeEvent
 	public void onEntityTick(LivingUpdateEvent event) {
-		if(generateOnDragonDeath && event.getEntityLiving() instanceof EnderDragonEntity && !event.getEntity().getEntityWorld().isRemote) {
+		if(generateOnDragonDeath && event.getEntityLiving() instanceof EnderDragonEntity && !event.getEntity().getEntityWorld().isClient) {
 			EnderDragonEntity dragon = (EnderDragonEntity) event.getEntity();
 			World world = dragon.getEntityWorld();
 			
-			if(dragon.deathTicks > 0 && dragon.deathTicks % dragonTicksPerCluster == 0) {
-				Random rand = world.rand;
-				BlockPos basePos = dragon.func_233580_cy_(); // getPosition
+			if(dragon.ticksSinceDeath > 0 && dragon.ticksSinceDeath % dragonTicksPerCluster == 0) {
+				Random rand = world.random;
+				BlockPos basePos = dragon.getBlockPos(); // getPosition
 				basePos = new BlockPos(basePos.getX() - 128, 0, basePos.getZ() -128);
 
 				for(int i = 0; i < clustersPerDragonTick; i++) {

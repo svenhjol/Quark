@@ -11,17 +11,17 @@
 package vazkii.quark.mobs.ai;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.ai.goal.MoveToBlockGoal;
-import net.minecraft.tileentity.FurnaceTileEntity;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.FurnaceBlockEntity;
+import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.WorldView;
 import vazkii.quark.mobs.entity.FoxhoundEntity;
 
 import javax.annotation.Nonnull;
 
-public class FindPlaceToSleepGoal extends MoveToBlockGoal {
+public class FindPlaceToSleepGoal extends MoveToTargetPosGoal {
 	private final FoxhoundEntity foxhound;
 
 	private final boolean furnaceOnly;
@@ -35,29 +35,29 @@ public class FindPlaceToSleepGoal extends MoveToBlockGoal {
 	}
 
 	@Override
-	public boolean shouldExecute() {
-		return this.foxhound.isTamed() && !this.foxhound.func_233684_eK_() && super.shouldExecute();
+	public boolean canStart() {
+		return this.foxhound.isTamed() && !this.foxhound.isInSittingPose() && super.canStart();
 	}
 
 	@Override
-	public boolean shouldContinueExecuting() {
-		return (!hadSlept || this.foxhound.isSleeping()) && super.shouldContinueExecuting();
+	public boolean shouldContinue() {
+		return (!hadSlept || this.foxhound.isSleeping()) && super.shouldContinue();
 	}
 
 	@Override
-	public void startExecuting() {
-		super.startExecuting();
+	public void start() {
+		super.start();
 		hadSlept = false;
-		this.foxhound.func_233686_v_(false);
+		this.foxhound.setInSittingPose(false);
 		this.foxhound.getSleepGoal().setSleeping(false);
 		this.foxhound.setSleeping(false);
 	}
 
 	@Override
-	public void resetTask() {
-		super.resetTask();
+	public void stop() {
+		super.stop();
 		hadSlept = false;
-		this.foxhound.func_233686_v_(false);
+		this.foxhound.setInSittingPose(false);
 		this.foxhound.getSleepGoal().setSleeping(false);
 		this.foxhound.setSleeping(false);
 	}
@@ -66,14 +66,14 @@ public class FindPlaceToSleepGoal extends MoveToBlockGoal {
 	public void tick() {
 		super.tick();
 
-		Vector3d motion = foxhound.getMotion();
+		Vec3d motion = foxhound.getVelocity();
 
-		if (!this.getIsAboveDestination() || motion.x > 0 || motion.z > 0) {
-			this.foxhound.func_233686_v_(false);
+		if (!this.hasReached() || motion.x > 0 || motion.z > 0) {
+			this.foxhound.setInSittingPose(false);
 			this.foxhound.getSleepGoal().setSleeping(false);
 			this.foxhound.setSleeping(false);
-		} else if (!this.foxhound.func_233684_eK_()) {
-			this.foxhound.func_233686_v_(true);
+		} else if (!this.foxhound.isInSittingPose()) {
+			this.foxhound.setInSittingPose(true);
 			this.foxhound.getSleepGoal().setSleeping(true);
 			this.foxhound.setSleeping(true);
 			hadSlept = true;
@@ -81,15 +81,15 @@ public class FindPlaceToSleepGoal extends MoveToBlockGoal {
 	}
 
 	@Override
-	protected boolean shouldMoveTo(@Nonnull IWorldReader world, @Nonnull BlockPos pos) {
-		if (!world.isAirBlock(pos.up())) {
+	protected boolean isTargetPos(@Nonnull WorldView world, @Nonnull BlockPos pos) {
+		if (!world.isAir(pos.up())) {
 			return false;
 		} else {
 			BlockState state = world.getBlockState(pos);
-			TileEntity tileentity = world.getTileEntity(pos);
+			BlockEntity tileentity = world.getBlockEntity(pos);
 
 			if(furnaceOnly)
-				return tileentity instanceof FurnaceTileEntity;
+				return tileentity instanceof FurnaceBlockEntity;
 
 			return state.getLightValue(world, pos) > 2;
 		}

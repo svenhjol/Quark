@@ -1,14 +1,12 @@
 package vazkii.quark.mobs.client.model;
 
 import java.util.function.BiConsumer;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
-
-import net.minecraft.client.renderer.entity.model.EntityModel;
-import net.minecraft.client.renderer.model.ModelRenderer;
-import net.minecraft.client.renderer.model.ModelRenderer.ModelBox;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.ModelPart.Cuboid;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import vazkii.arl.util.ClientTicker;
 import vazkii.quark.mobs.entity.ToretoiseEntity;
 
@@ -17,121 +15,121 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
 	private ToretoiseEntity entity;
     private float animFrames;
 	
-    public ModelRenderer body;
-    public ModelRenderer head;
-    public ModelRenderer rightFrontLeg;
-    public ModelRenderer leftFrontLeg;
-    public ModelRenderer rightBackLeg;
-    public ModelRenderer leftBackLeg;
-    public ModelRenderer mouth;
+    public ModelPart body;
+    public ModelPart head;
+    public ModelPart rightFrontLeg;
+    public ModelPart leftFrontLeg;
+    public ModelPart rightBackLeg;
+    public ModelPart leftBackLeg;
+    public ModelPart mouth;
     
-    public ModelRenderer CoalOre1;
-    public ModelRenderer CoalOre2;
-    public ModelRenderer CoalOre3;
-    public ModelRenderer CoalOre4;
-    public ModelRenderer IronOre1;
-    public ModelRenderer IronOre2;
-    public ModelRenderer IronOre3;
-    public ModelRenderer LapisOre1;
-    public ModelRenderer LapisOre2;
-    public ModelRenderer LapisOre3;
-    public ModelRenderer LapisOre4;
-    public ModelRenderer RedstoneOre1;
-    public ModelRenderer RedstoneOre2;
-    public ModelRenderer RedstoneOre3;
-    public ModelRenderer RedstoneOre4;
-    public ModelRenderer RedstoneOre5;
+    public ModelPart CoalOre1;
+    public ModelPart CoalOre2;
+    public ModelPart CoalOre3;
+    public ModelPart CoalOre4;
+    public ModelPart IronOre1;
+    public ModelPart IronOre2;
+    public ModelPart IronOre3;
+    public ModelPart LapisOre1;
+    public ModelPart LapisOre2;
+    public ModelPart LapisOre3;
+    public ModelPart LapisOre4;
+    public ModelPart RedstoneOre1;
+    public ModelPart RedstoneOre2;
+    public ModelPart RedstoneOre3;
+    public ModelPart RedstoneOre4;
+    public ModelPart RedstoneOre5;
 
     public ToretoiseModel() {
         textureWidth = 100;
         textureHeight = 100;
-        mouth = new ModelRenderer(this, 66, 38);
-        mouth.setRotationPoint(0.0F, 1.0F, -1.0F);
-        mouth.addBox(-4.5F, -2.5F, -8.0F, 9, 4, 8, 0.0F);
+        mouth = new ModelPart(this, 66, 38);
+        mouth.setPivot(0.0F, 1.0F, -1.0F);
+        mouth.addCuboid(-4.5F, -2.5F, -8.0F, 9, 4, 8, 0.0F);
         
-        leftFrontLeg = new ModelRenderer(this, 34, 38);
+        leftFrontLeg = new ModelPart(this, 34, 38);
         leftFrontLeg.mirror = true;
-        leftFrontLeg.setRotationPoint(10.0F, 16.0F, -12.0F);
-        leftFrontLeg.addBox(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
+        leftFrontLeg.setPivot(10.0F, 16.0F, -12.0F);
+        leftFrontLeg.addCuboid(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
         setRotateAngle(leftFrontLeg, 0.0F, -0.7853981633974483F, 0.0F);
         
-        rightBackLeg = new ModelRenderer(this, 34, 38);
-        rightBackLeg.setRotationPoint(-10.0F, 16.0F, 12.0F);
-        rightBackLeg.addBox(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
+        rightBackLeg = new ModelPart(this, 34, 38);
+        rightBackLeg.setPivot(-10.0F, 16.0F, 12.0F);
+        rightBackLeg.addCuboid(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
         setRotateAngle(rightBackLeg, 0.0F, 0.7853981633974483F, 0.0F);
         
-        body = new ModelRenderer(this, 0, 0);
-        body.setRotationPoint(0.0F, 8.0F, 0.0F);
-        body.addBox(-11.0F, 0.0F, -13.0F, 22, 12, 26, 0.0F);
+        body = new ModelPart(this, 0, 0);
+        body.setPivot(0.0F, 8.0F, 0.0F);
+        body.addCuboid(-11.0F, 0.0F, -13.0F, 22, 12, 26, 0.0F);
         
-        head = new ModelRenderer(this, 0, 38);
-        head.setRotationPoint(0.0F, 16.0F, -13.0F);
-        head.addBox(-4.0F, -4.0F, -8.0F, 8, 5, 8, 0.0F);
+        head = new ModelPart(this, 0, 38);
+        head.setPivot(0.0F, 16.0F, -13.0F);
+        head.addCuboid(-4.0F, -4.0F, -8.0F, 8, 5, 8, 0.0F);
         
-        rightFrontLeg = new ModelRenderer(this, 34, 38);
-        rightFrontLeg.setRotationPoint(-10.0F, 16.0F, -12.0F);
-        rightFrontLeg.addBox(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
+        rightFrontLeg = new ModelPart(this, 34, 38);
+        rightFrontLeg.setPivot(-10.0F, 16.0F, -12.0F);
+        rightFrontLeg.addCuboid(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
         setRotateAngle(rightFrontLeg, 0.0F, 0.7853981633974483F, 0.0F);
         
-        leftBackLeg = new ModelRenderer(this, 34, 38);
+        leftBackLeg = new ModelPart(this, 34, 38);
         leftBackLeg.mirror = true;
-        leftBackLeg.setRotationPoint(10.0F, 16.0F, 12.0F);
-        leftBackLeg.addBox(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
+        leftBackLeg.setPivot(10.0F, 16.0F, 12.0F);
+        leftBackLeg.addCuboid(-4.0F, -2.0F, -4.0F, 8, 10, 8, 0.0F);
         
         setRotateAngle(leftBackLeg, 0.0F, -0.7853981633974483F, 0.0F);
         head.addChild(mouth);
         
-        CoalOre1 = new ModelRenderer(this, 36, 56);
-        CoalOre1.addBox(0.0F, -7.0F, -6.0F, 3, 3, 3, 0.0F);
-        CoalOre1.setRotationPoint(0.0F, 0.0F, 0.0F);
-        CoalOre2 = new ModelRenderer(this, 42, 56);
-        CoalOre2.addBox(7.0F, -2.0F, -10.0F, 6, 6, 6, 0.0F);
-        CoalOre2.setRotationPoint(0.0F, 0.0F, 0.0F);
-        CoalOre3 = new ModelRenderer(this, 66, 50);
-        CoalOre3.addBox(-2.0F, -7.0F, -4.0F, 7, 7, 7, 0.0F);
-        CoalOre3.setRotationPoint(0.0F, 0.0F, 0.0F);
-        CoalOre4 = new ModelRenderer(this, 60, 64);
-        CoalOre4.addBox(-15.0F, 0.0F, 1.0F, 4, 6, 6, 0.0F);
-        CoalOre4.setRotationPoint(0.0F, 0.0F, 0.0F);
+        CoalOre1 = new ModelPart(this, 36, 56);
+        CoalOre1.addCuboid(0.0F, -7.0F, -6.0F, 3, 3, 3, 0.0F);
+        CoalOre1.setPivot(0.0F, 0.0F, 0.0F);
+        CoalOre2 = new ModelPart(this, 42, 56);
+        CoalOre2.addCuboid(7.0F, -2.0F, -10.0F, 6, 6, 6, 0.0F);
+        CoalOre2.setPivot(0.0F, 0.0F, 0.0F);
+        CoalOre3 = new ModelPart(this, 66, 50);
+        CoalOre3.addCuboid(-2.0F, -7.0F, -4.0F, 7, 7, 7, 0.0F);
+        CoalOre3.setPivot(0.0F, 0.0F, 0.0F);
+        CoalOre4 = new ModelPart(this, 60, 64);
+        CoalOre4.addCuboid(-15.0F, 0.0F, 1.0F, 4, 6, 6, 0.0F);
+        CoalOre4.setPivot(0.0F, 0.0F, 0.0F);
         
-        IronOre1 = new ModelRenderer(this, 36, 89);
-        IronOre1.addBox(1.0F, -3.0F, 1.0F, 8, 3, 8, 0.0F);
-        IronOre1.setRotationPoint(0.0F, 0.0F, 0.0F);
-        IronOre2 = new ModelRenderer(this, 32, 81);
-        IronOre2.addBox(-7.0F, -2.0F, -11.0F, 6, 2, 6, 0.0F);
-        IronOre2.setRotationPoint(0.0F, 0.0F, 0.0F);
-        IronOre3 = new ModelRenderer(this, 30, 76);
-        IronOre3.addBox(-9.0F, -1.0F, 6.0F, 4, 1, 4, 0.0F);
-        IronOre3.setRotationPoint(0.0F, 0.0F, 0.0F);
+        IronOre1 = new ModelPart(this, 36, 89);
+        IronOre1.addCuboid(1.0F, -3.0F, 1.0F, 8, 3, 8, 0.0F);
+        IronOre1.setPivot(0.0F, 0.0F, 0.0F);
+        IronOre2 = new ModelPart(this, 32, 81);
+        IronOre2.addCuboid(-7.0F, -2.0F, -11.0F, 6, 2, 6, 0.0F);
+        IronOre2.setPivot(0.0F, 0.0F, 0.0F);
+        IronOre3 = new ModelPart(this, 30, 76);
+        IronOre3.addCuboid(-9.0F, -1.0F, 6.0F, 4, 1, 4, 0.0F);
+        IronOre3.setPivot(0.0F, 0.0F, 0.0F);
         
-        LapisOre1 = new ModelRenderer(this, 0, 51);
-        LapisOre1.addBox(-5.0F, -8.0F, 0.0F, 8, 8, 0, 0.0F);
-        LapisOre1.setRotationPoint(0.0F, 0.0F, 0.0F);
-        LapisOre2 = new ModelRenderer(this, 0, 53);
-        LapisOre2.addBox(-1.0F, -8.0F, -4.0F, 0, 8, 8, 0.0F);
-        LapisOre2.setRotationPoint(0.0F, 0.0F, 0.0F);
-        LapisOre3 = new ModelRenderer(this, 18, 51);
-        LapisOre3.addBox(-10.0F, -8.0F, 8.0F, 8, 8, 0, 0.0F);
-        LapisOre3.setRotationPoint(0.0F, 0.0F, 0.0F);
-        LapisOre4 = new ModelRenderer(this, 18, 53);
-        LapisOre4.addBox(-6.0F, -8.0F, 4.0F, 0, 8, 8, 0.0F);
-        LapisOre4.setRotationPoint(0.0F, 0.0F, 0.0F);
+        LapisOre1 = new ModelPart(this, 0, 51);
+        LapisOre1.addCuboid(-5.0F, -8.0F, 0.0F, 8, 8, 0, 0.0F);
+        LapisOre1.setPivot(0.0F, 0.0F, 0.0F);
+        LapisOre2 = new ModelPart(this, 0, 53);
+        LapisOre2.addCuboid(-1.0F, -8.0F, -4.0F, 0, 8, 8, 0.0F);
+        LapisOre2.setPivot(0.0F, 0.0F, 0.0F);
+        LapisOre3 = new ModelPart(this, 18, 51);
+        LapisOre3.addCuboid(-10.0F, -8.0F, 8.0F, 8, 8, 0, 0.0F);
+        LapisOre3.setPivot(0.0F, 0.0F, 0.0F);
+        LapisOre4 = new ModelPart(this, 18, 53);
+        LapisOre4.addCuboid(-6.0F, -8.0F, 4.0F, 0, 8, 8, 0.0F);
+        LapisOre4.setPivot(0.0F, 0.0F, 0.0F);
         
-        RedstoneOre1 = new ModelRenderer(this, 0, 83);
-        RedstoneOre1.addBox(-8.0F, -12.0F, -6.0F, 5, 12, 5, 0.0F);
-        RedstoneOre1.setRotationPoint(0.0F, 0.0F, 0.0F);
-        RedstoneOre2 = new ModelRenderer(this, 0, 74);
-        RedstoneOre2.addBox(6.0F, -6.0F, -1.0F, 3, 6, 3, 0.0F);
-        RedstoneOre2.setRotationPoint(0.0F, 0.0F, 0.0F);
-        RedstoneOre3 = new ModelRenderer(this, 12, 76);
-        RedstoneOre3.addBox(-7.0F, -4.0F, 2.0F, 2, 4, 2, 0.0F);
-        RedstoneOre3.setRotationPoint(0.0F, 0.0F, 0.0F);
-        RedstoneOre4 = new ModelRenderer(this, 20, 87);
-        RedstoneOre4.addBox(1.0F, -9.0F, -9.0F, 4, 9, 4, 0.0F);
-        RedstoneOre4.setRotationPoint(0.0F, 0.0F, 0.0F);
-        RedstoneOre5 = new ModelRenderer(this, 15, 77);
-        RedstoneOre5.addBox(-1.0F, -5.0F, 5.0F, 5, 5, 5, 0.0F);
-        RedstoneOre5.setRotationPoint(0.0F, 0.0F, 0.0F);
+        RedstoneOre1 = new ModelPart(this, 0, 83);
+        RedstoneOre1.addCuboid(-8.0F, -12.0F, -6.0F, 5, 12, 5, 0.0F);
+        RedstoneOre1.setPivot(0.0F, 0.0F, 0.0F);
+        RedstoneOre2 = new ModelPart(this, 0, 74);
+        RedstoneOre2.addCuboid(6.0F, -6.0F, -1.0F, 3, 6, 3, 0.0F);
+        RedstoneOre2.setPivot(0.0F, 0.0F, 0.0F);
+        RedstoneOre3 = new ModelPart(this, 12, 76);
+        RedstoneOre3.addCuboid(-7.0F, -4.0F, 2.0F, 2, 4, 2, 0.0F);
+        RedstoneOre3.setPivot(0.0F, 0.0F, 0.0F);
+        RedstoneOre4 = new ModelPart(this, 20, 87);
+        RedstoneOre4.addCuboid(1.0F, -9.0F, -9.0F, 4, 9, 4, 0.0F);
+        RedstoneOre4.setPivot(0.0F, 0.0F, 0.0F);
+        RedstoneOre5 = new ModelPart(this, 15, 77);
+        RedstoneOre5.addCuboid(-1.0F, -5.0F, 5.0F, 5, 5, 5, 0.0F);
+        RedstoneOre5.setPivot(0.0F, 0.0F, 0.0F);
         
         body.addChild(CoalOre2);
         body.addChild(CoalOre3);
@@ -158,7 +156,7 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
 	}
 
     @Override
-	public void render(MatrixStack matrix, IVertexBuilder vb, int p_225598_3_, int p_225598_4_, float p_225598_5_, float p_225598_6_, float p_225598_7_, float p_225598_8_) {
+	public void render(MatrixStack matrix, VertexConsumer vb, int p_225598_3_, int p_225598_4_, float p_225598_5_, float p_225598_6_, float p_225598_7_, float p_225598_8_) {
         matrix.push();
         int bufferTime = 10;
     	if(entity.angeryTicks > 0 && entity.angeryTicks < ToretoiseEntity.ANGERY_TIME - bufferTime) {
@@ -166,7 +164,7 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
     		angeryTime = Math.sin(angeryTime) * -20;
     		
     		matrix.translate(0, 1., 1);
-    		matrix.rotate(Vector3f.XP.rotationDegrees((float) angeryTime));
+    		matrix.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion((float) angeryTime));
     		matrix.translate(0, -1, -1);
     	}
     	
@@ -189,18 +187,18 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
         bodyTrans *= (1F - rideMultiplier); 
         
         matrix.translate(0, bodyTrans, 0);
-        matrix.rotate(Vector3f.ZP.rotation((bodyTrans - scale) * 0.5F));
+        matrix.multiply(Vector3f.POSITIVE_Z.getRadialQuaternion((bodyTrans - scale) * 0.5F));
         
         body.render(matrix, vb, p_225598_3_, p_225598_4_, p_225598_5_, p_225598_6_, p_225598_7_, p_225598_8_);
         
         matrix.push();
         matrix.translate(0, bodyTrans, rideMultiplier * 0.3);
-        head.rotateAngleX = bodyTrans * 2;
+        head.pitch = bodyTrans * 2;
         head.render(matrix, vb, p_225598_3_, p_225598_4_, p_225598_5_, p_225598_6_, p_225598_7_, p_225598_8_);
         matrix.pop();
 
         float finalRideMultiplier = rideMultiplier;
-        BiConsumer<ModelRenderer, Float> draw = (renderer, frames) -> {
+        BiConsumer<ModelPart, Float> draw = (renderer, frames) -> {
         	float time = Math.min(animBuff, frames % doubleAnimSpeed);
             float trans = ((float) (Math.sin(time / animBuff * Math.PI) + 1.0) / -2F) * 0.12F + 0.06F;
             
@@ -213,20 +211,20 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
 
             matrix.push();
             
-            ModelBox box = renderer.getRandomCube(entity.getRNG());
+            Cuboid box = renderer.getRandomCuboid(entity.getRandom());
             double spread = (1F / 16F) * -1.8 * finalRideMultiplier;
-            double x = (renderer.rotationPointX + box.posX1);
-            double z = (renderer.rotationPointZ + box.posZ1);
+            double x = (renderer.pivotX + box.minX);
+            double z = (renderer.pivotZ + box.minZ);
             x *= (spread / Math.abs(x));
             z *= (spread / Math.abs(z));
             matrix.translate(x, 0, z);
             
             matrix.translate(0, trans, 0);
-            float yRot = renderer.rotateAngleY;
-            renderer.rotateAngleX = rot;
-            renderer.rotateAngleY *= (1F - finalRideMultiplier);
+            float yRot = renderer.yaw;
+            renderer.pitch = rot;
+            renderer.yaw *= (1F - finalRideMultiplier);
             renderer.render(matrix, vb, p_225598_3_, p_225598_4_, p_225598_5_, p_225598_6_, p_225598_7_, p_225598_8_);
-            renderer.rotateAngleY = yRot;
+            renderer.yaw = yRot;
             matrix.pop();
         };
         
@@ -237,10 +235,10 @@ public class ToretoiseModel extends EntityModel<ToretoiseEntity> {
         matrix.pop();
     }
     
-    public void setRotateAngle(ModelRenderer modelRenderer, float x, float y, float z) {
-        modelRenderer.rotateAngleX = x;
-        modelRenderer.rotateAngleY = y;
-        modelRenderer.rotateAngleZ = z;
+    public void setRotateAngle(ModelPart modelRenderer, float x, float y, float z) {
+        modelRenderer.pitch = x;
+        modelRenderer.yaw = y;
+        modelRenderer.roll = z;
     }
 	
 }

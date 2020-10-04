@@ -6,27 +6,28 @@ import java.util.Objects;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceContext.BlockMode;
-import net.minecraft.util.math.RayTraceContext.FluidMode;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RayTraceContext.FluidHandling;
+import net.minecraft.world.RayTraceContext.ShapeType;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -62,16 +63,16 @@ public class ReacharoundPlacingModule extends Module {
 	private int ticksDisplayed;
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onRender(RenderGameOverlayEvent.Pre event) {
 		if (event.getType() != RenderGameOverlayEvent.ElementType.CROSSHAIRS)
 			return;
 
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		PlayerEntity player = mc.player;
 
 		if (player != null && currentTarget != null) {
-			MainWindow res = event.getWindow();
+			Window res = event.getWindow();
 			MatrixStack matrix = event.getMatrixStack();
 			String text = (currentTarget.getRight().getAxis() == Axis.Y ? display : displayHorizontal);
 
@@ -83,19 +84,19 @@ public class ReacharoundPlacingModule extends Module {
 			int opacity = ((int) (255 * scale)) << 24;
 			
 			RenderSystem.scaled(scale, 1F, 1F);
-			RenderSystem.translatef(-mc.fontRenderer.getStringWidth(text) / 2f, 0, 0);
-			mc.fontRenderer.drawString(matrix, text, 0, 0, 0xFFFFFF | opacity);
+			RenderSystem.translatef(-mc.textRenderer.getWidth(text) / 2f, 0, 0);
+			mc.textRenderer.draw(matrix, text, 0, 0, 0xFFFFFF | opacity);
 			RenderSystem.popMatrix();
 		}
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientTick(ClientTickEvent event) {
 		if(event.phase == Phase.END) {
 			currentTarget = null;
 			
-			PlayerEntity player = Minecraft.getInstance().player;
+			PlayerEntity player = MinecraftClient.getInstance().player;
 			if(player != null)
 				currentTarget = getPlayerReacharoundTarget(player);
 			
@@ -120,15 +121,15 @@ public class ReacharoundPlacingModule extends Module {
 			int count = stack.getCount();
 			Hand hand = event.getHand();
 
-			ItemUseContext context = new ItemUseContext(player, hand, new BlockRayTraceResult(new Vector3d(0.5F, 1F, 0.5F), dir, pos, false));
-			ActionResultType res = stack.getItem().onItemUse(context);
+			ItemUsageContext context = new ItemUsageContext(player, hand, new BlockHitResult(new Vec3d(0.5F, 1F, 0.5F), dir, pos, false));
+			ActionResult res = stack.getItem().useOnBlock(context);
 
-			if (res != ActionResultType.PASS) {
+			if (res != ActionResult.PASS) {
 				event.setCanceled(true);
 				event.setCancellationResult(res);
 
-				if(res == ActionResultType.SUCCESS)
-					player.swingArm(hand);
+				if(res == ActionResult.SUCCESS)
+					player.swingHand(hand);
 
 				if (player.isCreative() && stack.getCount() < count)
 					stack.setCount(count);
@@ -137,19 +138,19 @@ public class ReacharoundPlacingModule extends Module {
 	}
 
 	private Pair<BlockPos, Direction>  getPlayerReacharoundTarget(PlayerEntity player) {
-		if(!(validateReacharoundStack(player.getHeldItemMainhand()) || validateReacharoundStack(player.getHeldItemOffhand())))
+		if(!(validateReacharoundStack(player.getMainHandStack()) || validateReacharoundStack(player.getOffHandStack())))
 			return null;
 
 		World world = player.world;
 
-		Pair<Vector3d, Vector3d> params = RayTraceHandler.getEntityParams(player);
+		Pair<Vec3d, Vec3d> params = RayTraceHandler.getEntityParams(player);
 		double range = RayTraceHandler.getEntityRange(player);
-		Vector3d rayPos = params.getLeft();
-		Vector3d ray = params.getRight().scale(range);
+		Vec3d rayPos = params.getLeft();
+		Vec3d ray = params.getRight().multiply(range);
 
-		RayTraceResult normalRes = RayTraceHandler.rayTrace(player, world, rayPos, ray, BlockMode.OUTLINE, FluidMode.NONE);
+		HitResult normalRes = RayTraceHandler.rayTrace(player, world, rayPos, ray, ShapeType.OUTLINE, FluidHandling.NONE);
 
-		if (normalRes.getType() == RayTraceResult.Type.MISS) {
+		if (normalRes.getType() == HitResult.Type.MISS) {
 			Pair<BlockPos, Direction>  target = getPlayerVerticalReacharoundTarget(player, world, rayPos, ray);
 			if(target != null)
 				return target;
@@ -162,34 +163,34 @@ public class ReacharoundPlacingModule extends Module {
 		return null;
 	}
 
-	private Pair<BlockPos, Direction> getPlayerVerticalReacharoundTarget(PlayerEntity player, World world, Vector3d rayPos, Vector3d ray) {
-		if(player.rotationPitch < 0)
+	private Pair<BlockPos, Direction> getPlayerVerticalReacharoundTarget(PlayerEntity player, World world, Vec3d rayPos, Vec3d ray) {
+		if(player.pitch < 0)
 			return null;
 
 		rayPos = rayPos.add(0, leniency, 0);
-		RayTraceResult take2Res = RayTraceHandler.rayTrace(player, world, rayPos, ray, BlockMode.OUTLINE, FluidMode.NONE);
+		HitResult take2Res = RayTraceHandler.rayTrace(player, world, rayPos, ray, ShapeType.OUTLINE, FluidHandling.NONE);
 
-		if (take2Res.getType() == RayTraceResult.Type.BLOCK && take2Res instanceof BlockRayTraceResult) {
-			BlockPos pos = ((BlockRayTraceResult) take2Res).getPos().down();
+		if (take2Res.getType() == HitResult.Type.BLOCK && take2Res instanceof BlockHitResult) {
+			BlockPos pos = ((BlockHitResult) take2Res).getBlockPos().down();
 			BlockState state = world.getBlockState(pos);
 
-			if (player.getPositionVec().y - pos.getY() > 1 && (world.isAirBlock(pos) || state.getMaterial().isReplaceable()))
+			if (player.getPos().y - pos.getY() > 1 && (world.isAir(pos) || state.getMaterial().isReplaceable()))
 				return Pair.of(pos, Direction.DOWN);
 		}
 
 		return null;
 	}
 
-	private Pair<BlockPos, Direction> getPlayerHorizontalReacharoundTarget(PlayerEntity player, World world, Vector3d rayPos, Vector3d ray) {
-		Direction dir = Direction.fromAngle(player.rotationYaw);
-		rayPos = rayPos.subtract(leniency * dir.getXOffset(), 0, leniency * dir.getZOffset());
-		RayTraceResult take2Res = RayTraceHandler.rayTrace(player, world, rayPos, ray, BlockMode.OUTLINE, FluidMode.NONE);
+	private Pair<BlockPos, Direction> getPlayerHorizontalReacharoundTarget(PlayerEntity player, World world, Vec3d rayPos, Vec3d ray) {
+		Direction dir = Direction.fromRotation(player.yaw);
+		rayPos = rayPos.subtract(leniency * dir.getOffsetX(), 0, leniency * dir.getOffsetZ());
+		HitResult take2Res = RayTraceHandler.rayTrace(player, world, rayPos, ray, ShapeType.OUTLINE, FluidHandling.NONE);
 
-		if (take2Res.getType() == RayTraceResult.Type.BLOCK && take2Res instanceof BlockRayTraceResult) {
-			BlockPos pos = ((BlockRayTraceResult) take2Res).getPos().offset(dir);
+		if (take2Res.getType() == HitResult.Type.BLOCK && take2Res instanceof BlockHitResult) {
+			BlockPos pos = ((BlockHitResult) take2Res).getBlockPos().offset(dir);
 			BlockState state = world.getBlockState(pos);
 
-			if ((world.isAirBlock(pos) || state.getMaterial().isReplaceable()))
+			if ((world.isAir(pos) || state.getMaterial().isReplaceable()))
 				return Pair.of(pos, dir.getOpposite());
 		}
 

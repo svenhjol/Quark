@@ -21,28 +21,28 @@ public class IfFlagGoal extends Goal {
     }
 
     @Override
-    public boolean shouldExecute() {
-        return isEnabled.getAsBoolean() && parent.shouldExecute();
+    public boolean canStart() {
+        return isEnabled.getAsBoolean() && parent.canStart();
     }
 
     @Override
-    public boolean shouldContinueExecuting() {
-        return isEnabled.getAsBoolean() && parent.shouldContinueExecuting();
+    public boolean shouldContinue() {
+        return isEnabled.getAsBoolean() && parent.shouldContinue();
     }
 
     @Override
-    public boolean isPreemptible() {
-        return parent.isPreemptible();
+    public boolean canStop() {
+        return parent.canStop();
     }
 
     @Override
-    public void startExecuting() {
-        parent.startExecuting();
+    public void start() {
+        parent.start();
     }
 
     @Override
-    public void resetTask() {
-        parent.resetTask();
+    public void stop() {
+        parent.stop();
     }
 
     @Override
@@ -52,7 +52,7 @@ public class IfFlagGoal extends Goal {
 
     @Nonnull
     @Override
-    public EnumSet<Flag> getMutexFlags() {
-        return parent.getMutexFlags();
+    public EnumSet<Control> getControls() {
+        return parent.getControls();
     }
 }

@@ -1,11 +1,13 @@
 package vazkii.quark.mobs.module;
 
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.PlacementType;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnRestriction.Location;
+import net.minecraft.entity.attribute.DefaultAttributeRegistry;
 import net.minecraft.item.Items;
-import net.minecraft.world.gen.Heightmap.Type;
+import net.minecraft.world.Heightmap.Type;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.BiomeDictionary;
@@ -40,28 +42,28 @@ public class ToretoiseModule extends Module {
 	
 	@Override
 	public void construct() {
-		toretoiseType = EntityType.Builder.<ToretoiseEntity>create(ToretoiseEntity::new, EntityClassification.CREATURE)
-				.size(2F, 1F)
+		toretoiseType = EntityType.Builder.<ToretoiseEntity>create(ToretoiseEntity::new, SpawnGroup.CREATURE)
+				.setDimensions(2F, 1F)
 				.setTrackingRange(80)
 				.setUpdateInterval(3)
 				.setShouldReceiveVelocityUpdates(true)
-				.immuneToFire()
+				.makeFireImmune()
 				.setCustomClientFactory((spawnEntity, world) -> new ToretoiseEntity(toretoiseType, world))
 				.build("toretoise");
 
 		RegistryHelper.register(toretoiseType, "toretoise");
 		
-		EntitySpawnHandler.registerSpawn(this, toretoiseType, EntityClassification.MONSTER, PlacementType.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, ToretoiseEntity::spawnPredicate, spawnConfig);
+		EntitySpawnHandler.registerSpawn(this, toretoiseType, SpawnGroup.MONSTER, Location.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, ToretoiseEntity::spawnPredicate, spawnConfig);
 		EntitySpawnHandler.addEgg(toretoiseType, 0x55413b, 0x383237, spawnConfig);
 	}
 	
 	@Override
 	public void setup() {
-		GlobalEntityTypeAttributes.put(toretoiseType, ToretoiseEntity.prepareAttributes().func_233813_a_());
+		DefaultAttributeRegistry.put(toretoiseType, ToretoiseEntity.prepareAttributes().build());
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		RenderingRegistry.registerEntityRenderingHandler(toretoiseType, ToretoiseRenderer::new);
 	}
@@ -69,7 +71,7 @@ public class ToretoiseModule extends Module {
 	@SubscribeEvent
 	public void onLoot(LivingDropsEvent event) {
 		if(disableIronFarms && event.getEntity().getType() == EntityType.IRON_GOLEM)
-			event.getDrops().removeIf(e -> e.getItem().getItem() == Items.IRON_INGOT);
+			event.getDrops().removeIf(e -> e.getStack().getItem() == Items.IRON_INGOT);
 	}
 	
 }

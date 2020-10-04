@@ -3,13 +3,14 @@ package vazkii.quark.client.module;
 import java.util.List;
 
 import com.google.common.collect.ImmutableSet;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.client.util.InputMappings.Type;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.widget.AbstractButtonWidget;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.util.InputUtil.Type;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -24,11 +25,11 @@ import vazkii.quark.base.module.ModuleCategory;
 @LoadModule(category = ModuleCategory.CLIENT, hasSubscriptions = true, subscribeOn = Dist.CLIENT)
 public class BackButtonKeybind extends Module {
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static KeyBinding backKey;
 	
-	@OnlyIn(Dist.CLIENT)
-	private static List<Widget> widgets;
+	@Environment(EnvType.CLIENT)
+	private static List<AbstractButtonWidget> widgets;
 
 	@Override
 	public void clientSetup() {
@@ -36,45 +37,45 @@ public class BackButtonKeybind extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void openGui(GuiScreenEvent.InitGuiEvent event) {
 		widgets = event.getWidgetList();
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onKeyInput(KeyboardKeyPressedEvent.Post event) {
-		if(backKey.getKey().getType() == Type.KEYSYM && event.getKeyCode() == backKey.getKey().getKeyCode())
+		if(backKey.getKey().getCategory() == Type.KEYSYM && event.getKeyCode() == backKey.getKey().getCode())
 			clicc();
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onMouseInput(MouseClickedEvent.Post event) {
-		if(backKey.getKey().getType() == Type.MOUSE && event.getButton() == backKey.getKey().getKeyCode())
+		if(backKey.getKey().getCategory() == Type.MOUSE && event.getButton() == backKey.getKey().getCode())
 			clicc();
 	}
 
 	private void clicc() {
 		ImmutableSet<String> buttons = ImmutableSet.of(
-				I18n.format("gui.back"),
-				I18n.format("gui.done"), 
-				I18n.format("gui.cancel"), 
-				I18n.format("gui.toTitle"),
-				I18n.format("gui.toMenu"));
+				I18n.translate("gui.back"),
+				I18n.translate("gui.done"), 
+				I18n.translate("gui.cancel"), 
+				I18n.translate("gui.toTitle"),
+				I18n.translate("gui.toMenu"));
 
 		// Iterate this way to ensure we match the more important back buttons first
 		for(String b : buttons)
-			for(Widget w : widgets) {
-				if(w instanceof Button && ((Button) w).getMessage().equals(b)) {
+			for(AbstractButtonWidget w : widgets) {
+				if(w instanceof ButtonWidget && ((ButtonWidget) w).getMessage().equals(b)) {
 					w.onClick(0, 0);
 					return;
 				}
 			}
 		
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		if(mc.world != null)
-			mc.displayGuiScreen(null);
+			mc.openScreen(null);
 	}
 
 }

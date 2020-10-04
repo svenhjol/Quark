@@ -1,21 +1,21 @@
 package vazkii.quark.world.client.render;
 
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.ZombieRenderer;
-import net.minecraft.entity.monster.ZombieEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.ZombieEntityRenderer;
+import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.util.Identifier;
 import vazkii.quark.base.Quark;
 
-public class WrappedRenderer extends ZombieRenderer {
+public class WrappedRenderer extends ZombieEntityRenderer {
 
-	private static final ResourceLocation TEXTURE = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/wrapped.png");
+	private static final Identifier TEXTURE = new Identifier(Quark.MOD_ID, "textures/model/entity/wrapped.png");
 
-	public WrappedRenderer(EntityRendererManager renderManagerIn) {
+	public WrappedRenderer(EntityRenderDispatcher renderManagerIn) {
 		super(renderManagerIn);
 	}
 	
 	@Override
-	public ResourceLocation getEntityTexture(ZombieEntity entity) {
+	public Identifier getTexture(ZombieEntity entity) {
 		return TEXTURE;
 	}
 

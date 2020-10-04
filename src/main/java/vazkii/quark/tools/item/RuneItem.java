@@ -1,10 +1,12 @@
 package vazkii.quark.tools.item;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.math.Direction;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.capabilities.Capability;
@@ -27,24 +29,24 @@ public class RuneItem extends QuarkItem implements IRuneColorProvider {
     private final int color;
 
     public RuneItem(String regname, Module module, int color) {
-        super(regname, module, new Item.Properties().group(ItemGroup.MATERIALS));
+        super(regname, module, new Item.Settings().group(ItemGroup.MATERIALS));
         this.color = color;
     }
 
     @Override
-    public boolean hasEffect(ItemStack stack) {
+    public boolean hasGlint(ItemStack stack) {
         return true;
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public int getRuneColor(ItemStack stack) {
         return color;
     }
 
     @Nullable
     @Override
-    public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundNBT nbt) {
+    public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundTag nbt) {
         final LazyOptional<IRuneColorProvider> holder = LazyOptional.of(() -> this);
 
         return new ICapabilityProvider() {

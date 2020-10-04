@@ -1,12 +1,12 @@
 package vazkii.quark.tools.module;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.util.ActionResult;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -23,7 +23,7 @@ import vazkii.quark.tools.tile.CloudTileEntity;
 @LoadModule(category = ModuleCategory.TOOLS, hasSubscriptions = true)
 public class BottledCloudModule extends Module {
 
-    public static TileEntityType<CloudTileEntity> tileEntityType;
+    public static BlockEntityType<CloudTileEntity> tileEntityType;
     public static Block cloud;
     public static Item bottled_cloud;
     
@@ -38,7 +38,7 @@ public class BottledCloudModule extends Module {
 		cloud = new CloudBlock(this);
 		bottled_cloud = new BottledCloudItem(this);
 		
-    	tileEntityType = TileEntityType.Builder.create(CloudTileEntity::new, cloud).build(null);
+    	tileEntityType = BlockEntityType.Builder.create(CloudTileEntity::new, cloud).build(null);
 		RegistryHelper.register(tileEntityType, "cloud");
 	} 
 	
@@ -51,15 +51,15 @@ public class BottledCloudModule extends Module {
 	public void onRightClick(PlayerInteractEvent.RightClickItem event) {
 		ItemStack stack = event.getItemStack();
 		PlayerEntity player = event.getPlayer();
-		if(stack.getItem() == Items.GLASS_BOTTLE && player.getPosY() > cloudLevelBottom && player.getPosY() < cloudLevelTop) {
-			stack.shrink(1);
+		if(stack.getItem() == Items.GLASS_BOTTLE && player.getY() > cloudLevelBottom && player.getY() < cloudLevelTop) {
+			stack.decrement(1);
 			
 			ItemStack returnStack = new ItemStack(bottled_cloud);
-			if(!player.addItemStackToInventory(returnStack))
+			if(!player.giveItemStack(returnStack))
 				player.dropItem(returnStack, false);
 			
 			event.setCanceled(true);
-			event.setCancellationResult(ActionResultType.SUCCESS);
+			event.setCancellationResult(ActionResult.SUCCESS);
 		}
 	}
 	

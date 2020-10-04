@@ -5,9 +5,9 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ITag;
+import net.minecraft.block.MaterialColor;
+import net.minecraft.tag.BlockTags;
+import net.minecraft.tag.Tag;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.BiomeDictionary;
 import vazkii.quark.base.Quark;
@@ -37,7 +37,7 @@ public class CaveCrystalUndergroundBiomeModule extends UndergroundBiomeModule {
 	public static boolean crystalsCraftRunes = true;
 
 	public static List<CaveCrystalBlock> crystals = Lists.newArrayList();
-	public static ITag<Block> crystalTag;
+	public static Tag<Block> crystalTag;
 
 	public static Block crystal(int floorIdx) {
 		return crystals.get(MathHelper.clamp(floorIdx, 0, crystals.size() - 1));
@@ -46,13 +46,13 @@ public class CaveCrystalUndergroundBiomeModule extends UndergroundBiomeModule {
 	@Override
 	public void construct() {
 		crystals.add(new CaveCrystalBlock("red_crystal", 0xff0000, this, MaterialColor.RED));
-		crystals.add(new CaveCrystalBlock("orange_crystal", 0xff8000, this, MaterialColor.ADOBE));
+		crystals.add(new CaveCrystalBlock("orange_crystal", 0xff8000, this, MaterialColor.ORANGE));
 		crystals.add(new CaveCrystalBlock("yellow_crystal", 0xffff00, this, MaterialColor.YELLOW));
 		crystals.add(new CaveCrystalBlock("green_crystal", 0x00ff00, this, MaterialColor.GREEN));
 		crystals.add(new CaveCrystalBlock("blue_crystal", 0x00ffff, this, MaterialColor.LIGHT_BLUE)); // *grumbling about the names of colors in the rainbow*
 		crystals.add(new CaveCrystalBlock("indigo_crystal", 0x0000ff, this, MaterialColor.BLUE));
 		crystals.add(new CaveCrystalBlock("violet_crystal", 0xff00ff, this, MaterialColor.MAGENTA));
-		crystals.add(new CaveCrystalBlock("white_crystal", 0xffffff, this, MaterialColor.SNOW));
+		crystals.add(new CaveCrystalBlock("white_crystal", 0xffffff, this, MaterialColor.WHITE));
 		crystals.add(new CaveCrystalBlock("black_crystal", 0x000000, this, MaterialColor.BLACK));
 
 		for(CaveCrystalBlock block : crystals)
@@ -64,7 +64,7 @@ public class CaveCrystalUndergroundBiomeModule extends UndergroundBiomeModule {
 	@Override
 	public void setup() {
 		super.setup();
-		crystalTag = BlockTags.makeWrapperTag(Quark.MOD_ID + ":crystal");
+		crystalTag = BlockTags.register(Quark.MOD_ID + ":crystal");
 	}
 	
 	@Override

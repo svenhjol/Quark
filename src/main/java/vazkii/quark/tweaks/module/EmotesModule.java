@@ -11,24 +11,24 @@ import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.renderer.entity.model.BipedModel;
-import net.minecraft.client.resources.ClientResourcePackInfo;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.resources.IPackFinder;
-import net.minecraft.resources.ResourcePackInfo;
-import net.minecraft.resources.ResourcePackInfo.IFactory;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.resource.ResourcePackProfile;
+import net.minecraft.resource.ResourcePackProfile.Factory;
+import net.minecraft.resource.ResourcePackProvider;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -96,23 +96,23 @@ public class EmotesModule extends Module {
 	public static boolean emotesVisible = false;
 	public static File emotesDir;
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static CustomEmoteIconResourcePack resourcePack;
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static Map<KeyBinding, String> emoteKeybinds;
 
 	@Override
 	public void constructClient() {
-		Minecraft mc = Minecraft.getInstance();
-		mc.getResourcePackList().addPackFinder(new IPackFinder() {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		mc.getResourcePackManager().addPackFinder(new ResourcePackProvider() {
 
 			@Override
-			public <T2 extends ResourcePackInfo> void func_230230_a_(Consumer<T2> packConsumer, IFactory<T2> packInfoFactory) {
+			public <T2 extends ResourcePackProfile> void register(Consumer<T2> packConsumer, Factory<T2> packInfoFactory) {
 				resourcePack = new CustomEmoteIconResourcePack();
 				
 				String name = "quark:emote_resources";
-				T2 t = ResourcePackInfo.createResourcePack(name, true, () -> resourcePack, packInfoFactory, ResourcePackInfo.Priority.TOP, tx->tx);
+				T2 t = ResourcePackProfile.of(name, true, () -> resourcePack, packInfoFactory, ResourcePackProfile.InsertionPosition.TOP, tx->tx);
 				packConsumer.accept(t);
 			}
 		});
@@ -120,7 +120,7 @@ public class EmotesModule extends Module {
 	
 	@Override
 	public void clientSetup() {
-		Tween.registerAccessor(BipedModel.class, ModelAccessor.INSTANCE);
+		Tween.registerAccessor(BipedEntityModel.class, ModelAccessor.INSTANCE);
 
 		int sortOrder = 0;
 
@@ -132,7 +132,7 @@ public class EmotesModule extends Module {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void configChangedClient() {
 		EmoteHandler.clearEmotes();
 
@@ -149,7 +149,7 @@ public class EmotesModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void initGui(GuiScreenEvent.InitGuiEvent.Post event) {
 		Screen gui = event.getGui();
 		if(gui instanceof ChatScreen) {
@@ -177,7 +177,7 @@ public class EmotesModule extends Module {
 				}
 			}
 
-			List<Button> emoteButtons = new LinkedList<>();
+			List<ButtonWidget> emoteButtons = new LinkedList<>();
 			for (int tier : keys) {
 				rowPos = 0;
 				tierRow = 0;
@@ -189,7 +189,7 @@ public class EmotesModule extends Module {
 						int x = gui.width - (EMOTE_BUTTON_WIDTH * (EMOTES_PER_ROW + 1)) + (((rowPos + 1) * 2 + EMOTES_PER_ROW - rowSize) * EMOTE_BUTTON_WIDTH / 2 + 1);
 						int y = gui.height - (40 + EMOTE_BUTTON_WIDTH * (rows - row));
 
-						Button button = new EmoteButton(x, y, desc, (b) -> {
+						ButtonWidget button = new EmoteButton(x, y, desc, (b) -> {
 							String name = desc.getRegistryName();
 							QuarkNetwork.sendToServer(new RequestEmoteMessage(name));
 						});
@@ -211,9 +211,9 @@ public class EmotesModule extends Module {
 			}
 			
 			event.addWidget(new TranslucentButton(gui.width - 1 - EMOTE_BUTTON_WIDTH * EMOTES_PER_ROW, gui.height - 40, EMOTE_BUTTON_WIDTH * EMOTES_PER_ROW, 20, 
-					new TranslationTextComponent("quark.gui.button.emotes"),
+					new TranslatableText("quark.gui.button.emotes"),
 					(b) -> {
-						for(Button bt : emoteButtons)
+						for(ButtonWidget bt : emoteButtons)
 							if(bt instanceof EmoteButton) {
 								bt.visible = !bt.visible;
 								bt.active = !bt.active;
@@ -225,12 +225,12 @@ public class EmotesModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onKeyInput(InputEvent.KeyInputEvent event) {
-		Minecraft mc = Minecraft.getInstance();
-		if(mc.isGameFocused()) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		if(mc.isWindowFocused()) {
 			for(KeyBinding key : emoteKeybinds.keySet()) {
-				if (key.isKeyDown()) {
+				if (key.isPressed()) {
 					String emote = emoteKeybinds.get(key);
 					QuarkNetwork.sendToServer(new RequestEmoteMessage(emote));
 					return;
@@ -240,15 +240,15 @@ public class EmotesModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void drawHUD(RenderGameOverlayEvent.Post event) {
 		if(event.getType() == ElementType.ALL) {
-			Minecraft mc = Minecraft.getInstance();
-			MainWindow res = event.getWindow();
+			MinecraftClient mc = MinecraftClient.getInstance();
+			Window res = event.getWindow();
 			MatrixStack matrix = event.getMatrixStack();
 			EmoteBase emote = EmoteHandler.getPlayerEmote(mc.player);
 			if(emote != null && emote.timeDone < emote.totalTime) {
-				ResourceLocation resource = emote.desc.texture;
+				Identifier resource = emote.desc.texture;
 				int x = res.getScaledWidth() / 2 - 16;
 				int y = res.getScaledHeight() / 2 - 60;
 				float transparency = 1F;
@@ -266,11 +266,11 @@ public class EmotesModule extends Module {
 
 				RenderSystem.color4f(1F, 1F, 1F, transparency);
 				mc.getTextureManager().bindTexture(resource);
-				Screen.blit(matrix, x, y, 0, 0, 32, 32, 32, 32);
+				Screen.drawTexture(matrix, x, y, 0, 0, 32, 32, 32, 32);
 				RenderSystem.enableBlend();
 
-				String name = I18n.format(emote.desc.getTranslationKey());
-				mc.fontRenderer.drawStringWithShadow(matrix, name, res.getScaledWidth() / 2f - mc.fontRenderer.getStringWidth(name) / 2f, y + 34, 0xFFFFFF + (((int) (transparency * 255F)) << 24));
+				String name = I18n.translate(emote.desc.getTranslationKey());
+				mc.textRenderer.drawWithShadow(matrix, name, res.getScaledWidth() / 2f - mc.textRenderer.getWidth(name) / 2f, y + 34, 0xFFFFFF + (((int) (transparency * 255F)) << 24));
 				RenderSystem.popMatrix();
 			}
 		}
@@ -278,20 +278,20 @@ public class EmotesModule extends Module {
 
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void renderTick(RenderTickEvent event) {
-		EmoteHandler.onRenderTick(Minecraft.getInstance());
+		EmoteHandler.onRenderTick(MinecraftClient.getInstance());
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void preRenderLiving(RenderLivingEvent.Pre<PlayerEntity, ?> event) {
 		if(event.getEntity() instanceof PlayerEntity)
 			EmoteHandler.preRender((PlayerEntity) event.getEntity());
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void postRenderLiving(RenderLivingEvent.Post<PlayerEntity, ?> event) {
 		if(event.getEntity() instanceof PlayerEntity)
 			EmoteHandler.postRender((PlayerEntity) event.getEntity());

@@ -1,7 +1,7 @@
 package vazkii.quark.base.module.config;
 
 import com.google.gson.JsonObject;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.common.crafting.conditions.IConditionSerializer;
 
@@ -13,9 +13,9 @@ public class FlagRecipeCondition implements ICondition {
 
     private final ConfigFlagManager manager;
     private final String flag;
-    private final ResourceLocation loc;
+    private final Identifier loc;
 
-    public FlagRecipeCondition(ConfigFlagManager manager, String flag, ResourceLocation loc) {
+    public FlagRecipeCondition(ConfigFlagManager manager, String flag, Identifier loc) {
         this.manager = manager;
         this.flag = flag;
         this.loc = loc;
@@ -23,7 +23,7 @@ public class FlagRecipeCondition implements ICondition {
 
 
     @Override
-    public ResourceLocation getID() {
+    public Identifier getID() {
         return loc;
     }
 
@@ -34,9 +34,9 @@ public class FlagRecipeCondition implements ICondition {
 
     public static class Serializer implements IConditionSerializer<FlagRecipeCondition> {
         private final ConfigFlagManager manager;
-        private final ResourceLocation location;
+        private final Identifier location;
 
-        public Serializer(ConfigFlagManager manager, ResourceLocation location) {
+        public Serializer(ConfigFlagManager manager, Identifier location) {
             this.manager = manager;
             this.location = location;
         }
@@ -52,7 +52,7 @@ public class FlagRecipeCondition implements ICondition {
         }
 
         @Override
-        public ResourceLocation getID() {
+        public Identifier getID() {
             return location;
         }
     }

@@ -1,13 +1,13 @@
 package vazkii.quark.base.client.screen;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.Text;
 
-public class ColorTextButton extends Button {
+public class ColorTextButton extends ButtonWidget {
 
 	private final int textColor;
 	
-	public ColorTextButton(int x, int y, int w, int h, ITextComponent text, int textColor, IPressable onClick) {
+	public ColorTextButton(int x, int y, int w, int h, Text text, int textColor, PressAction onClick) {
 		super(x, y, w, h, text, onClick);
 		this.textColor = textColor;
 	}

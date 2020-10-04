@@ -5,17 +5,17 @@ import net.minecraft.block.Block;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.IDispenseItemBehavior;
-import net.minecraft.dispenser.OptionalDispenseBehavior;
+import net.minecraft.block.dispenser.DispenserBehavior;
+import net.minecraft.block.dispenser.FallibleItemDispenserBehavior;
+import net.minecraft.item.AutomaticItemPlacementContext;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.DirectionalPlaceContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.math.BlockPointer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Direction.Axis;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.ForgeRegistries;
 import vazkii.quark.base.module.LoadModule;
@@ -38,7 +38,7 @@ public class DispensersPlaceBlocksModule extends Module {
 		if(!enabled)
 			return;
 		
-		Map<Item, IDispenseItemBehavior> registry = DispenserBlock.DISPENSE_BEHAVIOR_REGISTRY;
+		Map<Item, DispenserBehavior> registry = DispenserBlock.BEHAVIORS;
 
 		for(Block block : ForgeRegistries.BLOCKS.getValues()) {
 			if(blacklist.contains(Objects.toString(block.getRegistryName())))
@@ -50,7 +50,7 @@ public class DispensersPlaceBlocksModule extends Module {
 		}
 	}
 
-	public static class BlockBehaviour extends OptionalDispenseBehavior {
+	public static class BlockBehaviour extends FallibleItemDispenserBehavior {
 
 		private final BlockItem item;
 
@@ -60,8 +60,8 @@ public class DispensersPlaceBlocksModule extends Module {
 
 		@Nonnull
 		@Override
-		public ItemStack dispenseStack(IBlockSource source, ItemStack stack) {
-			successful = false;
+		public ItemStack dispenseSilently(BlockPointer source, ItemStack stack) {
+			success = false;
 
 			Direction direction = source.getBlockState().get(DispenserBlock.FACING);
 			Direction against = direction;
@@ -73,7 +73,7 @@ public class DispensersPlaceBlocksModule extends Module {
 			else if(block instanceof SlabBlock)
 				against = Direction.UP;
 
-			successful = item.tryPlace(new NotStupidDirectionalPlaceContext(source.getWorld(), pos, direction, stack, against)) == ActionResultType.SUCCESS;
+			success = item.place(new NotStupidDirectionalPlaceContext(source.getWorld(), pos, direction, stack, against)) == ActionResult.SUCCESS;
 
 			return stack;
 		}
@@ -81,18 +81,18 @@ public class DispensersPlaceBlocksModule extends Module {
 	}
 
 	// DirectionPlaceContext results in infinite loops when using slabs
-	private static class NotStupidDirectionalPlaceContext extends DirectionalPlaceContext {
+	private static class NotStupidDirectionalPlaceContext extends AutomaticItemPlacementContext {
 
 		protected boolean replaceClicked = true;
 
 		public NotStupidDirectionalPlaceContext(World worldIn, BlockPos p_i50051_2_, Direction p_i50051_3_, ItemStack p_i50051_4_, Direction against) {
 			super(worldIn, p_i50051_2_, p_i50051_3_, p_i50051_4_, against);
-			replaceClicked = worldIn.getBlockState(rayTraceResult.getPos()).isReplaceable(this);
+			replaceClicked = worldIn.getBlockState(hit.getBlockPos()).canReplace(this);
 		}
 		
 		@Override
 		public boolean canPlace() {
-			return replaceClicked;
+			return canReplaceExisting;
 		}
 
 	}

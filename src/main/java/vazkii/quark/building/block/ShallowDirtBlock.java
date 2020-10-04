@@ -6,51 +6,51 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.IWaterLoggable;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.block.Waterloggable;
+import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.state.BooleanProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.util.Direction;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.Properties;
+import net.minecraft.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.WorldAccess;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.module.Module;
 
-public class ShallowDirtBlock extends QuarkBlock implements IWaterLoggable {
+public class ShallowDirtBlock extends QuarkBlock implements Waterloggable {
 
-	private static final VoxelShape SHAPE = makeCuboidShape(0, 0, 0, 16, 14, 16);
+	private static final VoxelShape SHAPE = createCuboidShape(0, 0, 0, 16, 14, 16);
 	
-	public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+	public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 	
 	public ShallowDirtBlock(Module module) {
-		super("shallow_dirt", module, null, Properties.from(Blocks.DIRT).notSolid());
+		super("shallow_dirt", module, null, Settings.copy(Blocks.DIRT).nonOpaque());
 		
 		setDefaultState(getDefaultState().with(WATERLOGGED, false));
 	}
 	
 	@Override
-	protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
 		builder.add(WATERLOGGED);
 	}
 	
 	@Nonnull
 	@Override
-	public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+	public VoxelShape getOutlineShape(BlockState state, BlockView worldIn, BlockPos pos, ShapeContext context) {
 		return SHAPE;
 	}
 	
 	@Override
 	@Nullable
-	public BlockState getStateForPlacement(BlockItemUseContext context) {
-		BlockPos blockpos = context.getPos();
+	public BlockState getPlacementState(ItemPlacementContext context) {
+		BlockPos blockpos = context.getBlockPos();
 		FluidState fluid = context.getWorld().getFluidState(blockpos);
 		return getDefaultState().with(WATERLOGGED, fluid.getFluid() == Fluids.WATER);
 	}
@@ -60,28 +60,28 @@ public class ShallowDirtBlock extends QuarkBlock implements IWaterLoggable {
 	@Override
 	@SuppressWarnings("deprecation")
 	public FluidState getFluidState(BlockState state) {
-		return state.get(WATERLOGGED) ? Fluids.WATER.getStillFluidState(false) : super.getFluidState(state);
+		return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
 	}
 	
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public BlockState updatePostPlacement(@Nonnull BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
+	public BlockState getStateForNeighborUpdate(@Nonnull BlockState stateIn, Direction facing, BlockState facingState, WorldAccess worldIn, BlockPos currentPos, BlockPos facingPos) {
 		if(stateIn.get(WATERLOGGED))
-			worldIn.getPendingFluidTicks().scheduleTick(currentPos, Fluids.WATER, Fluids.WATER.getTickRate(worldIn));
+			worldIn.getFluidTickScheduler().schedule(currentPos, Fluids.WATER, Fluids.WATER.getTickRate(worldIn));
 
-		return super.updatePostPlacement(stateIn, facing, facingState, worldIn, currentPos, facingPos);
+		return super.getStateForNeighborUpdate(stateIn, facing, facingState, worldIn, currentPos, facingPos);
 	}
 
 	
 	@Override
-	public boolean isTransparent(BlockState state) {
+	public boolean hasSidedTransparency(BlockState state) {
 		return true;
 	}
 	
 	@Override
-	public boolean allowsMovement(@Nonnull BlockState state, @Nonnull IBlockReader worldIn, @Nonnull BlockPos pos, PathType type) {
-		return type == PathType.WATER && worldIn.getFluidState(pos).isTagged(FluidTags.WATER); 
+	public boolean canPathfindThrough(@Nonnull BlockState state, @Nonnull BlockView worldIn, @Nonnull BlockPos pos, NavigationType type) {
+		return type == NavigationType.WATER && worldIn.getFluidState(pos).isIn(FluidTags.WATER); 
 	}
 
 }

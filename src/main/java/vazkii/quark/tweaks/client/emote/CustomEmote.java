@@ -1,15 +1,17 @@
 package vazkii.quark.tweaks.client.emote;
 
-import net.minecraft.client.renderer.entity.model.BipedModel;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.tweaks.module.EmotesModule;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class CustomEmote extends TemplateSourcedEmote {
 
-	public CustomEmote(EmoteDescriptor desc, PlayerEntity player, BipedModel<?> model, BipedModel<?> armorModel, BipedModel<?> armorLegsModel) {
+	public CustomEmote(EmoteDescriptor desc, PlayerEntity player, BipedEntityModel<?> model, BipedEntityModel<?> armorModel, BipedEntityModel<?> armorLegsModel) {
 		super(desc, player, model, armorModel, armorLegsModel);
 	}
 

@@ -1,14 +1,14 @@
 package vazkii.quark.base.network.message;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.BoatEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.ChestContainer;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
 import net.minecraftforge.fml.network.NetworkEvent;
 import vazkii.arl.network.IMessage;
 import vazkii.quark.management.entity.ChestPassengerEntity;
@@ -25,23 +25,23 @@ public class OpenBoatChestMessage implements IMessage {
 		context.enqueueWork(() -> {
 			PlayerEntity player = context.getSender();
 
-			if(player != null && player.isPassenger() && player.openContainer == player.container) {
-				Entity riding = player.getRidingEntity();
+			if(player != null && player.hasVehicle() && player.currentScreenHandler == player.playerScreenHandler) {
+				Entity riding = player.getVehicle();
 				if(riding instanceof BoatEntity) {
-					List<Entity> passengers = riding.getPassengers();
+					List<Entity> passengers = riding.getPassengerList();
 					for(Entity passenger : passengers) {
 						if (passenger instanceof ChestPassengerEntity) {
-							player.openContainer(new INamedContainerProvider() {
+							player.openHandledScreen(new NamedScreenHandlerFactory() {
 								@Nonnull
 								@Override
-								public ITextComponent getDisplayName() {
-									return new TranslationTextComponent("container.chest");
+								public Text getDisplayName() {
+									return new TranslatableText("container.chest");
 								}
 
 								@Nonnull
 								@Override
-								public Container createMenu(int id, @Nonnull PlayerInventory inventory, @Nonnull PlayerEntity player) {
-									return ChestContainer.createGeneric9X3(id, inventory, (ChestPassengerEntity) passenger);
+								public ScreenHandler createMenu(int id, @Nonnull PlayerInventory inventory, @Nonnull PlayerEntity player) {
+									return GenericContainerScreenHandler.createGeneric9x3(id, inventory, (ChestPassengerEntity) passenger);
 								}
 							});
 

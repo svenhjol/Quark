@@ -10,8 +10,8 @@ import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.FlowerPotBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Material;
+import net.minecraft.util.Identifier;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.block.IQuarkBlock;
 import vazkii.quark.base.block.QuarkSlabBlock;
@@ -48,23 +48,23 @@ public class VariantHandler {
 	}
 
 	public static void addFlowerPot(Block block, String name, Function<Block.Properties, Block.Properties> propertiesFunc) {
-		Block.Properties props = Block.Properties.create(Material.MISCELLANEOUS).hardnessAndResistance(0F);
+		Block.Properties props = Block.Properties.of(Material.SUPPORTED).strength(0F);
 		props = propertiesFunc.apply(props);
 		
 		Block potted = new FlowerPotBlock(() -> (FlowerPotBlock) Blocks.FLOWER_POT, block::getBlock, props);
 		RenderLayerHandler.setRenderType(potted, RenderTypeSkeleton.CUTOUT);
-		ResourceLocation resLoc = block.getBlock().getRegistryName();
+		Identifier resLoc = block.getBlock().getRegistryName();
 		if (resLoc == null)
-			resLoc = new ResourceLocation("missingno");
+			resLoc = new Identifier("missingno");
 		
 		RegistryHelper.registerBlock(potted, "potted_" + name, false);
 		((FlowerPotBlock)Blocks.FLOWER_POT).addPlant(resLoc, () -> potted);
 	}
 	
-	public static AbstractBlock.Properties realStateCopy(IQuarkBlock parent) {
-		AbstractBlock.Properties props = AbstractBlock.Properties.from(parent.getBlock());
+	public static AbstractBlock.Settings realStateCopy(IQuarkBlock parent) {
+		AbstractBlock.Settings props = AbstractBlock.Settings.copy(parent.getBlock());
 		if(parent instanceof IVariantsShouldBeEmissive)
-			props = props.func_235856_e_((s, r, p) -> true);
+			props = props.emissiveLighting((s, r, p) -> true);
 		
 		return props;
 	}

@@ -11,12 +11,12 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LeavesBlock;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.particles.BlockParticleData;
-import net.minecraft.particles.ParticleTypes;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
@@ -32,15 +32,15 @@ public class BlossomLeavesBlock extends LeavesBlock implements IQuarkBlock {
 	private BooleanSupplier enabledSupplier = () -> true;
 	
 	public BlossomLeavesBlock(String colorName, Module module, MaterialColor color) {
-		super(Block.Properties.create(Material.LEAVES, color)
-				.hardnessAndResistance(0.2F)
-				.tickRandomly()
-				.sound(SoundType.PLANT)
+		super(Block.Properties.of(Material.LEAVES, color)
+				.strength(0.2F)
+				.ticksRandomly()
+				.sounds(BlockSoundGroup.GRASS)
 				.harvestTool(ToolType.HOE)
-				.notSolid()
-				.func_235827_a_((s, r, p, t) -> false)
-				.func_235842_b_((s, r, p) -> false)
-				.func_235847_c_((s, r, p) -> false));
+				.nonOpaque()
+				.allowsSpawning((s, r, p, t) -> false)
+				.suffocates((s, r, p) -> false)
+				.blockVision((s, r, p) -> false));
 		
 		this.module = module;
 
@@ -51,13 +51,13 @@ public class BlossomLeavesBlock extends LeavesBlock implements IQuarkBlock {
 	}
 	
 	@Override
-	public void animateTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-		if(worldIn.isAirBlock(pos.down()) && rand.nextInt(5) == 0) {
-			double windStrength = 5 + Math.cos((double) worldIn.getGameTime() / 2000) * 2;
-			double windX = Math.cos((double) worldIn.getGameTime() / 1200) * windStrength;
-			double windZ = Math.sin((double) worldIn.getGameTime() / 1000) * windStrength;
+	public void randomDisplayTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
+		if(worldIn.isAir(pos.down()) && rand.nextInt(5) == 0) {
+			double windStrength = 5 + Math.cos((double) worldIn.getTime() / 2000) * 2;
+			double windX = Math.cos((double) worldIn.getTime() / 1200) * windStrength;
+			double windZ = Math.sin((double) worldIn.getTime() / 1000) * windStrength;
 			
-			worldIn.addParticle(new BlockParticleData(ParticleTypes.BLOCK, stateIn), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, windX, -1.0, windZ);
+			worldIn.addParticle(new BlockStateParticleEffect(ParticleTypes.BLOCK, stateIn), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, windX, -1.0, windZ);
 		}
 	}
 

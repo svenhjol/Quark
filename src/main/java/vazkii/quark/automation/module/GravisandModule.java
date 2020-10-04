@@ -1,10 +1,12 @@
 package vazkii.quark.automation.module;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.client.renderer.entity.FallingBlockRenderer;
-import net.minecraft.entity.EntityClassification;
+import net.minecraft.client.render.entity.FallingBlockEntityRenderer;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.item.ItemGroup;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -25,10 +27,10 @@ public class GravisandModule extends Module {
 
 	@Override
 	public void construct() {
-		gravisand = new GravisandBlock("gravisand", this, ItemGroup.REDSTONE, Block.Properties.from(Blocks.SAND));
+		gravisand = new GravisandBlock("gravisand", this, ItemGroup.REDSTONE, Block.Properties.copy(Blocks.SAND));
 
-		gravisandType = EntityType.Builder.<GravisandEntity>create(GravisandEntity::new, EntityClassification.MISC)
-				.size(0.98F, 0.98F)
+		gravisandType = EntityType.Builder.<GravisandEntity>create(GravisandEntity::new, SpawnGroup.MISC)
+				.setDimensions(0.98F, 0.98F)
 				.setTrackingRange(160)
 				.setUpdateInterval(20)
 				.setShouldReceiveVelocityUpdates(true)
@@ -38,8 +40,8 @@ public class GravisandModule extends Module {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
-		RenderingRegistry.registerEntityRenderingHandler(gravisandType, FallingBlockRenderer::new);
+		RenderingRegistry.registerEntityRenderingHandler(gravisandType, FallingBlockEntityRenderer::new);
 	}
 }

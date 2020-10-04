@@ -10,9 +10,8 @@
  */
 package vazkii.quark.mobs.ai;
 
-import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.goal.Goal;
-
+import net.minecraft.entity.mob.MobEntity;
 import java.util.EnumSet;
 
 public class PassivePassengerGoal extends Goal {
@@ -20,11 +19,11 @@ public class PassivePassengerGoal extends Goal {
 
 	public PassivePassengerGoal(MobEntity entity) {
 		this.entity = entity;
-		setMutexFlags(EnumSet.of(Flag.MOVE, Flag.LOOK, Flag.JUMP, Flag.TARGET));
+		setControls(EnumSet.of(Control.MOVE, Control.LOOK, Control.JUMP, Control.TARGET));
 	}
 
 	@Override
-	public boolean shouldExecute() {
-		return entity.isPassenger();
+	public boolean canStart() {
+		return entity.hasVehicle();
 	}
 }

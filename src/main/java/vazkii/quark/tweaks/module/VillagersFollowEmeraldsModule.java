@@ -1,9 +1,9 @@
 package vazkii.quark.tweaks.module;
 
 import net.minecraft.entity.ai.goal.TemptGoal;
-import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.recipe.Ingredient;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.quark.base.module.LoadModule;
@@ -24,7 +24,7 @@ public class VillagersFollowEmeraldsModule extends Module {
             boolean alreadySetUp = villager.goalSelector.goals.stream().anyMatch((goal) -> goal.getGoal() instanceof TemptGoal);
 
             if (!alreadySetUp)
-                villager.goalSelector.addGoal(2, new TemptGoal(villager, 0.6, Ingredient.fromItems(Items.EMERALD_BLOCK), false));
+                villager.goalSelector.add(2, new TemptGoal(villager, 0.6, Ingredient.ofItems(Items.EMERALD_BLOCK), false));
         }
 
 

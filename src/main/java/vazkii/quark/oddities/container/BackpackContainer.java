@@ -1,37 +1,36 @@
 package vazkii.quark.oddities.container;
 
 import javax.annotation.Nonnull;
-
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.EquipmentSlot.Type;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.CraftingInventory;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.EquipmentSlotType.Group;
-import net.minecraft.inventory.container.ClickType;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.inventory.container.PlayerContainer;
-import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.screen.PlayerScreenHandler;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.screen.slot.SlotActionType;
 import vazkii.arl.util.InventoryIIH;
 import vazkii.quark.oddities.module.BackpackModule;
 
-public class BackpackContainer extends PlayerContainer {
+public class BackpackContainer extends PlayerScreenHandler {
 
 	public BackpackContainer(int windowId, PlayerEntity player) {
-		super(player.inventory, !player.world.isRemote, player);
+		super(player.inventory, !player.world.isClient, player);
 
-		this.windowId = windowId;
+		this.syncId = windowId;
 		
-		for(Slot slot : inventorySlots)
-			if (slot.inventory == player.inventory && slot.getSlotIndex() < player.inventory.getSizeInventory() - 5)
-				slot.yPos += 58;
+		for(Slot slot : slots)
+			if (slot.inventory == player.inventory && slot.getSlotIndex() < player.inventory.size() - 5)
+				slot.y += 58;
 
-		Slot anchor = inventorySlots.get(9);
-		int left = anchor.xPos;
-		int top = anchor.yPos - 58;
+		Slot anchor = slots.get(9);
+		int left = anchor.x;
+		int top = anchor.y - 58;
 
-		ItemStack backpack = player.inventory.armorInventory.get(2);
+		ItemStack backpack = player.inventory.armor.get(2);
 		if(backpack.getItem() == BackpackModule.backpack) {
 			InventoryIIH inv = new InventoryIIH(backpack);
 
@@ -43,58 +42,58 @@ public class BackpackContainer extends PlayerContainer {
 		}
 	}
 
-	public static BackpackContainer fromNetwork(int windowId, PlayerInventory playerInventory, PacketBuffer buf) {
+	public static BackpackContainer fromNetwork(int windowId, PlayerInventory playerInventory, PacketByteBuf buf) {
 		return new BackpackContainer(windowId, playerInventory.player);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack transferStackInSlot(@Nonnull PlayerEntity playerIn, int index) {
+	public ItemStack transferSlot(@Nonnull PlayerEntity playerIn, int index) {
 		ItemStack baseStack = ItemStack.EMPTY;
-		Slot slot = this.inventorySlots.get(index);
+		Slot slot = this.slots.get(index);
 
-		if (slot != null && slot.getHasStack()) {
+		if (slot != null && slot.hasStack()) {
 			ItemStack stack = slot.getStack();
 			baseStack = stack.copy();
-			EquipmentSlotType slotType = stack.getEquipmentSlot();
-			int equipIndex = 8 - (slotType == null ? 0 : slotType.getIndex());
+			EquipmentSlot slotType = stack.getEquipmentSlot();
+			int equipIndex = 8 - (slotType == null ? 0 : slotType.getEntitySlotId());
 
 			if (index == 0) {
-				if (!this.mergeItemStack(stack, 9, 45, false) && !this.mergeItemStack(stack, 46, 73, false)) 
+				if (!this.insertItem(stack, 9, 45, false) && !this.insertItem(stack, 46, 73, false)) 
 					return ItemStack.EMPTY;
 
-				slot.onSlotChange(stack, baseStack);
+				slot.onStackChanged(stack, baseStack);
 			} else if (index < 5) {
-				if (!this.mergeItemStack(stack, 9, 45, false)) 
+				if (!this.insertItem(stack, 9, 45, false)) 
 					return ItemStack.EMPTY;
 			} else if (index < 9) {
-				if (!this.mergeItemStack(stack, 9, 45, false) && !this.mergeItemStack(stack, 46, 73, false)) 
+				if (!this.insertItem(stack, 9, 45, false) && !this.insertItem(stack, 46, 73, false)) 
 					return ItemStack.EMPTY;
-			} else if (slotType != null && slotType.getSlotType() == Group.ARMOR && !this.inventorySlots.get(equipIndex).getHasStack()) {
-				if (!this.mergeItemStack(stack, equipIndex, equipIndex + 1, false)) 
+			} else if (slotType != null && slotType.getType() == Type.ARMOR && !this.slots.get(equipIndex).hasStack()) {
+				if (!this.insertItem(stack, equipIndex, equipIndex + 1, false)) 
 					return ItemStack.EMPTY;
-			} else if (slotType != null && slotType == EquipmentSlotType.OFFHAND && !this.inventorySlots.get(45).getHasStack()) {
-				if (!this.mergeItemStack(stack, 45, 46, false)) 
+			} else if (slotType != null && slotType == EquipmentSlot.OFFHAND && !this.slots.get(45).hasStack()) {
+				if (!this.insertItem(stack, 45, 46, false)) 
 					return ItemStack.EMPTY;
 			} else if (index < 36) {
-				if (!this.mergeItemStack(stack, 46, 73, false) && !this.mergeItemStack(stack, 36, 45, false)) 
+				if (!this.insertItem(stack, 46, 73, false) && !this.insertItem(stack, 36, 45, false)) 
 					return ItemStack.EMPTY;
 			} else if (index < 73) {
-				if (!this.mergeItemStack(stack, 9, 36, false)) 
+				if (!this.insertItem(stack, 9, 36, false)) 
 					return ItemStack.EMPTY;
 			} else {
-				if (!this.mergeItemStack(stack, 46, 73, false) && !this.mergeItemStack(stack, 9, 45, false)) 
+				if (!this.insertItem(stack, 46, 73, false) && !this.insertItem(stack, 9, 45, false)) 
 					return ItemStack.EMPTY;
 			}
 
 			if (stack.isEmpty())
-				slot.putStack(ItemStack.EMPTY);
-			else slot.onSlotChanged();
+				slot.setStack(ItemStack.EMPTY);
+			else slot.markDirty();
 
 			if (stack.getCount() == baseStack.getCount())
 				return ItemStack.EMPTY;
 
-			ItemStack remainder = slot.onTake(playerIn, stack);
+			ItemStack remainder = slot.onTakeItem(playerIn, stack);
 
 			if (index == 0) 
 				playerIn.dropItem(remainder, false);
@@ -107,7 +106,7 @@ public class BackpackContainer extends PlayerContainer {
 	// and was like yeah just take whatever you want lol
 	// https://github.com/CoFH/CoFHCore/blob/d4a79b078d257e88414f5eed598d57490ec8e97f/src/main/java/cofh/core/util/helpers/InventoryHelper.java
 	@Override
-	public boolean mergeItemStack(ItemStack stack, int start, int length, boolean r) {
+	public boolean insertItem(ItemStack stack, int start, int length, boolean r) {
 		boolean successful = false;
 		int i = !r ? start : length - 1;
 		int iterOrder = !r ? 1 : -1;
@@ -116,26 +115,26 @@ public class BackpackContainer extends PlayerContainer {
 		ItemStack existingStack;
 
 		if(stack.isStackable()) while (stack.getCount() > 0 && (!r && i < length || r && i >= start)) {
-			slot = inventorySlots.get(i);
+			slot = slots.get(i);
 
 			existingStack = slot.getStack();
 
 			if (!existingStack.isEmpty()) {
-				int maxStack = Math.min(stack.getMaxStackSize(), slot.getSlotStackLimit());
+				int maxStack = Math.min(stack.getMaxCount(), slot.getMaxStackAmount());
 				int rmv = Math.min(maxStack, stack.getCount());
 
-				if (slot.isItemValid(cloneStack(stack, rmv)) && existingStack.getItem().equals(stack.getItem()) && ItemStack.areItemStackTagsEqual(stack, existingStack)) {
+				if (slot.canInsert(cloneStack(stack, rmv)) && existingStack.getItem().equals(stack.getItem()) && ItemStack.areTagsEqual(stack, existingStack)) {
 					int existingSize = existingStack.getCount() + stack.getCount();
 
 					if (existingSize <= maxStack) {
 						stack.setCount(0);
 						existingStack.setCount(existingSize);
-						slot.putStack(existingStack);
+						slot.setStack(existingStack);
 						successful = true;
 					} else if (existingStack.getCount() < maxStack) {
-						stack.shrink(maxStack - existingStack.getCount());
+						stack.decrement(maxStack - existingStack.getCount());
 						existingStack.setCount(maxStack);
-						slot.putStack(existingStack);
+						slot.setStack(existingStack);
 						successful = true;
 					}
 				}
@@ -145,16 +144,16 @@ public class BackpackContainer extends PlayerContainer {
 		if(stack.getCount() > 0) {
 			i = !r ? start : length - 1;
 			while(stack.getCount() > 0 && (!r && i < length || r && i >= start)) {
-				slot = inventorySlots.get(i);
+				slot = slots.get(i);
 				existingStack = slot.getStack();
 
 				if(existingStack.isEmpty()) {
-					int maxStack = Math.min(stack.getMaxStackSize(), slot.getSlotStackLimit());
+					int maxStack = Math.min(stack.getMaxCount(), slot.getMaxStackAmount());
 					int rmv = Math.min(maxStack, stack.getCount());
 
-					if(slot.isItemValid(cloneStack(stack, rmv))) {
+					if(slot.canInsert(cloneStack(stack, rmv))) {
 						existingStack = stack.split(rmv);
-						slot.putStack(existingStack);
+						slot.setStack(existingStack);
 						successful = true;
 					}
 				}
@@ -166,9 +165,9 @@ public class BackpackContainer extends PlayerContainer {
 
 	@Nonnull
 	@Override
-	public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, PlayerEntity player) {
+	public ItemStack onSlotClick(int slotId, int dragType, SlotActionType clickTypeIn, PlayerEntity player) {
 		SlotCachingItemHandler.cache(this);
-		ItemStack stack = super.slotClick(slotId, dragType, clickTypeIn, player);
+		ItemStack stack = super.onSlotClick(slotId, dragType, clickTypeIn, player);
 		SlotCachingItemHandler.applyCache(this);
 		return stack;
 	}
@@ -183,16 +182,16 @@ public class BackpackContainer extends PlayerContainer {
 	}
 
 	public static void saveCraftingInventory(PlayerEntity player) {
-		CraftingInventory crafting = ((PlayerContainer) player.openContainer).craftMatrix;
-		for(int i = 0; i < crafting.getSizeInventory(); i++) {
-			ItemStack stack = crafting.getStackInSlot(i);
-			if(!stack.isEmpty() && !player.addItemStackToInventory(stack))
+		CraftingInventory crafting = ((PlayerScreenHandler) player.currentScreenHandler).craftingInput;
+		for(int i = 0; i < crafting.size(); i++) {
+			ItemStack stack = crafting.getStack(i);
+			if(!stack.isEmpty() && !player.giveItemStack(stack))
 				player.dropItem(stack, false);
 		}
 	}
 
 	@Override
-	public ContainerType<?> getType() {
+	public ScreenHandlerType<?> getType() {
 		return BackpackModule.container;
 	}
 

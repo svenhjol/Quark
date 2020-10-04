@@ -16,13 +16,13 @@ import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.goal.WaterAvoidingRandomWalkingGoal;
+import net.minecraft.entity.ai.goal.WanderAroundFarGoal;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import vazkii.quark.mobs.entity.StonelingEntity;
 import vazkii.quark.tweaks.base.MutableVectorHolder;
 
-public class ActWaryGoal extends WaterAvoidingRandomWalkingGoal {
+public class ActWaryGoal extends WanderAroundFarGoal {
 
 	private final StonelingEntity stoneling;
 
@@ -49,7 +49,7 @@ public class ActWaryGoal extends WaterAvoidingRandomWalkingGoal {
 	}
 
 	private static void updatePos(MutableVectorHolder holder, Entity entity) {
-		Vector3d pos = entity.getPositionVec();
+		Vec3d pos = entity.getPos();
 		holder.x = pos.x;
 		holder.y = pos.y;
 		holder.z = pos.z;
@@ -70,42 +70,42 @@ public class ActWaryGoal extends WaterAvoidingRandomWalkingGoal {
 	}
 
 	protected boolean shouldApplyPath() {
-		return super.shouldExecute();
+		return super.canStart();
 	}
 
 	@Override
 	public void tick() {
-		if (stoneling.getNavigator().noPath() && shouldApplyPath())
-			startExecuting();
+		if (stoneling.getNavigation().isIdle() && shouldApplyPath())
+			start();
 	}
 
 	@Override
-	public boolean shouldContinueExecuting() {
-		return shouldExecute();
+	public boolean shouldContinue() {
+		return canStart();
 	}
 
 	@Override
-	public void resetTask() {
-		stoneling.getNavigator().clearPath();
+	public void stop() {
+		stoneling.getNavigation().stop();
 	}
 
 	@Override
-	public boolean shouldExecute() {
+	public boolean canStart() {
 		if (startled || stoneling.isPlayerMade())
 			return false;
 
-		List<PlayerEntity> playersAround = stoneling.world.getEntitiesWithinAABB(PlayerEntity.class, stoneling.getBoundingBox().grow(range),
-				(player) -> player != null && !player.abilities.isCreativeMode && player.getDistanceSq(stoneling) < range * range);
+		List<PlayerEntity> playersAround = stoneling.world.getEntities(PlayerEntity.class, stoneling.getBoundingBox().expand(range),
+				(player) -> player != null && !player.abilities.creativeMode && player.squaredDistanceTo(stoneling) < range * range);
 
 		if (playersAround.isEmpty())
 			return false;
 
 		for (PlayerEntity player : playersAround) {
-			if (player.isDiscrete()) {
+			if (player.isSneaky()) {
 				if (scaredBySuddenMovement.getAsBoolean()) {
 					MutableVectorHolder lastSpeed = lastSpeeds.computeIfAbsent(player, p -> new MutableVectorHolder());
 					MutableVectorHolder lastPos = lastPositions.computeIfAbsent(player, ActWaryGoal::initPos);
-					Vector3d pos = player.getPositionVec();
+					Vec3d pos = player.getPos();
 
 					double dX = pos.x - lastPos.x;
 					double dY = pos.y - lastPos.y;

@@ -4,17 +4,17 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryHelper;
-import net.minecraft.inventory.ItemStackHelper;
+import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Packet;
+import net.minecraft.util.ItemScatterer;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -22,11 +22,11 @@ import vazkii.quark.management.module.ChestsInBoatsModule;
 
 import javax.annotation.Nonnull;
 
-public class ChestPassengerEntity extends Entity implements IInventory {
+public class ChestPassengerEntity extends Entity implements Inventory {
 
-	private final NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
+	private final DefaultedList<ItemStack> items = DefaultedList.ofSize(27, ItemStack.EMPTY);
 	
-	private static final DataParameter<ItemStack> CHEST_TYPE = EntityDataManager.createKey(ChestPassengerEntity.class, DataSerializers.ITEMSTACK);
+	private static final TrackedData<ItemStack> CHEST_TYPE = DataTracker.registerData(ChestPassengerEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
 	private static final String TAG_CHEST_TYPE = "chestType";
 
 	public ChestPassengerEntity(EntityType<? extends ChestPassengerEntity> type, World worldIn) {
@@ -39,12 +39,12 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 
 		ItemStack newStack = stack.copy();
 		newStack.setCount(1);
-		dataManager.set(CHEST_TYPE, newStack);
+		dataTracker.set(CHEST_TYPE, newStack);
 	}
 
 	@Override
-	protected void registerData() {
-		dataManager.register(CHEST_TYPE, new ItemStack(Blocks.CHEST));
+	protected void initDataTracker() {
+		dataTracker.startTracking(CHEST_TYPE, new ItemStack(Blocks.CHEST));
 	}
 
 	@Override
@@ -54,12 +54,12 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 		if(!isAlive())
 			return;
 		
-		if(!isPassenger() && !world.isRemote)
+		if(!hasVehicle() && !world.isClient)
 			remove();
 
-		Entity riding = getRidingEntity();
+		Entity riding = getVehicle();
 		if (riding != null) {
-			rotationYaw = riding.prevRotationYaw;
+			yaw = riding.prevYaw;
 		}
 	}
 	
@@ -69,12 +69,12 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 	}
 
 	@Override
-	public boolean canBeAttackedWithItem() {
+	public boolean isAttackable() {
 		return false;
 	}
 
 	@Override
-	public int getSizeInventory() {
+	public int size() {
 		return items.size();
 	}
 
@@ -89,19 +89,19 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 
 	@Nonnull
 	@Override
-	public ItemStack getStackInSlot(int index) {
+	public ItemStack getStack(int index) {
 		return items.get(index);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack decrStackSize(int index, int count) {
-		return ItemStackHelper.getAndSplit(items, index, count);
+	public ItemStack removeStack(int index, int count) {
+		return Inventories.splitStack(items, index, count);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack removeStackFromSlot(int index) {
+	public ItemStack removeStack(int index) {
 		ItemStack itemstack = items.get(index);
 
 		if(itemstack.isEmpty())
@@ -113,12 +113,12 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 	}
 
 	@Override
-	public void setInventorySlotContents(int index, @Nonnull ItemStack stack) {
+	public void setStack(int index, @Nonnull ItemStack stack) {
 		items.set(index, stack);
 	}
 
 	@Override
-	public int getInventoryStackLimit() {
+	public int getMaxCountPerStack() {
 		return 64;
 	}
 
@@ -128,22 +128,22 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 	}
 
 	@Override
-	public boolean isUsableByPlayer(@Nonnull PlayerEntity player) {
-		return isAlive() && player.getDistanceSq(this) <= 64;
+	public boolean canPlayerUse(@Nonnull PlayerEntity player) {
+		return isAlive() && player.squaredDistanceTo(this) <= 64;
 	}
 
 	@Override
-	public void openInventory(@Nonnull PlayerEntity player) {
+	public void onOpen(@Nonnull PlayerEntity player) {
 		// NO-OP
 	}
 
 	@Override
-	public void closeInventory(@Nonnull PlayerEntity player) {
+	public void onClose(@Nonnull PlayerEntity player) {
 		// NO-OP
 	}
 
 	@Override
-	public boolean isItemValidForSlot(int index, @Nonnull ItemStack stack) {
+	public boolean isValid(int index, @Nonnull ItemStack stack) {
 		return true;
 	}
 
@@ -153,44 +153,44 @@ public class ChestPassengerEntity extends Entity implements IInventory {
 	}
 
 	@Override
-	protected void readAdditional(@Nonnull CompoundNBT compound) {
-		ItemStackHelper.loadAllItems(compound, items);
+	protected void readCustomDataFromTag(@Nonnull CompoundTag compound) {
+		Inventories.fromTag(compound, items);
 
-		CompoundNBT itemCmp = compound.getCompound(TAG_CHEST_TYPE);
-		ItemStack stack = ItemStack.read(itemCmp);
+		CompoundTag itemCmp = compound.getCompound(TAG_CHEST_TYPE);
+		ItemStack stack = ItemStack.fromTag(itemCmp);
 		if(!stack.isEmpty())
-			dataManager.set(CHEST_TYPE, stack);
+			dataTracker.set(CHEST_TYPE, stack);
 
 	}
 
 	@Override
-	protected void writeAdditional(@Nonnull CompoundNBT compound) {
-		ItemStackHelper.saveAllItems(compound, items);
+	protected void writeCustomDataToTag(@Nonnull CompoundTag compound) {
+		Inventories.toTag(compound, items);
 
-		CompoundNBT itemCmp = new CompoundNBT();
-		dataManager.get(CHEST_TYPE).write(itemCmp);
+		CompoundTag itemCmp = new CompoundTag();
+		dataTracker.get(CHEST_TYPE).toTag(itemCmp);
 		compound.put(TAG_CHEST_TYPE, itemCmp);
 
 	}
 
 	@Nonnull
 	@Override
-	public IPacket<?> createSpawnPacket() {
+	public Packet<?> createSpawnPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
 	public void remove() {
-		if(!world.isRemote) {
-			InventoryHelper.dropInventoryItems(world, this, this);
-			entityDropItem(getChestType());
+		if(!world.isClient) {
+			ItemScatterer.spawn(world, this, this);
+			dropStack(getChestType());
 		}
 		
 		super.remove();
 	}
 	
 	public ItemStack getChestType() {
-		return dataManager.get(CHEST_TYPE);
+		return dataTracker.get(CHEST_TYPE);
 	}
 
 }

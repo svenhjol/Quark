@@ -4,17 +4,17 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nullable;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.PaneBlock;
-import net.minecraft.client.renderer.color.IBlockColor;
-import net.minecraft.client.renderer.color.IItemColor;
+import net.minecraft.client.color.block.BlockColorProvider;
+import net.minecraft.client.color.item.ItemColorProvider;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.arl.interf.IBlockColorProvider;
@@ -43,7 +43,7 @@ public class QuarkInheritedPaneBlock extends QuarkPaneBlock implements IQuarkBlo
 	}
 
 	public QuarkInheritedPaneBlock(IQuarkBlock parent) {
-		this(parent, Block.Properties.from(parent.getBlock()));
+		this(parent, Block.Properties.copy(parent.getBlock()));
 	}
 
 	@Override
@@ -53,19 +53,19 @@ public class QuarkInheritedPaneBlock extends QuarkPaneBlock implements IQuarkBlo
 
 	@Nullable
 	@Override
-	public float[] getBeaconColorMultiplier(BlockState state, IWorldReader world, BlockPos pos, BlockPos beaconPos) {
+	public float[] getBeaconColorMultiplier(BlockState state, WorldView world, BlockPos pos, BlockPos beaconPos) {
 		return parent.getBlock().getBeaconColorMultiplier(parent.getBlock().getDefaultState(), world, pos, beaconPos);
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public IBlockColor getBlockColor() {
+	@Environment(EnvType.CLIENT)
+	public BlockColorProvider getBlockColor() {
 		return parent instanceof IBlockColorProvider ? ((IBlockColorProvider) parent).getBlockColor() : null;
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public IItemColor getItemColor() {
+	@Environment(EnvType.CLIENT)
+	public ItemColorProvider getItemColor() {
 		return parent instanceof IItemColorProvider ? ((IItemColorProvider) parent).getItemColor() : null;
 	}
 }

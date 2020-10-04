@@ -13,15 +13,15 @@ package vazkii.quark.automation.base;
 import java.util.UUID;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.BoatEntity;
-import net.minecraft.entity.item.minecart.AbstractMinecartEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.fml.network.NetworkDirection;
 import vazkii.quark.automation.module.ChainLinkageModule;
 import vazkii.quark.base.network.QuarkNetwork;
@@ -38,18 +38,18 @@ public class ChainHandler {
 	private static final float MAX_FORCE = 6F;
 
 	private static <T extends Entity> void adjustVelocity(T master, Entity follower) {
-		if (master == follower || master.world.isRemote)
+		if (master == follower || master.world.isClient)
 			return;
 
-		double dist = master.getDistance(follower);
+		double dist = master.distanceTo(follower);
 
-		Vector3d masterPosition = master.getPositionVec();
-		Vector3d followerPosition = follower.getPositionVec();
+		Vec3d masterPosition = master.getPos();
+		Vec3d followerPosition = follower.getPos();
 
-		Vector3d masterMotion = master.getMotion();
-		Vector3d followerMotion = follower.getMotion();
+		Vec3d masterMotion = master.getVelocity();
+		Vec3d followerMotion = follower.getVelocity();
 
-		Vector3d direction = followerPosition.subtract(masterPosition);
+		Vec3d direction = followerPosition.subtract(masterPosition);
 		direction = direction.subtract(0, direction.y, 0).normalize();
 
 		double base = masterMotion.length() + followerMotion.length();
@@ -86,8 +86,8 @@ public class ChainHandler {
 //				followerMotion = followerMotion.subtract(dampX, 0, dampZ);
 //
 
-			master.setMotion(masterMotion);
-			follower.setMotion(followerMotion);
+			master.setVelocity(masterMotion);
+			follower.setVelocity(followerMotion);
 //			}
 		}
 	}
@@ -95,10 +95,10 @@ public class ChainHandler {
 	public static UUID getLink(Entity vehicle) {
 		if (!canBeLinked(vehicle))
 			return null;
-		if (!vehicle.getPersistentData().hasUniqueId(LINKED_TO))
+		if (!vehicle.getPersistentData().containsUuid(LINKED_TO))
 			return null;
 
-		return vehicle.getPersistentData().getUniqueId(LINKED_TO);
+		return vehicle.getPersistentData().getUuid(LINKED_TO);
 	}
 
 	public static boolean canBeLinkedTo(Entity entity) {
@@ -114,10 +114,10 @@ public class ChainHandler {
 		if (uuid == null || uuid.equals(SyncChainMessage.NULL_UUID))
 			return null;
 
-		for (Entity entity : vehicle.world.getEntitiesWithinAABB(Entity.class,
-				vehicle.getBoundingBox().grow(MAX_DISTANCE), ChainHandler::canBeLinkedTo)) {
+		for (Entity entity : vehicle.world.getEntities(Entity.class,
+				vehicle.getBoundingBox().expand(MAX_DISTANCE), ChainHandler::canBeLinkedTo)) {
 
-			if (entity.getUniqueID().equals(uuid)) {
+			if (entity.getUuid().equals(uuid)) {
 				return entity;
 			}
 		}
@@ -137,23 +137,23 @@ public class ChainHandler {
 		if(!(other instanceof PlayerEntity))
 			adjustVelocity(other, cart);
 
-		cart.setMotion(cart.getMotion().mul(DRAG, 1, DRAG));
+		cart.setVelocity(cart.getVelocity().multiply(DRAG, 1, DRAG));
 	}
 
 	private static <T extends Entity> void breakChain(T cart) {
 		setLink(cart, null, true);
 
-		if (!cart.world.isRemote && cart.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
-			cart.entityDropItem(new ItemStack(Items.CHAIN), 0f);
+		if (!cart.world.isClient && cart.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
+			cart.dropStack(new ItemStack(Items.CHAIN), 0f);
 	}
 
 	public static void setLink(Entity entity, UUID uuid, boolean sync) {
 		if (canBeLinked(entity)) {
-			if (entity.getUniqueID().equals(uuid))
+			if (entity.getUuid().equals(uuid))
 				return;
 
 			if (uuid != null && !uuid.equals(SyncChainMessage.NULL_UUID))
-				entity.getPersistentData().putUniqueId(LINKED_TO, uuid);
+				entity.getPersistentData().putUuid(LINKED_TO, uuid);
 			else {
 				entity.getPersistentData().remove(LINKED_TO);
 			}
@@ -161,7 +161,7 @@ public class ChainHandler {
 			if (sync) {
 				if (entity.world instanceof ServerWorld) {
 					ServerWorld world = (ServerWorld) entity.world;
-					world.getChunkProvider().sendToAllTracking(entity,
+					world.getChunkManager().sendToOtherNearbyPlayers(entity,
 							QuarkNetwork.toVanillaPacket(new SyncChainMessage(entity.getEntityId(), uuid),
 									NetworkDirection.PLAY_TO_CLIENT));
 				}

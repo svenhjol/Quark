@@ -1,10 +1,10 @@
 package vazkii.quark.building.module;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraftforge.common.ToolType;
 import vazkii.quark.base.block.QuarkFenceGateBlock;
 import vazkii.quark.base.module.LoadModule;
@@ -20,10 +20,10 @@ public class NetherBrickFenceGateModule extends Module {
     @Override
     public void construct() {
         new QuarkFenceGateBlock("nether_brick_fence_gate", this, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.ROCK, MaterialColor.NETHERRACK)
-                .func_235861_h_() // needs tool
+                Block.Properties.of(Material.STONE, MaterialColor.NETHER)
+                .requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-                .sound(SoundType.field_235590_L_)
-                .hardnessAndResistance(2.0F, 6.0F));
+                .sounds(BlockSoundGroup.NETHER_BRICKS)
+                .strength(2.0F, 6.0F));
     }
 }

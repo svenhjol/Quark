@@ -1,10 +1,10 @@
 package vazkii.quark.building.module;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.item.DyeColor;
+import net.minecraft.block.Material;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.util.DyeColor;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.handler.FuelHandler;
 import vazkii.quark.base.module.LoadModule;
@@ -17,10 +17,10 @@ public class QuiltedWoolModule extends Module {
 	@Override
 	public void construct() {
 		for(DyeColor dye : DyeColor.values()) {
-			Block b = new QuarkBlock(dye.getTranslationKey() + "_quilted_wool", this, ItemGroup.BUILDING_BLOCKS,
-					Block.Properties.create(Material.WOOL, dye.getMapColor())
-					.hardnessAndResistance(0.8F)
-					.sound(SoundType.CLOTH));
+			Block b = new QuarkBlock(dye.getName() + "_quilted_wool", this, ItemGroup.BUILDING_BLOCKS,
+					Block.Properties.of(Material.WOOL, dye.getMaterialColor())
+					.strength(0.8F)
+					.sounds(BlockSoundGroup.WOOL));
 			
 			FuelHandler.addFuel(b, 100);
 		}

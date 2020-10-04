@@ -1,17 +1,16 @@
 package vazkii.quark.base.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.text.Text;
 
-public class IconButton extends Button {
+public class IconButton extends ButtonWidget {
 
 	private final ItemStack icon;
 	
-	public IconButton(int x, int y, int w, int h, ITextComponent text, ItemStack icon, IPressable onClick) {
+	public IconButton(int x, int y, int w, int h, Text text, ItemStack icon, PressAction onClick) {
 		super(x, y, w, h, text, onClick);
 		this.icon = icon;
 	}
@@ -19,7 +18,7 @@ public class IconButton extends Button {
 	@Override
 	public void render(MatrixStack mstack, int mouseX, int mouseY, float pticks) {
 		super.render(mstack, mouseX, mouseY, pticks);
-		Minecraft.getInstance().getItemRenderer().renderItemIntoGUI(icon, x + 5, y + 2);
+		MinecraftClient.getInstance().getItemRenderer().renderGuiItemIcon(icon, x + 5, y + 2);
 	}
 
 }

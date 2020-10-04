@@ -15,16 +15,16 @@ import java.util.function.Predicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.CreatureEntity;
-import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.tags.Tag;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.PathAwareEntity;
+import net.minecraft.tag.SetTag;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 
 public class FavorBlockGoal extends Goal {
 
-	private final CreatureEntity creature;
+	private final PathAwareEntity creature;
 	private final double movementSpeed;
 	private final Predicate<BlockState> targetBlock;
 
@@ -32,62 +32,62 @@ public class FavorBlockGoal extends Goal {
 	private int timeoutCounter;
 	private int maxStayTicks;
 
-	protected BlockPos destinationBlock = BlockPos.ZERO;
+	protected BlockPos destinationBlock = BlockPos.ORIGIN;
 
-	public FavorBlockGoal(CreatureEntity creature, double speed, Predicate<BlockState> predicate) {
+	public FavorBlockGoal(PathAwareEntity creature, double speed, Predicate<BlockState> predicate) {
 		this.creature = creature;
 		this.movementSpeed = speed;
 		this.targetBlock = predicate;
-		setMutexFlags(EnumSet.of(Flag.MOVE, Flag.JUMP));
+		setControls(EnumSet.of(Control.MOVE, Control.JUMP));
 	}
 
-	public FavorBlockGoal(CreatureEntity creature, double speed, Tag<Block> tag) {
-		this(creature, speed, (state) -> tag.func_230235_a_(state.getBlock())); // contains
+	public FavorBlockGoal(PathAwareEntity creature, double speed, SetTag<Block> tag) {
+		this(creature, speed, (state) -> tag.contains(state.getBlock())); // contains
 	}
 
-	public FavorBlockGoal(CreatureEntity creature, double speed, Block block) {
+	public FavorBlockGoal(PathAwareEntity creature, double speed, Block block) {
 		this(creature, speed, (state) -> state.getBlock() == block);
 	}
 
 	@Override
-	public boolean shouldExecute() {
+	public boolean canStart() {
 		if (runDelay > 0) {
 			--runDelay;
 			return false;
 		} else {
-			runDelay = 200 + creature.getRNG().nextInt(200);
+			runDelay = 200 + creature.getRandom().nextInt(200);
 			return searchForDestination();
 		}
 	}
 
 	@Override
-	public boolean shouldContinueExecuting() {
+	public boolean shouldContinue() {
 		return timeoutCounter >= -maxStayTicks && timeoutCounter <= 1200 && targetBlock.test(creature.world.getBlockState(destinationBlock));
 	}
 
 	@Override
-	public void startExecuting() {
-		creature.getNavigator().tryMoveToXYZ(destinationBlock.getX() + 0.5, destinationBlock.getY() + 1, destinationBlock.getZ() + 0.5, movementSpeed);
+	public void start() {
+		creature.getNavigation().startMovingTo(destinationBlock.getX() + 0.5, destinationBlock.getY() + 1, destinationBlock.getZ() + 0.5, movementSpeed);
 		timeoutCounter = 0;
-		maxStayTicks = creature.getRNG().nextInt(creature.getRNG().nextInt(1200) + 1200) + 1200;
+		maxStayTicks = creature.getRandom().nextInt(creature.getRandom().nextInt(1200) + 1200) + 1200;
 	}
 
 
 	@Override
 	public void tick() {
-		if (creature.getDistanceSq(new Vector3d(destinationBlock.getX(), destinationBlock.getY(), destinationBlock.getZ()).add(0.5, 1.5, 0.5)) > 1.0D) {
+		if (creature.squaredDistanceTo(new Vec3d(destinationBlock.getX(), destinationBlock.getY(), destinationBlock.getZ()).add(0.5, 1.5, 0.5)) > 1.0D) {
 			++timeoutCounter;
 
 			if (timeoutCounter % 40 == 0)
-				creature.getNavigator().tryMoveToXYZ(destinationBlock.getX() + 0.5D, destinationBlock.getY() + 1, destinationBlock.getZ() + 0.5D, movementSpeed);
+				creature.getNavigation().startMovingTo(destinationBlock.getX() + 0.5D, destinationBlock.getY() + 1, destinationBlock.getZ() + 0.5D, movementSpeed);
 		} else {
 			--timeoutCounter;
 		}
 	}
 
 	private boolean searchForDestination() {
-		double followRange = creature.getAttribute(Attributes.field_233819_b_).getValue(); // FOLLOW_RANGE
-		Vector3d cpos = creature.getPositionVec();
+		double followRange = creature.getAttributeInstance(EntityAttributes.GENERIC_FOLLOW_RANGE).getValue(); // FOLLOW_RANGE
+		Vec3d cpos = creature.getPos();
 		double xBase = cpos.x;
 		double yBase = cpos.y;
 		double zBase = cpos.z;
@@ -107,9 +107,9 @@ public class FavorBlockGoal extends Goal {
 						 zShift <= seekDist;
 						 zShift = zShift > 0 ? -zShift : 1 - zShift) {
 
-						pos.setPos(xBase + xShift, yBase + yShift - 1, zBase + zShift);
+						pos.set(xBase + xShift, yBase + yShift - 1, zBase + zShift);
 
-						if (creature.isWithinHomeDistanceFromPosition(pos) &&
+						if (creature.isInWalkTargetRange(pos) &&
 								targetBlock.test(creature.world.getBlockState(pos))) {
 							destinationBlock = pos;
 							return true;

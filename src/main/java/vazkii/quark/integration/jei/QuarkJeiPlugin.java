@@ -16,14 +16,14 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.ISubtypeRegistration;
 import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.EnchantedBookItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import vazkii.arl.util.ItemNBTHelper;
 import vazkii.quark.base.Quark;
 import vazkii.quark.base.module.ModuleLoader;
@@ -35,10 +35,10 @@ import vazkii.quark.tweaks.recipe.ElytraDuplicationRecipe;
 
 @JeiPlugin
 public class QuarkJeiPlugin implements IModPlugin {
-	private static final ResourceLocation UID = new ResourceLocation(Quark.MOD_ID, Quark.MOD_ID);
+	private static final Identifier UID = new Identifier(Quark.MOD_ID, Quark.MOD_ID);
 
 	@Override
-	public ResourceLocation getPluginUid() {
+	public Identifier getPluginUid() {
 		return UID;
 	}
 
@@ -69,10 +69,10 @@ public class QuarkJeiPlugin implements IModPlugin {
 	private void registerAncientTomeAnvilRecipes(IRecipeRegistration registration, IVanillaRecipeFactory factory) {
 		List<Object> recipes = new ArrayList<>();
 		for (Enchantment enchant : AncientTomesModule.validEnchants) {
-			EnchantmentData data = new EnchantmentData(enchant, enchant.getMaxLevel());
-			recipes.add(factory.createAnvilRecipe(EnchantedBookItem.getEnchantedItemStack(data),
+			EnchantmentLevelEntry data = new EnchantmentLevelEntry(enchant, enchant.getMaxLevel());
+			recipes.add(factory.createAnvilRecipe(EnchantedBookItem.forEnchantment(data),
 					Collections.singletonList(AncientTomeItem.getEnchantedItemStack(data)),
-					Collections.singletonList(EnchantedBookItem.getEnchantedItemStack(new EnchantmentData(data.enchantment, data.enchantmentLevel + 1)))));
+					Collections.singletonList(EnchantedBookItem.forEnchantment(new EnchantmentLevelEntry(data.enchantment, data.level + 1)))));
 		}
 		registration.addRecipes(recipes, VanillaRecipeCategoryUid.ANVIL);
 	}
@@ -91,7 +91,7 @@ public class QuarkJeiPlugin implements IModPlugin {
 		}
 
 		List<Object> recipes = new ArrayList<>();
-		for (Item rune : ColorRunesModule.runesTag.func_230236_b_()) { // getAllElements
+		for (Item rune : ColorRunesModule.runesTag.values()) { // getAllElements
 			ItemStack runeStack = new ItemStack(rune);
 			recipes.add(factory.createAnvilRecipe(used, Collections.singletonList(runeStack),
 				used.stream().map(stack -> {
@@ -107,11 +107,11 @@ public class QuarkJeiPlugin implements IModPlugin {
 	// Runes only show up and can be only anvilled on enchanted items, so make some random enchanted items
 	private static ItemStack makeEnchantedDisplayItem(Item input, Random random) {
 		ItemStack stack = new ItemStack(input);
-		if (input.getItemEnchantability() <= 0) { // If it can't take anything in ench. tables...
+		if (input.getEnchantability() <= 0) { // If it can't take anything in ench. tables...
 			stack.addEnchantment(Enchantments.UNBREAKING, 3); // it probably accepts unbreaking anyways
 			return stack;
 		}
-		return EnchantmentHelper.addRandomEnchantment(random, stack, 25, false);
+		return EnchantmentHelper.enchant(random, stack, 25, false);
 	}
 
 	private void registerPickarangAnvilRepairs(IRecipeRegistration registration, IVanillaRecipeFactory factory) {

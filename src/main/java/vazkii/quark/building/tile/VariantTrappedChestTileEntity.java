@@ -8,9 +8,9 @@ public class VariantTrappedChestTileEntity extends VariantChestTileEntity {
 		super(VariantChestsModule.trappedChestTEType);
 	}
 
-	protected void onOpenOrClose() {
-		super.onOpenOrClose();
-		this.world.notifyNeighborsOfStateChange(this.pos.down(), this.getBlockState().getBlock());
+	protected void onInvOpenOrClose() {
+		super.onInvOpenOrClose();
+		this.world.updateNeighborsAlways(this.pos.down(), this.getCachedState().getBlock());
 	}
 
 }

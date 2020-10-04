@@ -6,17 +6,17 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.HopperBlock;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.HopperBlockEntity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.HopperTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.IPlantable;
 import vazkii.quark.api.IMagnetMoveAction;
 
@@ -27,21 +27,21 @@ public class DefaultMoveActions {
 		map.put(Blocks.HOPPER, DefaultMoveActions::hopperMoved);
 	}
 	
-	private static void stonecutterMoved(World world, BlockPos pos, Direction direction, BlockState state, TileEntity tile) {
-		if(!world.isRemote) {
+	private static void stonecutterMoved(World world, BlockPos pos, Direction direction, BlockState state, BlockEntity tile) {
+		if(!world.isClient) {
 			BlockPos up = pos.up();
 			BlockState breakState = world.getBlockState(up);
-			double hardness = breakState.getBlockHardness(world, up); 
+			double hardness = breakState.getHardness(world, up); 
 			if(hardness > -1 && hardness < 3)
-				world.destroyBlock(up, true);
+				world.breakBlock(up, true);
 		}
 	}
 	
 	@SuppressWarnings("deprecation")
-	private static void hopperMoved(World world, BlockPos pos, Direction direction, BlockState state, TileEntity tile) {
-		if(!world.isRemote && tile instanceof HopperTileEntity) {
-			HopperTileEntity hopper = (HopperTileEntity) tile;
-			hopper.setTransferCooldown(0);
+	private static void hopperMoved(World world, BlockPos pos, Direction direction, BlockState state, BlockEntity tile) {
+		if(!world.isClient && tile instanceof HopperBlockEntity) {
+			HopperBlockEntity hopper = (HopperBlockEntity) tile;
+			hopper.setCooldown(0);
 			
 			Direction dir = state.get(HopperBlock.FACING);
 			BlockPos offPos = pos.offset(dir);
@@ -49,27 +49,27 @@ public class DefaultMoveActions {
 			if(offPos.equals(targetPos))
 				return;
 			
-			if(world.isAirBlock(offPos))
-				for(int i = 0; i < hopper.getSizeInventory(); i++) {
-					ItemStack stack = hopper.getStackInSlot(i);
+			if(world.isAir(offPos))
+				for(int i = 0; i < hopper.size(); i++) {
+					ItemStack stack = hopper.getStack(i);
 					if(!stack.isEmpty()) {
 						ItemStack drop = stack.copy();
 						drop.setCount(1);
-						hopper.decrStackSize(i, 1);
+						hopper.removeStack(i, 1);
 						
 						boolean shouldDrop = true;
 						if(drop.getItem() instanceof BlockItem) {
 							BlockPos farmlandPos = offPos.down();
-							if(world.isAirBlock(farmlandPos))
+							if(world.isAir(farmlandPos))
 								farmlandPos = farmlandPos.down();
 							
 							if(world.getBlockState(farmlandPos).getBlock() == Blocks.FARMLAND) {
 								Block seedType = ((BlockItem) drop.getItem()).getBlock();
 								if(seedType instanceof IPlantable) {
 									BlockPos seedPos = farmlandPos.up();
-									if(seedType.isValidPosition(state, world, seedPos)) {
+									if(seedType.canPlaceAt(state, world, seedPos)) {
 										BlockState seedState = seedType.getDefaultState();
-										((ServerWorld) world).playSound(null, seedPos, seedType.getSoundType(seedState).getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+										((ServerWorld) world).playSound(null, seedPos, seedType.getSoundGroup(seedState).getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
 										
 										world.setBlockState(seedPos, seedState);
 										shouldDrop = false;
@@ -79,12 +79,12 @@ public class DefaultMoveActions {
 						}
 						
 						if(shouldDrop) {
-							double x = pos.getX() + 0.5 + ((double) dir.getXOffset() * 0.7);
-							double y = pos.getY() + 0.15 + ((double) dir.getYOffset() * 0.4);
-							double z = pos.getZ() + 0.5 + ((double) dir.getZOffset() * 0.7);
+							double x = pos.getX() + 0.5 + ((double) dir.getOffsetX() * 0.7);
+							double y = pos.getY() + 0.15 + ((double) dir.getOffsetY() * 0.4);
+							double z = pos.getZ() + 0.5 + ((double) dir.getOffsetZ() * 0.7);
 							ItemEntity entity = new ItemEntity(world, x, y, z, drop);
-							entity.setMotion(Vector3d.ZERO);
-							world.addEntity(entity);
+							entity.setVelocity(Vec3d.ZERO);
+							world.spawnEntity(entity);
 						}
 
 						return;

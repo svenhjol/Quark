@@ -5,21 +5,22 @@ import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.MushroomBlock;
+import net.minecraft.block.MushroomPlantBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.util.Direction;
-import net.minecraft.util.NonNullList;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.IPlantable;
@@ -30,15 +31,15 @@ import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
 import vazkii.quark.base.module.Module;
 import vazkii.quark.world.module.underground.GlowshroomUndergroundBiomeModule;
 
-public class GlowshroomBlock extends MushroomBlock implements IQuarkBlock {
+public class GlowshroomBlock extends MushroomPlantBlock implements IQuarkBlock {
 
 	private final Module module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
 	public GlowshroomBlock(Module module) {
-		super(Block.Properties.from(Blocks.RED_MUSHROOM)
-				.func_235838_a_(b -> 14) // lightValue
-				.tickRandomly());
+		super(Block.Properties.copy(Blocks.RED_MUSHROOM)
+				.lightLevel(b -> 14) // lightValue
+				.ticksRandomly());
 		
 		this.module = module;
 		RegistryHelper.registerBlock(this, "glowshroom");
@@ -48,22 +49,22 @@ public class GlowshroomBlock extends MushroomBlock implements IQuarkBlock {
 	}
 	
 	@Override
-	public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
+	public boolean canPlaceAt(BlockState state, WorldView worldIn, BlockPos pos) {
 		BlockPos blockpos = pos.down();
 		return worldIn.getBlockState(blockpos).getBlock() == GlowshroomUndergroundBiomeModule.glowcelium;
 	}
 	
 	@Override
-	public boolean canSustainPlant(@Nonnull BlockState state, @Nonnull IBlockReader world, BlockPos pos, @Nonnull Direction facing, IPlantable plantable) {
+	public boolean canSustainPlant(@Nonnull BlockState state, @Nonnull BlockView world, BlockPos pos, @Nonnull Direction facing, IPlantable plantable) {
 		return state.getBlock() == GlowshroomUndergroundBiomeModule.glowcelium;
 	}
 	
 	@Override
-	public void tick(@Nonnull BlockState state, @Nonnull ServerWorld worldIn, @Nonnull BlockPos pos, Random rand) {
+	public void scheduledTick(@Nonnull BlockState state, @Nonnull ServerWorld worldIn, @Nonnull BlockPos pos, Random rand) {
 		if(rand.nextInt(GlowshroomUndergroundBiomeModule.glowshroomGrowthRate) == 0) {
 			int i = 5;
 
-			for(BlockPos targetPos : BlockPos.getAllInBoxMutable(pos.add(-4, -1, -4), pos.add(4, 1, 4))) {
+			for(BlockPos targetPos : BlockPos.iterate(pos.add(-4, -1, -4), pos.add(4, 1, 4))) {
 				if(worldIn.getBlockState(targetPos).getBlock() == this) {
 					--i;
 
@@ -75,33 +76,33 @@ public class GlowshroomBlock extends MushroomBlock implements IQuarkBlock {
 			BlockPos shiftedPos = pos.add(rand.nextInt(3) - 1, rand.nextInt(2) - rand.nextInt(2), rand.nextInt(3) - 1);
 
 			for(int k = 0; k < 4; ++k) {
-				if (worldIn.isAirBlock(shiftedPos) && state.isValidPosition(worldIn, shiftedPos))
+				if (worldIn.isAir(shiftedPos) && state.canPlaceAt(worldIn, shiftedPos))
 					pos = shiftedPos;
 
 				shiftedPos = pos.add(rand.nextInt(3) - 1, rand.nextInt(2) - rand.nextInt(2), rand.nextInt(3) - 1);
 			}
 
-			if(worldIn.isAirBlock(shiftedPos) && state.isValidPosition(worldIn, shiftedPos))
+			if(worldIn.isAir(shiftedPos) && state.canPlaceAt(worldIn, shiftedPos))
 				worldIn.setBlockState(shiftedPos, getDefaultState(), 2);
 		}
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public void animateTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-		super.animateTick(stateIn, worldIn, pos, rand);
+	@Environment(EnvType.CLIENT)
+	public void randomDisplayTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
+		super.randomDisplayTick(stateIn, worldIn, pos, rand);
 
 		if(rand.nextInt(20) == 0)
 			worldIn.addParticle(ParticleTypes.END_ROD, pos.getX() + 0.2 + rand.nextDouble() * 0.6, pos.getY() + 0.3, pos.getZ() + 0.2 + rand.nextDouble() * 0.6, 0, 0, 0);
 	}
 
 	@Override
-	public boolean canGrow(@Nonnull IBlockReader worldIn, @Nonnull BlockPos pos, @Nonnull BlockState state, boolean isClient) {
+	public boolean isFertilizable(@Nonnull BlockView worldIn, @Nonnull BlockPos pos, @Nonnull BlockState state, boolean isClient) {
 		return GlowshroomUndergroundBiomeModule.enableHugeGlowshrooms;
 	}
 
 	@Override
-	public boolean canUseBonemeal(@Nonnull World worldIn, @Nonnull Random rand, @Nonnull BlockPos pos, @Nonnull BlockState state) {
+	public boolean canGrow(@Nonnull World worldIn, @Nonnull Random rand, @Nonnull BlockPos pos, @Nonnull BlockState state) {
 		return GlowshroomUndergroundBiomeModule.enableHugeGlowshrooms && rand.nextFloat() < 0.4;
 	}
 
@@ -115,9 +116,9 @@ public class GlowshroomBlock extends MushroomBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 

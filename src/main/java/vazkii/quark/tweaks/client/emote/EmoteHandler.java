@@ -16,25 +16,26 @@ import java.util.List;
 import java.util.Map;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.AbstractClientPlayerEntity;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.PlayerRenderer;
-import net.minecraft.client.renderer.entity.layers.BipedArmorLayer;
-import net.minecraft.client.renderer.entity.layers.LayerRenderer;
-import net.minecraft.client.renderer.entity.model.BipedModel;
-import net.minecraft.client.renderer.entity.model.PlayerModel;
-import net.minecraft.client.renderer.model.ModelRenderer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.PlayerEntityRenderer;
+import net.minecraft.client.render.entity.feature.ArmorFeatureRenderer;
+import net.minecraft.client.render.entity.feature.FeatureRenderer;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.Pose;
+import net.minecraft.entity.EntityPose;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public final class EmoteHandler {
 
 	public static final String CUSTOM_EMOTE_NAMESPACE = "quark_custom";
@@ -64,14 +65,14 @@ public final class EmoteHandler {
 		emoteMap.put(reg, desc);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static void putEmote(Entity player, String emoteName, int tier) {
 		if(player instanceof AbstractClientPlayerEntity && emoteMap.containsKey(emoteName)) {
 			putEmote((AbstractClientPlayerEntity) player, emoteMap.get(emoteName), tier);
 		}
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static void putEmote(AbstractClientPlayerEntity player, EmoteDescriptor desc, int tier) {
 		String name = player.getGameProfile().getName();
 		if(desc == null)
@@ -80,9 +81,9 @@ public final class EmoteHandler {
 		if(desc.getTier() > tier)
 			return;
 
-		BipedModel<?> model = getPlayerModel(player);
-		BipedModel<?> armorModel = getPlayerArmorModel(player);
-		BipedModel<?> armorLegModel = getPlayerArmorLegModel(player);
+		BipedEntityModel<?> model = getPlayerModel(player);
+		BipedEntityModel<?> armorModel = getPlayerArmorModel(player);
+		BipedEntityModel<?> armorLegModel = getPlayerArmorLegModel(player);
 
 		if(model != null && armorModel != null && armorLegModel != null) {
 			resetPlayer(player);
@@ -97,7 +98,7 @@ public final class EmoteHandler {
 			AbstractClientPlayerEntity player = (AbstractClientPlayerEntity) e;
 			String name = player.getGameProfile().getName();
 
-			if(player.getPose() == Pose.STANDING) {
+			if(player.getPose() == EntityPose.STANDING) {
 				resetPlayer(player);
 
 				if(playerEmotes.containsKey(name)) {
@@ -127,7 +128,7 @@ public final class EmoteHandler {
 		}
 	}
 
-	public static void onRenderTick(Minecraft mc) {
+	public static void onRenderTick(MinecraftClient mc) {
 		World world = mc.world;
 		if(world == null)
 			return;
@@ -157,38 +158,38 @@ public final class EmoteHandler {
 		return playerEmotes.get(player.getGameProfile().getName());
 	}
 
-	private static PlayerRenderer getRenderPlayer(AbstractClientPlayerEntity player) {
-		Minecraft mc = Minecraft.getInstance();
-		EntityRendererManager manager = mc.getRenderManager();
-		return manager.getSkinMap().get(player.getSkinType());
+	private static PlayerEntityRenderer getRenderPlayer(AbstractClientPlayerEntity player) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		EntityRenderDispatcher manager = mc.getEntityRenderManager();
+		return manager.getSkinMap().get(player.getModel());
 	}
 
-	private static BipedModel<?> getPlayerModel(AbstractClientPlayerEntity player) {
-		PlayerRenderer render = getRenderPlayer(player);
+	private static BipedEntityModel<?> getPlayerModel(AbstractClientPlayerEntity player) {
+		PlayerEntityRenderer render = getRenderPlayer(player);
 		if(render != null)
-			return render.getEntityModel();
+			return render.getModel();
 
 		return null;
 	}
 
-	private static BipedModel<?> getPlayerArmorModel(AbstractClientPlayerEntity player) {
-		return getPlayerArmorModelForSlot(player, EquipmentSlotType.CHEST);
+	private static BipedEntityModel<?> getPlayerArmorModel(AbstractClientPlayerEntity player) {
+		return getPlayerArmorModelForSlot(player, EquipmentSlot.CHEST);
 	}
 
-	private static BipedModel<?> getPlayerArmorLegModel(AbstractClientPlayerEntity player) {
-		return getPlayerArmorModelForSlot(player, EquipmentSlotType.LEGS);
+	private static BipedEntityModel<?> getPlayerArmorLegModel(AbstractClientPlayerEntity player) {
+		return getPlayerArmorModelForSlot(player, EquipmentSlot.LEGS);
 	}
 
-	private static BipedModel<?> getPlayerArmorModelForSlot(AbstractClientPlayerEntity player, EquipmentSlotType slot) {
-		PlayerRenderer render = getRenderPlayer(player);
+	private static BipedEntityModel<?> getPlayerArmorModelForSlot(AbstractClientPlayerEntity player, EquipmentSlot slot) {
+		PlayerEntityRenderer render = getRenderPlayer(player);
 		if(render == null)
 			return null;
 
-		List<LayerRenderer<AbstractClientPlayerEntity,
-				PlayerModel<AbstractClientPlayerEntity>>> list = render.layerRenderers;
-		for(LayerRenderer<?, ?> r : list) {
-			if(r instanceof BipedArmorLayer)	
-				return ((BipedArmorLayer<?, ?, ?>) r).func_241736_a_(slot);
+		List<FeatureRenderer<AbstractClientPlayerEntity,
+				PlayerEntityModel<AbstractClientPlayerEntity>>> list = render.features;
+		for(FeatureRenderer<?, ?> r : list) {
+			if(r instanceof ArmorFeatureRenderer)	
+				return ((ArmorFeatureRenderer<?, ?, ?>) r).getArmor(slot);
 		}
 		
 		return null;
@@ -200,22 +201,22 @@ public final class EmoteHandler {
 		resetModel(getPlayerArmorLegModel(player));
 	}
 
-	private static void resetModel(BipedModel<?> model) {
+	private static void resetModel(BipedEntityModel<?> model) {
 		if (model != null) {
-			resetPart(model.bipedHead);
-			resetPart(model.bipedHeadwear);
-			resetPart(model.bipedBody);
-			resetPart(model.bipedLeftArm);
-			resetPart(model.bipedRightArm);
-			resetPart(model.bipedLeftLeg);
-			resetPart(model.bipedRightLeg);
-			if(model instanceof PlayerModel) {
-				PlayerModel<?> pmodel = (PlayerModel<?>) model;
-				resetPart(pmodel.bipedBodyWear);
-				resetPart(pmodel.bipedLeftArmwear);
-				resetPart(pmodel.bipedRightArmwear);
-				resetPart(pmodel.bipedLeftLegwear);
-				resetPart(pmodel.bipedRightLegwear);
+			resetPart(model.head);
+			resetPart(model.helmet);
+			resetPart(model.torso);
+			resetPart(model.leftArm);
+			resetPart(model.rightArm);
+			resetPart(model.leftLeg);
+			resetPart(model.rightLeg);
+			if(model instanceof PlayerEntityModel) {
+				PlayerEntityModel<?> pmodel = (PlayerEntityModel<?>) model;
+				resetPart(pmodel.jacket);
+				resetPart(pmodel.leftSleeve);
+				resetPart(pmodel.rightSleeve);
+				resetPart(pmodel.leftPantLeg);
+				resetPart(pmodel.rightPantLeg);
 			}
 			
 
@@ -223,8 +224,8 @@ public final class EmoteHandler {
 		}
 	}
 
-	private static void resetPart(ModelRenderer part) {
+	private static void resetPart(ModelPart part) {
 		if(part != null)
-			part.rotateAngleZ = 0F;
+			part.roll = 0F;
 	}
 }

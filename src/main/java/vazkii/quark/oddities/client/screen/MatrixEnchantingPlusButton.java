@@ -1,16 +1,15 @@
 package vazkii.quark.oddities.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.LiteralText;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.util.text.StringTextComponent;
+public class MatrixEnchantingPlusButton extends ButtonWidget {
 
-public class MatrixEnchantingPlusButton extends Button {
-
-	public MatrixEnchantingPlusButton(int x, int y, IPressable onPress) {
-		super(x, y, 50, 12, new StringTextComponent(""), onPress);
+	public MatrixEnchantingPlusButton(int x, int y, PressAction onPress) {
+		super(x, y, 50, 12, new LiteralText(""), onPress);
 	}
 	
 	@Override
@@ -19,7 +18,7 @@ public class MatrixEnchantingPlusButton extends Button {
 		if(!visible)
 			return;
 		
-		Minecraft.getInstance().textureManager.bindTexture(MatrixEnchantingScreen.BACKGROUND);
+		MinecraftClient.getInstance().textureManager.bindTexture(MatrixEnchantingScreen.BACKGROUND);
 		int u = 0;
 		int v = 177;
 		
@@ -29,7 +28,7 @@ public class MatrixEnchantingPlusButton extends Button {
 			v += 24;
 
 		RenderSystem.color3f(1F, 1F, 1F);
-		blit(stack, x, y, u, v, width, height);
+		drawTexture(stack, x, y, u, v, width, height);
 	}
 
 }

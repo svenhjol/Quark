@@ -4,19 +4,19 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.Packet;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.fml.network.NetworkHooks;
 import vazkii.quark.oddities.module.TotemOfHoldingModule;
 
@@ -33,7 +33,7 @@ public class TotemOfHoldingEntity extends Entity {
     private static final String TAG_DYING = "dying";
     private static final String TAG_OWNER = "owner";
 
-    private static final DataParameter<Boolean> DYING = EntityDataManager.createKey(TotemOfHoldingEntity.class, DataSerializers.BOOLEAN);
+    private static final TrackedData<Boolean> DYING = DataTracker.registerData(TotemOfHoldingEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     public static final int DEATH_TIME = 40;
 
@@ -46,8 +46,8 @@ public class TotemOfHoldingEntity extends Entity {
     }
 
     @Override
-    protected void registerData() {
-        dataManager.register(DYING, false);
+    protected void initDataTracker() {
+        dataTracker.startTracking(DYING, false);
     }
 
     public void addItem(ItemStack stack) {
@@ -55,12 +55,12 @@ public class TotemOfHoldingEntity extends Entity {
     }
 
     public void setOwner(PlayerEntity player) {
-        owner = PlayerEntity.getUUID(player.getGameProfile()).toString();
+        owner = PlayerEntity.getUuidFromProfile(player.getGameProfile()).toString();
     }
 
     private PlayerEntity getOwnerEntity() {
         for(PlayerEntity player : world.getPlayers()) {
-            String uuid = PlayerEntity.getUUID(player.getGameProfile()).toString();
+            String uuid = PlayerEntity.getUuidFromProfile(player.getGameProfile()).toString();
             if(uuid.equals(owner))
                 return player;
         }
@@ -69,8 +69,8 @@ public class TotemOfHoldingEntity extends Entity {
     }
 
     @Override
-    public boolean hitByEntity(Entity e) {
-        if(!world.isRemote && e instanceof PlayerEntity) {
+    public boolean handleAttack(Entity e) {
+        if(!world.isClient && e instanceof PlayerEntity) {
             PlayerEntity player = (PlayerEntity) e;
 
             if(!TotemOfHoldingModule.allowAnyoneToCollect && !player.isCreative()) {
@@ -79,33 +79,33 @@ public class TotemOfHoldingEntity extends Entity {
                     return false;
             }
 
-            int drops = Math.min(storedItems.size(), 3 + world.rand.nextInt(4));
+            int drops = Math.min(storedItems.size(), 3 + world.random.nextInt(4));
 
             for(int i = 0; i < drops; i++) {
                 ItemStack stack = storedItems.remove(0);
 
                 if(stack.getItem() instanceof ArmorItem) {
                     ArmorItem armor = (ArmorItem) stack.getItem();
-                    EquipmentSlotType slot = armor.getEquipmentSlot();
-                    ItemStack curr = player.getItemStackFromSlot(slot);
+                    EquipmentSlot slot = armor.getSlotType();
+                    ItemStack curr = player.getEquippedStack(slot);
 
                     if(curr.isEmpty()) {
-                        player.setItemStackToSlot(slot, stack);
+                        player.equipStack(slot, stack);
                         stack = null;
-                    } else if(EnchantmentHelper.getEnchantmentLevel(Enchantments.BINDING_CURSE, curr) == 0) {
-                        player.setItemStackToSlot(slot, stack);
+                    } else if(EnchantmentHelper.getLevel(Enchantments.BINDING_CURSE, curr) == 0) {
+                        player.equipStack(slot, stack);
                         stack = curr;
                     }
                 }
 
                 if(stack != null)
-                    if(!player.addItemStackToInventory(stack))
-                        entityDropItem(stack, 0);
+                    if(!player.giveItemStack(stack))
+                        dropStack(stack, 0);
             }
 
             if(world instanceof ServerWorld) {
-                ((ServerWorld) world).spawnParticle(ParticleTypes.DAMAGE_INDICATOR, getPosX(), getPosY() + 0.5, getPosZ(), drops, 0.1, 0.5, 0.1, 0);
-                ((ServerWorld) world).spawnParticle(ParticleTypes.ENCHANTED_HIT, getPosX(), getPosY() + 0.5, getPosZ(), drops, 0.4, 0.5, 0.4, 0);
+                ((ServerWorld) world).spawnParticles(ParticleTypes.DAMAGE_INDICATOR, getX(), getY() + 0.5, getZ(), drops, 0.1, 0.5, 0.1, 0);
+                ((ServerWorld) world).spawnParticles(ParticleTypes.ENCHANTED_HIT, getX(), getY() + 0.5, getZ(), drops, 0.4, 0.5, 0.4, 0);
             }
         }
 
@@ -113,7 +113,7 @@ public class TotemOfHoldingEntity extends Entity {
     }
 
     @Override
-    public boolean canBeCollidedWith() {
+    public boolean collides() {
         return true;
     }
 
@@ -126,15 +126,15 @@ public class TotemOfHoldingEntity extends Entity {
 
         if(TotemOfHoldingModule.darkSoulsMode) {
             PlayerEntity owner = getOwnerEntity();
-            if(owner != null && !world.isRemote) {
+            if(owner != null && !world.isClient) {
                 String ownerTotem = TotemOfHoldingModule.getTotemUUID(owner);
-                if(!getUniqueID().toString().equals(ownerTotem))
+                if(!getUuid().toString().equals(ownerTotem))
                     dropEverythingAndDie();
             }
         }
 
-        if(storedItems.isEmpty() && !world.isRemote)
-            dataManager.set(DYING, true);
+        if(storedItems.isEmpty() && !world.isClient)
+            dataTracker.set(DYING, true);
 
         if(isDying()) {
             if(deathTicks > DEATH_TIME)
@@ -142,14 +142,14 @@ public class TotemOfHoldingEntity extends Entity {
             else deathTicks++;
         }
 
-        else if(world.isRemote)
-            world.addParticle(ParticleTypes.PORTAL, getPosX(), getPosY() + (Math.random() - 0.5) * 0.2, getPosZ(), Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+        else if(world.isClient)
+            world.addParticle(ParticleTypes.PORTAL, getX(), getY() + (Math.random() - 0.5) * 0.2, getZ(), Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
     }
 
     private void dropEverythingAndDie() {
         if(!TotemOfHoldingModule.destroyLostItems)
             for (ItemStack storedItem : storedItems)
-                entityDropItem(storedItem, 0);
+                dropStack(storedItem, 0);
 
         storedItems.clear();
 
@@ -161,29 +161,29 @@ public class TotemOfHoldingEntity extends Entity {
     }
 
     public boolean isDying() {
-        return dataManager.get(DYING);
+        return dataTracker.get(DYING);
     }
 
     @Override
-    public void readAdditional(@Nonnull CompoundNBT compound) {
-        ListNBT list = compound.getList(TAG_ITEMS, 10);
+    public void readCustomDataFromTag(@Nonnull CompoundTag compound) {
+        ListTag list = compound.getList(TAG_ITEMS, 10);
         storedItems = new LinkedList<>();
 
         for(int i = 0; i < list.size(); i++) {
-            CompoundNBT cmp = list.getCompound(i);
-            ItemStack stack = ItemStack.read(cmp);
+            CompoundTag cmp = list.getCompound(i);
+            ItemStack stack = ItemStack.fromTag(cmp);
             storedItems.add(stack);
         }
 
         boolean dying = compound.getBoolean(TAG_DYING);
-        dataManager.set(DYING, dying);
+        dataTracker.set(DYING, dying);
 
         owner = compound.getString(TAG_OWNER);
     }
 
     @Override
-    protected void writeAdditional(@Nonnull CompoundNBT compound) {
-        ListNBT list = new ListNBT();
+    protected void writeCustomDataToTag(@Nonnull CompoundTag compound) {
+        ListTag list = new ListTag();
         for(ItemStack stack : storedItems) {
             list.add(stack.serializeNBT());
         }
@@ -196,7 +196,7 @@ public class TotemOfHoldingEntity extends Entity {
 
     @Nonnull
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<?> createSpawnPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

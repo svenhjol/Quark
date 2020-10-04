@@ -1,24 +1,24 @@
 package vazkii.quark.mobs.client.render;
 
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.MobRenderer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.MobEntityRenderer;
+import net.minecraft.util.Identifier;
 import vazkii.quark.base.Quark;
 import vazkii.quark.mobs.client.layer.ToretoiseOreLayer;
 import vazkii.quark.mobs.client.model.ToretoiseModel;
 import vazkii.quark.mobs.entity.ToretoiseEntity;
 
-public class ToretoiseRenderer extends MobRenderer<ToretoiseEntity, ToretoiseModel>{
+public class ToretoiseRenderer extends MobEntityRenderer<ToretoiseEntity, ToretoiseModel>{
 
-	private static final ResourceLocation BASE_TEXTURE = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/toretoise/base.png");
+	private static final Identifier BASE_TEXTURE = new Identifier(Quark.MOD_ID, "textures/model/entity/toretoise/base.png");
 	
-	public ToretoiseRenderer(EntityRendererManager m) {
+	public ToretoiseRenderer(EntityRenderDispatcher m) {
 		super(m, new ToretoiseModel(), 1F);
-		addLayer(new ToretoiseOreLayer(this));
+		addFeature(new ToretoiseOreLayer(this));
 	}
 
 	@Override
-	public ResourceLocation getEntityTexture(ToretoiseEntity entity) {
+	public Identifier getEntityTexture(ToretoiseEntity entity) {
 		return BASE_TEXTURE;
 	}
 

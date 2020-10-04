@@ -1,15 +1,15 @@
 package vazkii.quark.building.entity;
 
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.item.ItemFrameEntity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.Direction;
+import net.minecraft.network.Packet;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -28,25 +28,25 @@ public class GlassItemFrameEntity extends ItemFrameEntity implements IEntityAddi
 	
 	public GlassItemFrameEntity(World worldIn, BlockPos blockPos, Direction face) {
 		super(ItemFramesModule.glassFrameEntity, worldIn);
-		hangingPosition = blockPos;
-		this.updateFacingWithBoundingBox(face);
+		attachmentPos = blockPos;
+		this.setFacing(face);
 	}
 
 	@Nullable
 	@Override
-	public ItemEntity entityDropItem(@Nonnull ItemStack stack, float offset) {
+	public ItemEntity dropStack(@Nonnull ItemStack stack, float offset) {
 		if (stack.getItem() == Items.ITEM_FRAME && !didHackery) {
 			stack = new ItemStack(ItemFramesModule.glassFrame);
 			didHackery = true;
 		}
 			
-		return super.entityDropItem(stack, offset);
+		return super.dropStack(stack, offset);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack getPickedResult(RayTraceResult target) {
-		ItemStack held = getDisplayedItem();
+	public ItemStack getPickedResult(HitResult target) {
+		ItemStack held = getHeldItemStack();
 		if (held.isEmpty())
 			return new ItemStack(ItemFramesModule.glassFrame);
 		else
@@ -55,19 +55,19 @@ public class GlassItemFrameEntity extends ItemFrameEntity implements IEntityAddi
 
 	@Nonnull
 	@Override
-	public IPacket<?> createSpawnPacket() {
+	public Packet<?> createSpawnPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
-	public void writeSpawnData(PacketBuffer buffer) {
-		buffer.writeBlockPos(this.hangingPosition);
-		buffer.writeVarInt(this.facingDirection.getIndex());
+	public void writeSpawnData(PacketByteBuf buffer) {
+		buffer.writeBlockPos(this.attachmentPos);
+		buffer.writeVarInt(this.facing.getId());
 	}
 
 	@Override
-	public void readSpawnData(PacketBuffer buffer) {
-		this.hangingPosition = buffer.readBlockPos();
-		this.updateFacingWithBoundingBox(Direction.byIndex(buffer.readVarInt()));
+	public void readSpawnData(PacketByteBuf buffer) {
+		this.attachmentPos = buffer.readBlockPos();
+		this.setFacing(Direction.byId(buffer.readVarInt()));
 	}
 }

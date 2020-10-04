@@ -27,7 +27,7 @@ public class MorePottedPlantsModule extends Module {
 		add(Blocks.POTATOES, "potato");
 		add(Blocks.PUMPKIN_STEM, "pumpkin");
 		add(Blocks.ROSE_BUSH, "rose");
-		VariantHandler.addFlowerPot(Blocks.SEA_PICKLE, "sea_pickle", p -> p.func_235838_a_(b -> 3)); // light level
+		VariantHandler.addFlowerPot(Blocks.SEA_PICKLE, "sea_pickle", p -> p.lightLevel(b -> 3)); // light level
 		add(Blocks.SUGAR_CANE, "sugar_cane");
 		add(Blocks.SUNFLOWER, "sunflower");
 		add(Blocks.WHEAT, "wheat");

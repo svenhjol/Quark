@@ -12,19 +12,19 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.EnchantedBookItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.World;
 import vazkii.arl.util.ItemNBTHelper;
 import vazkii.quark.api.IEnchantmentInfluencer;
@@ -34,7 +34,7 @@ import vazkii.quark.oddities.container.EnchantmentMatrix.Piece;
 import vazkii.quark.oddities.container.MatrixEnchantingContainer;
 import vazkii.quark.oddities.module.MatrixEnchantingModule;
 
-public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile implements INamedContainerProvider {
+public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile implements NamedScreenHandlerFactory {
 
 	public static final int OPER_ADD = 0;
 	public static final int OPER_PLACE = 1;
@@ -65,21 +65,21 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	public void tick() {
 		super.tick();
 
-		ItemStack item = getStackInSlot(0);
+		ItemStack item = getStack(0);
 		if(item.isEmpty()) {
 			matrix = null;
 			matrixDirty = true;
 		} else {
 			loadMatrix(item);
 
-			if(world.getGameTime() % 20 == 0 || matrixDirty)
+			if(world.getTime() % 20 == 0 || matrixDirty)
 				updateEnchantPower();
 		}
 		
-		if(charge <= 0 && !world.isRemote) {
-			ItemStack lapis = getStackInSlot(1);
+		if(charge <= 0 && !world.isClient) {
+			ItemStack lapis = getStack(1);
 			if(!lapis.isEmpty()) {
-				lapis.shrink(1);
+				lapis.decrement(1);
 				charge += MatrixEnchantingModule.chargePerLapis;
 				sync();
 			}
@@ -116,7 +116,7 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 
 	private void apply(Predicate<EnchantmentMatrix> oper) {
 		if(oper.test(matrix)) {
-			ItemStack item = getStackInSlot(0);
+			ItemStack item = getStack(0);
 			commitMatrix(item);
 		}
 	}
@@ -128,7 +128,7 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 			if(charge > 0 || creative) {
 				if (matrix.generatePiece(influences, bookshelfPower)) {
 					if (!creative) {
-						player.addExperienceLevel(-cost);
+						player.addExperienceLevels(-cost);
 						charge = Math.max(charge - 1, 0);
 					}
 				}
@@ -139,11 +139,11 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	private void makeOutput() {
-		if(world.isRemote)
+		if(world.isClient)
 			return;
 
-		setInventorySlotContents(2, ItemStack.EMPTY);
-		ItemStack in = getStackInSlot(0);
+		setStack(2, ItemStack.EMPTY);
+		ItemStack in = getStack(0);
 		if(!in.isEmpty() && matrix != null && !matrix.placedPieces.isEmpty()) {
 			ItemStack out = in.copy();
 			boolean book = false;
@@ -159,7 +159,7 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 
 				if (p != null && p.enchant != null) {
 					for (Enchantment o : enchantments.keySet())
-						if (o == p.enchant || !p.enchant.isCompatibleWith(o) || !o.isCompatibleWith(p.enchant))
+						if (o == p.enchant || !p.enchant.canCombine(o) || !o.canCombine(p.enchant))
 							return; // Incompatible
 
 					enchantments.put(p.enchant, p.level);
@@ -168,13 +168,13 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 
 			if(book) 
 				for(Entry<Enchantment, Integer> e : enchantments.entrySet())
-					EnchantedBookItem.addEnchantment(out, new EnchantmentData(e.getKey(), e.getValue()));
+					EnchantedBookItem.addEnchantment(out, new EnchantmentLevelEntry(e.getKey(), e.getValue()));
 			else {
-				EnchantmentHelper.setEnchantments(enchantments, out);
+				EnchantmentHelper.set(enchantments, out);
 				ItemNBTHelper.getNBT(out).remove(TAG_STACK_MATRIX);
 			}
 
-			setInventorySlotContents(2, out);
+			setStack(2, out);
 		}
 	}
 
@@ -185,12 +185,12 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 			matrix = null;
 			
 			if(stack.isEnchantable()) {
-				matrix = new EnchantmentMatrix(stack, world.rand);
+				matrix = new EnchantmentMatrix(stack, world.random);
 				matrixDirty = true;
 				makeUUID();
 
 				if(ItemNBTHelper.verifyExistence(stack, TAG_STACK_MATRIX)) {
-					CompoundNBT cmp = ItemNBTHelper.getCompound(stack, TAG_STACK_MATRIX, true);
+					CompoundTag cmp = ItemNBTHelper.getCompound(stack, TAG_STACK_MATRIX, true);
 					if(cmp != null)
 						matrix.readFromNBT(cmp);
 				}
@@ -199,10 +199,10 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	private void commitMatrix(ItemStack stack) {
-		if(world.isRemote)
+		if(world.isClient)
 			return;
 
-		CompoundNBT cmp = new CompoundNBT();
+		CompoundTag cmp = new CompoundTag();
 		matrix.writeToNBT(cmp);
 		ItemNBTHelper.setCompound(stack, TAG_STACK_MATRIX, cmp);
 
@@ -212,12 +212,12 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	private void makeUUID() {
-		if(!world.isRemote)
+		if(!world.isClient)
 			matrixId = UUID.randomUUID();
 	}
 
 	private void updateEnchantPower() {
-		ItemStack item = getStackInSlot(0);
+		ItemStack item = getStack(0);
 		influences.clear();
 		if(item.isEmpty())
 			return;
@@ -249,8 +249,8 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 			BlockPos test = pos.add(k, 0, j);
 			BlockPos testUp = test.up();
 			
-			return (world.isAirBlock(test) || (allowWater && world.getBlockState(test).getBlock() == Blocks.WATER))
-					&& (world.isAirBlock(testUp) || (allowWater && world.getBlockState(testUp).getBlock() == Blocks.WATER));
+			return (world.isAir(test) || (allowWater && world.getBlockState(test).getBlock() == Blocks.WATER))
+					&& (world.isAir(testUp) || (allowWater && world.getBlockState(testUp).getBlock() == Blocks.WATER));
 		}
 		
 		return false;
@@ -279,10 +279,10 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	@Override
-	public void writeSharedNBT(CompoundNBT cmp) {
+	public void writeSharedNBT(CompoundTag cmp) {
 		super.writeSharedNBT(cmp);
 
-		CompoundNBT matrixCmp = new CompoundNBT();
+		CompoundTag matrixCmp = new CompoundTag();
 		if(matrix != null) {
 			matrix.writeToNBT(matrixCmp);
 
@@ -296,7 +296,7 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	@Override
-	public void readSharedNBT(CompoundNBT cmp) {
+	public void readSharedNBT(CompoundTag cmp) {
 		super.readSharedNBT(cmp);
 
 		if(cmp.contains(TAG_MATRIX)) {
@@ -305,9 +305,9 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 			UUID newId = new UUID(most, least);
 
 			if(!newId.equals(matrixId)) {
-				CompoundNBT matrixCmp = cmp.getCompound(TAG_MATRIX);
+				CompoundTag matrixCmp = cmp.getCompound(TAG_MATRIX);
 				matrixId = newId;
-				matrix = new EnchantmentMatrix(getStackInSlot(0), new Random());
+				matrix = new EnchantmentMatrix(getStack(0), new Random());
 				matrix.readFromNBT(matrixCmp);
 			}
 			clientMatrixDirty = true;
@@ -317,12 +317,12 @@ public class MatrixEnchantingTableTileEntity extends BaseEnchantingTableTile imp
 	}
 
 	@Override
-	public Container createMenu(int id, PlayerInventory inv, PlayerEntity player) {
+	public ScreenHandler createMenu(int id, PlayerInventory inv, PlayerEntity player) {
 		return new MatrixEnchantingContainer(id, inv, this);
 	}
 
 	@Override
-	public ITextComponent getDisplayName() {
+	public Text getDisplayName() {
 		return getName();
 	}
 

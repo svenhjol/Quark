@@ -1,7 +1,7 @@
 package vazkii.quark.world.module;
 
 import net.minecraft.block.Blocks;
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
 import vazkii.quark.base.module.ModuleCategory;
@@ -23,7 +23,7 @@ public class UndergroundClayModule extends Module {
 
 	@Override
 	public void setup() {
-		WorldGenHandler.addGenerator(this, new OreGenerator(dimensions, oreSettings, Blocks.CLAY.getDefaultState(), OreGenerator.STONE_MATCHER, Generator.NO_COND), Decoration.UNDERGROUND_ORES, WorldGenWeights.CLAY);
+		WorldGenHandler.addGenerator(this, new OreGenerator(dimensions, oreSettings, Blocks.CLAY.getDefaultState(), OreGenerator.STONE_MATCHER, Generator.NO_COND), Feature.UNDERGROUND_ORES, WorldGenWeights.CLAY);
 	}
 
 }

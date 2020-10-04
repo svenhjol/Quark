@@ -1,6 +1,6 @@
 package vazkii.quark.tweaks.module;
 
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraftforge.common.ToolType;
@@ -18,10 +18,10 @@ public class AxeLeafHarvestingModule extends Module {
 		if (event.getOriginalSpeed() <= 0)
 			return;
 
-		ItemStack stack = event.getPlayer().getHeldItem(Hand.MAIN_HAND);
+		ItemStack stack = event.getPlayer().getStackInHand(Hand.MAIN_HAND);
 		if(stack.getItem().getToolTypes(stack).contains(ToolType.AXE) &&
 				event.getState().getMaterial() == Material.LEAVES)
-			event.setNewSpeed(100 * event.getState().getBlockHardness(event.getPlayer().world, event.getPos()));
+			event.setNewSpeed(100 * event.getState().getHardness(event.getPlayer().world, event.getPos()));
 	}	
 
 }

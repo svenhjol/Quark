@@ -1,9 +1,8 @@
 package vazkii.quark.client.tooltip;
 
 import java.util.List;
-
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.text.StringRenderable;
+import net.minecraft.util.Formatting;
 
 /**
  * @author WireSegal
@@ -11,10 +10,10 @@ import net.minecraft.util.text.TextFormatting;
  */
 public class TooltipUtils {
 
-    public static int shiftTextByLines(List<? extends ITextProperties> lines, int y) {
+    public static int shiftTextByLines(List<? extends StringRenderable> lines, int y) {
         for(int i = 1; i < lines.size(); i++) {
             String s = lines.get(i).getString();
-            s = TextFormatting.getTextWithoutFormattingCodes(s);
+            s = Formatting.strip(s);
             if(s != null && s.trim().isEmpty()) {
                 y += 10 * (i - 1) + 1;
                 break;

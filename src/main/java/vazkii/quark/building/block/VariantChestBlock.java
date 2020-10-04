@@ -5,26 +5,28 @@ import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.api.EnvironmentInterface;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ChestBlock;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms.TransformType;
-import net.minecraft.client.renderer.tileentity.ItemStackTileEntityRenderer;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.render.item.BuiltinModelItemRenderer;
+import net.minecraft.client.render.model.json.ModelTransformation.Mode;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.ChestTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.BlockView;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.ModList;
@@ -36,7 +38,7 @@ import vazkii.quark.building.client.render.VariantChestTileEntityRenderer;
 import vazkii.quark.building.module.VariantChestsModule.IChestTextureProvider;
 import vazkii.quark.building.tile.VariantChestTileEntity;
 
-@OnlyIn(value = Dist.CLIENT, _interface = IBlockItemProvider.class)
+@EnvironmentInterface(value = EnvType.CLIENT, itf = IBlockItemProvider.class)
 public class VariantChestBlock extends ChestBlock implements IBlockItemProvider, IQuarkBlock, IChestTextureProvider {
 
 	public final String type;
@@ -45,7 +47,7 @@ public class VariantChestBlock extends ChestBlock implements IBlockItemProvider,
 	
 	private String path;
 
-	public VariantChestBlock(String type, Module module, Supplier<TileEntityType<? extends ChestTileEntity>> supplier, Properties props) {
+	public VariantChestBlock(String type, Module module, Supplier<BlockEntityType<? extends ChestBlockEntity>> supplier, Settings props) {
 		super(props, supplier);
 		RegistryHelper.registerBlock(this, type + "_chest");
 		RegistryHelper.setCreativeTab(this, ItemGroup.DECORATIONS);
@@ -57,14 +59,14 @@ public class VariantChestBlock extends ChestBlock implements IBlockItemProvider,
 	}
 	
 	@Override
-	public boolean isFlammable(BlockState state, IBlockReader world, BlockPos pos, Direction face) {
+	public boolean isFlammable(BlockState state, BlockView world, BlockPos pos, Direction face) {
 		return false;
 	}
 	
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 	@Override
@@ -85,18 +87,18 @@ public class VariantChestBlock extends ChestBlock implements IBlockItemProvider,
 	}
 
 	@Override
-	public TileEntity createNewTileEntity(IBlockReader worldIn) {
+	public BlockEntity createBlockEntity(BlockView worldIn) {
 		return new VariantChestTileEntity();
 	}
 	
-	@OnlyIn(Dist.CLIENT)
-	public static void setISTER(Item.Properties props, Block block) {
-		props.setISTER(() -> () -> new ItemStackTileEntityRenderer() {
-			private final TileEntity tile = new VariantChestTileEntity();
+	@Environment(EnvType.CLIENT)
+	public static void setISTER(Item.Settings props, Block block) {
+		props.setISTER(() -> () -> new BuiltinModelItemRenderer() {
+			private final BlockEntity tile = new VariantChestTileEntity();
 			//render
-			public void func_239207_a_(ItemStack stack, TransformType transformType, MatrixStack matrix, IRenderTypeBuffer buffer, int x, int y) {
+			public void render(ItemStack stack, Mode transformType, MatrixStack matrix, VertexConsumerProvider buffer, int x, int y) {
 				VariantChestTileEntityRenderer.invBlock = block;
-	            TileEntityRendererDispatcher.instance.renderItem(tile, matrix, buffer, x, y);
+	            BlockEntityRenderDispatcher.INSTANCE.renderEntity(tile, matrix, buffer, x, y);
 	            VariantChestTileEntityRenderer.invBlock = null;
 			}
 			
@@ -104,15 +106,15 @@ public class VariantChestBlock extends ChestBlock implements IBlockItemProvider,
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public BlockItem provideItemBlock(Block block, Item.Properties props) {
+	@Environment(EnvType.CLIENT)
+	public BlockItem provideItemBlock(Block block, Item.Settings props) {
 		setISTER(props, block);
 		return new BlockItem(block, props);
 	}
 	
 	public static class Compat extends VariantChestBlock {
 
-		public Compat(String type, String mod, Module module, Supplier<TileEntityType<? extends ChestTileEntity>> supplier, Properties props) {
+		public Compat(String type, String mod, Module module, Supplier<BlockEntityType<? extends ChestBlockEntity>> supplier, Settings props) {
 			super(type, module, supplier, props);
 			setCondition(() -> ModList.get().isLoaded(mod));
 		}

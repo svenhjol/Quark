@@ -1,21 +1,22 @@
 package vazkii.quark.management.module;
 
 import java.util.List;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.item.BoatEntity;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.tag.ItemTags;
+import net.minecraft.tag.Tag;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -40,12 +41,12 @@ public class ChestsInBoatsModule extends Module {
 
 	public static EntityType<ChestPassengerEntity> chestPassengerEntityType;
 
-	private static ITag<Item> boatableChestsTag;
+	private static Tag<Item> boatableChestsTag;
 	
 	@Override
 	public void construct() {
-		chestPassengerEntityType = EntityType.Builder.<ChestPassengerEntity>create(ChestPassengerEntity::new, EntityClassification.MISC)
-				.size(0.8F, 0.8F)
+		chestPassengerEntityType = EntityType.Builder.<ChestPassengerEntity>create(ChestPassengerEntity::new, SpawnGroup.MISC)
+				.setDimensions(0.8F, 0.8F)
 				.setTrackingRange(64)
 				.setUpdateInterval(128)
 				.setCustomClientFactory((spawnEntity, world) -> new ChestPassengerEntity(chestPassengerEntityType, world))
@@ -55,11 +56,11 @@ public class ChestsInBoatsModule extends Module {
 	
     @Override
     public void setup() {
-    	boatableChestsTag = ItemTags.makeWrapperTag(Quark.MOD_ID + ":boatable_chests");
+    	boatableChestsTag = ItemTags.register(Quark.MOD_ID + ":boatable_chests");
     }
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		RenderingRegistry.registerEntityRenderingHandler(chestPassengerEntityType, ChestPassengerRenderer::new);
 	}
@@ -69,46 +70,46 @@ public class ChestsInBoatsModule extends Module {
 		Entity target = event.getTarget();
 		PlayerEntity player = event.getPlayer();
 
-		if(target instanceof BoatEntity && target.getPassengers().isEmpty()) {
+		if(target instanceof BoatEntity && target.getPassengerList().isEmpty()) {
 			Hand hand = Hand.MAIN_HAND;
-			ItemStack stack = player.getHeldItemMainhand();
+			ItemStack stack = player.getMainHandStack();
 			if(!isChest(stack)) {
-				stack = player.getHeldItemOffhand();
+				stack = player.getOffHandStack();
 				hand = Hand.OFF_HAND;
 			}
 
 			if(isChest(stack)) {
 				World world = event.getWorld();
 				
-				if(!event.getWorld().isRemote) {
+				if(!event.getWorld().isClient) {
 					ItemStack chestStack = stack.copy();
 					chestStack.setCount(1);
 					if (!player.isCreative())
-						stack.shrink(1);
+						stack.decrement(1);
 
 					ChestPassengerEntity passenger = new ChestPassengerEntity(world, chestStack);
-					Vector3d pos = target.getPositionVec();
-					passenger.setPosition(pos.x, pos.y, pos.z);
-					passenger.rotationYaw = target.rotationYaw;
+					Vec3d pos = target.getPos();
+					passenger.updatePosition(pos.x, pos.y, pos.z);
+					passenger.yaw = target.yaw;
 					passenger.startRiding(target, true);
-					world.addEntity(passenger);
+					world.spawnEntity(passenger);
 				}
 				
-				player.swingArm(hand);
-				event.setCancellationResult(ActionResultType.SUCCESS);
+				player.swingHand(hand);
+				event.setCancellationResult(ActionResult.SUCCESS);
 				event.setCanceled(true);
 			}
 		}
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGH)
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onOpenGUI(GuiOpenEvent event) {
-		PlayerEntity player = Minecraft.getInstance().player;
-		if(player != null && event.getGui() instanceof InventoryScreen && player.isPassenger()) {
-			Entity riding = player.getRidingEntity();
+		PlayerEntity player = MinecraftClient.getInstance().player;
+		if(player != null && event.getGui() instanceof InventoryScreen && player.hasVehicle()) {
+			Entity riding = player.getVehicle();
 			if(riding instanceof BoatEntity) {
-				List<Entity> passengers = riding.getPassengers();
+				List<Entity> passengers = riding.getPassengerList();
 				for(Entity passenger : passengers)
 					if(passenger instanceof ChestPassengerEntity) {
 						QuarkNetwork.sendToServer(new OpenBoatChestMessage());

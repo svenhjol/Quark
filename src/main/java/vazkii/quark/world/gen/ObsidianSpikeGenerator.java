@@ -4,17 +4,17 @@ import java.util.Random;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.MobSpawnerBlockEntity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.tileentity.ChestTileEntity;
-import net.minecraft.tileentity.MobSpawnerTileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.structure.StructureManager;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 import vazkii.quark.base.handler.MiscUtil;
 import vazkii.quark.base.module.ModuleLoader;
 import vazkii.quark.base.world.config.DimensionConfig;
@@ -29,7 +29,7 @@ public class ObsidianSpikeGenerator extends Generator {
 	}
 
 	@Override
-	public void generateChunk(WorldGenRegion world, ChunkGenerator generator, StructureManager structureManager, Random rand, BlockPos chunkCorner) {
+	public void generateChunk(ChunkRegion world, ChunkGenerator generator, StructureAccessor structureManager, Random rand, BlockPos chunkCorner) {
 		if(rand.nextFloat() < NetherObsidianSpikesModule.chancePerChunk) {
 			for(int i = 0; i < NetherObsidianSpikesModule.triesPerChunk; i++) {
 				BlockPos pos = chunkCorner.add(rand.nextInt(16), 50, rand.nextInt(16));
@@ -46,7 +46,7 @@ public class ObsidianSpikeGenerator extends Generator {
 		}
 	}
 	
-	public static void placeSpikeAt(IWorld world, BlockPos pos, Random rand) {
+	public static void placeSpikeAt(WorldAccess world, BlockPos pos, Random rand) {
 		int heightBelow = 10;
 		int heightBottom = 3 + rand.nextInt(3);
 		int heightMiddle = 2 + rand.nextInt(4);
@@ -65,7 +65,7 @@ public class ObsidianSpikeGenerator extends Generator {
 			for(int j = 0; j < 5; j++)
 				for(int k = 0; k < checkHeight; k++) {
 					BlockPos checkPos = pos.add(i - 2, k, j - 2);
-					if(!(world.isAirBlock(checkPos) || world.getBlockState(checkPos).getMaterial() == Material.LAVA))
+					if(!(world.isAir(checkPos) || world.getBlockState(checkPos).getMaterial() == Material.LAVA))
 						return;
 				}
 		
@@ -76,7 +76,7 @@ public class ObsidianSpikeGenerator extends Generator {
 				for(int k = 0; k < heightBottom + heightBelow; k++) {
 					BlockPos placePos = pos.add(i - 1, k - heightBelow, j - 1);
 
-					if(world.getBlockState(placePos).getBlockHardness(world, placePos) != -1)
+					if(world.getBlockState(placePos).getHardness(world, placePos) != -1)
 						world.setBlockState(placePos, obsidian, 0);
 				}
 		
@@ -98,11 +98,11 @@ public class ObsidianSpikeGenerator extends Generator {
 				
 				placePos = placePos.down();
 				world.setBlockState(placePos, Blocks.SPAWNER.getDefaultState(), 0);
-				((MobSpawnerTileEntity) world.getTileEntity(placePos)).getSpawnerBaseLogic().setEntityType(EntityType.BLAZE);
+				((MobSpawnerBlockEntity) world.getBlockEntity(placePos)).getLogic().setEntityId(EntityType.BLAZE);
 				
 				placePos = placePos.down();
 				world.setBlockState(placePos, Blocks.CHEST.getDefaultState(), 0);
-				((ChestTileEntity) world.getTileEntity(placePos)).setLootTable(new ResourceLocation("minecraft", "chests/nether_bridge"), rand.nextLong());
+				((ChestBlockEntity) world.getBlockEntity(placePos)).setLootTable(new Identifier("minecraft", "chests/nether_bridge"), rand.nextLong());
 			}
 		}
 	}

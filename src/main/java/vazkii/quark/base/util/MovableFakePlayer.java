@@ -1,10 +1,9 @@
 package vazkii.quark.base.util;
 
 import com.mojang.authlib.GameProfile;
-
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.common.util.FakePlayer;
 
 public class MovableFakePlayer extends FakePlayer {
@@ -14,13 +13,13 @@ public class MovableFakePlayer extends FakePlayer {
 	}
 
 	@Override
-	public Vector3d getPositionVec() {
-		return new Vector3d(getPosX(), getPosY(), getPosZ());
+	public Vec3d getPos() {
+		return new Vec3d(getX(), getY(), getZ());
 	}
 	
 	@Override
-	public BlockPos func_233580_cy_() {
-		return new BlockPos((int) getPosX(), (int) getPosY(), (int) getPosZ());
+	public BlockPos getBlockPos() {
+		return new BlockPos((int) getX(), (int) getY(), (int) getZ());
 	}
 	
 }

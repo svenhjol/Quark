@@ -3,19 +3,19 @@ package vazkii.quark.world.block;
 import java.util.Random;
 
 import javax.annotation.Nonnull;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.HugeMushroomBlock;
+import net.minecraft.block.MushroomBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.util.Direction;
-import net.minecraft.util.NonNullList;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.tag.BlockTags;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -25,15 +25,15 @@ import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
 import vazkii.quark.base.module.Module;
 import vazkii.quark.world.module.underground.GlowshroomUndergroundBiomeModule;
 
-public class HugeGlowshroomBlock extends HugeMushroomBlock {
+public class HugeGlowshroomBlock extends MushroomBlock {
 
 	private final Module module;
 
 	public HugeGlowshroomBlock(String name, Module module) {
-		super(Block.Properties.from(Blocks.RED_MUSHROOM_BLOCK)
-				.func_235838_a_(b -> 14) // lightValue
-				.tickRandomly()
-				.notSolid());
+		super(Block.Properties.copy(Blocks.RED_MUSHROOM_BLOCK)
+				.lightLevel(b -> 14) // lightValue
+				.ticksRandomly()
+				.nonOpaque());
 
 		this.module = module;
 		RegistryHelper.registerBlock(this, name);
@@ -43,23 +43,23 @@ public class HugeGlowshroomBlock extends HugeMushroomBlock {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public void animateTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-		super.animateTick(stateIn, worldIn, pos, rand);
+	@Environment(EnvType.CLIENT)
+	public void randomDisplayTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
+		super.randomDisplayTick(stateIn, worldIn, pos, rand);
 
 		if(rand.nextInt(10) == 0)
 			worldIn.addParticle(ParticleTypes.END_ROD, pos.getX() + rand.nextDouble(), pos.getY() + rand.nextDouble(), pos.getZ() + rand.nextDouble(), 0, 0, 0);
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	@SuppressWarnings("deprecation")
 	public boolean isSideInvisible(BlockState state, BlockState adjacentBlockState, Direction side) {
 		return adjacentBlockState.getBlock() == this || super.isSideInvisible(state, adjacentBlockState, side);
 	}
 
 	@Override
-	public boolean isTransparent(BlockState state) {
+	public boolean hasSidedTransparency(BlockState state) {
 		return true;
 	}
 	
@@ -94,7 +94,7 @@ public class HugeGlowshroomBlock extends HugeMushroomBlock {
 
 					for(int i1 = -l; i1 <= l; ++i1) {
 						for(int j1 = -l; j1 <= l; ++j1) {
-							BlockState blockstate = worldIn.getBlockState(blockpos$mutableblockpos.setPos(pos).move(i1, k, j1));
+							BlockState blockstate = worldIn.getBlockState(blockpos$mutableblockpos.set(pos).move(i1, k, j1));
 							if (!blockstate.isAir(worldIn, blockpos$mutableblockpos) && !blockstate.isIn(BlockTags.LEAVES)) { // isIn
 								return false;
 							}
@@ -102,7 +102,7 @@ public class HugeGlowshroomBlock extends HugeMushroomBlock {
 					}
 				}
 
-				BlockState blockstate1 = GlowshroomUndergroundBiomeModule.glowshroom_block.getDefaultState().with(HugeMushroomBlock.DOWN, Boolean.valueOf(false));
+				BlockState blockstate1 = GlowshroomUndergroundBiomeModule.glowshroom_block.getDefaultState().with(MushroomBlock.DOWN, Boolean.valueOf(false));
 
 				for(int l1 = i - 3; l1 <= i; ++l1) {
 					int i2 = l1 < i ? 2 : 1;
@@ -116,19 +116,19 @@ public class HugeGlowshroomBlock extends HugeMushroomBlock {
 							boolean flag4 = flag || flag1;
 							boolean flag5 = flag2 || flag3;
 							if (l1 >= i || flag4 != flag5) {
-								blockpos$mutableblockpos.setPos(pos).move(l2, l1, k1);
+								blockpos$mutableblockpos.set(pos).move(l2, l1, k1);
 								if (worldIn.getBlockState(blockpos$mutableblockpos).canBeReplacedByLeaves(worldIn, blockpos$mutableblockpos)) {
-									worldIn.setBlockState(blockpos$mutableblockpos, blockstate1.with(HugeMushroomBlock.UP, Boolean.valueOf(l1 >= i - 1)).with(HugeMushroomBlock.WEST, Boolean.valueOf(l2 < 0)).with(HugeMushroomBlock.EAST, Boolean.valueOf(l2 > 0)).with(HugeMushroomBlock.NORTH, Boolean.valueOf(k1 < 0)).with(HugeMushroomBlock.SOUTH, Boolean.valueOf(k1 > 0)), 2);
+									worldIn.setBlockState(blockpos$mutableblockpos, blockstate1.with(MushroomBlock.UP, Boolean.valueOf(l1 >= i - 1)).with(MushroomBlock.WEST, Boolean.valueOf(l2 < 0)).with(MushroomBlock.EAST, Boolean.valueOf(l2 > 0)).with(MushroomBlock.NORTH, Boolean.valueOf(k1 < 0)).with(MushroomBlock.SOUTH, Boolean.valueOf(k1 > 0)), 2);
 								}
 							}
 						}
 					}
 				}
 
-				BlockState blockstate2 = GlowshroomUndergroundBiomeModule.glowshroom_stem.getDefaultState().with(HugeMushroomBlock.UP, Boolean.valueOf(false)).with(HugeMushroomBlock.DOWN, Boolean.valueOf(false));
+				BlockState blockstate2 = GlowshroomUndergroundBiomeModule.glowshroom_stem.getDefaultState().with(MushroomBlock.UP, Boolean.valueOf(false)).with(MushroomBlock.DOWN, Boolean.valueOf(false));
 
 				for(int j2 = 0; j2 < i; ++j2) {
-					blockpos$mutableblockpos.setPos(pos).move(Direction.UP, j2);
+					blockpos$mutableblockpos.set(pos).move(Direction.UP, j2);
 					if (worldIn.getBlockState(blockpos$mutableblockpos).canBeReplacedByLeaves(worldIn, blockpos$mutableblockpos)) {
 						worldIn.setBlockState(blockpos$mutableblockpos, blockstate2, 3);
 					}
@@ -142,9 +142,9 @@ public class HugeGlowshroomBlock extends HugeMushroomBlock {
 	}
 
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 	public boolean isEnabled() {

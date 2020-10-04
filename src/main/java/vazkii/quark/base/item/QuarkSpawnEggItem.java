@@ -4,7 +4,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.SpawnEggItem;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.collection.DefaultedList;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.module.Module;
 
@@ -16,7 +16,7 @@ public class QuarkSpawnEggItem extends SpawnEggItem {
 	private final Module module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkSpawnEggItem(EntityType<?> type, int primaryColor, int secondaryColor, String regname, Module module, Properties properties) {
+	public QuarkSpawnEggItem(EntityType<?> type, int primaryColor, int secondaryColor, String regname, Module module, Settings properties) {
 		super(type, primaryColor, secondaryColor, properties);
 
 		RegistryHelper.registerItem(this, regname);
@@ -24,9 +24,9 @@ public class QuarkSpawnEggItem extends SpawnEggItem {
 	}
 
 	@Override
-	public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
+	public void appendStacks(@Nonnull ItemGroup group, @Nonnull DefaultedList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.fillItemGroup(group, items);
+			super.appendStacks(group, items);
 	}
 
 	public QuarkSpawnEggItem setCondition(BooleanSupplier enabledSupplier) {

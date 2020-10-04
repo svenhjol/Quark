@@ -11,49 +11,49 @@ import com.google.common.collect.Sets;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
-import net.minecraft.entity.CreatureEntity;
+import net.minecraft.block.Material;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityData;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ILivingEntityData;
-import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.ai.attributes.AttributeModifierMap;
-import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.goal.PrioritizedGoal;
 import net.minecraft.entity.ai.goal.TemptGoal;
-import net.minecraft.entity.ai.goal.WaterAvoidingRandomWalkingGoal;
+import net.minecraft.entity.ai.goal.WanderAroundFarGoal;
+import net.minecraft.entity.ai.pathing.PathNodeType;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootParameterSets;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.particles.BlockParticleData;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.pathfinding.PathNodeType;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.DamageSource;
+import net.minecraft.loot.context.LootContext;
+import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Packet;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvent;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.DifficultyInstance;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.LocalDifficulty;
+import net.minecraft.world.RayTraceContext;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.extensions.IForgeWorldServer;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -67,13 +67,13 @@ import vazkii.quark.mobs.ai.RunAndPoofGoal;
 import vazkii.quark.mobs.module.FrogsModule;
 import vazkii.quark.mobs.module.StonelingsModule;
 
-public class StonelingEntity extends CreatureEntity {
+public class StonelingEntity extends PathAwareEntity {
 
-	public static final ResourceLocation CARRY_LOOT_TABLE = new ResourceLocation("quark", "entities/stoneling_carry");
+	public static final Identifier CARRY_LOOT_TABLE = new Identifier("quark", "entities/stoneling_carry");
 
-	private static final DataParameter<ItemStack> CARRYING_ITEM = EntityDataManager.createKey(StonelingEntity.class, DataSerializers.ITEMSTACK);
-	private static final DataParameter<Byte> VARIANT = EntityDataManager.createKey(StonelingEntity.class, DataSerializers.BYTE);
-	private static final DataParameter<Float> HOLD_ANGLE = EntityDataManager.createKey(StonelingEntity.class, DataSerializers.FLOAT);
+	private static final TrackedData<ItemStack> CARRYING_ITEM = DataTracker.registerData(StonelingEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
+	private static final TrackedData<Byte> VARIANT = DataTracker.registerData(StonelingEntity.class, TrackedDataHandlerRegistry.BYTE);
+	private static final TrackedData<Float> HOLD_ANGLE = DataTracker.registerData(StonelingEntity.class, TrackedDataHandlerRegistry.FLOAT);
 
 	private static final String TAG_CARRYING_ITEM = "carryingItem";
 	private static final String TAG_VARIANT = "variant";
@@ -86,65 +86,65 @@ public class StonelingEntity extends CreatureEntity {
 
 	public StonelingEntity(EntityType<? extends StonelingEntity> type, World worldIn) {
 		super(type, worldIn);
-		this.setPathPriority(PathNodeType.DAMAGE_CACTUS, 1.0F);
-		this.setPathPriority(PathNodeType.DANGER_CACTUS, 1.0F);
+		this.setPathfindingPenalty(PathNodeType.DAMAGE_CACTUS, 1.0F);
+		this.setPathfindingPenalty(PathNodeType.DANGER_CACTUS, 1.0F);
 	}
 
 	@Override
-	protected void registerData() {
-		super.registerData();
+	protected void initDataTracker() {
+		super.initDataTracker();
 
-		dataManager.register(CARRYING_ITEM, ItemStack.EMPTY);
-		dataManager.register(VARIANT, (byte) 0);
-		dataManager.register(HOLD_ANGLE, 0F);
+		dataTracker.startTracking(CARRYING_ITEM, ItemStack.EMPTY);
+		dataTracker.startTracking(VARIANT, (byte) 0);
+		dataTracker.startTracking(HOLD_ANGLE, 0F);
 	}
 
 	@Override
-	protected void registerGoals() {
-		goalSelector.addGoal(5, new WaterAvoidingRandomWalkingGoal(this, 0.2, 0.98F));
-		goalSelector.addGoal(4, new FavorBlockGoal(this, 0.2, s -> s.getBlock().isIn(Tags.Blocks.ORES_DIAMOND)));
-		goalSelector.addGoal(3, new IfFlagGoal(new TemptGoal(this, 0.6, Ingredient.fromTag(Tags.Items.GEMS_DIAMOND), false), () -> StonelingsModule.enableDiamondHeart && !StonelingsModule.tamableStonelings));
-		goalSelector.addGoal(2, new RunAndPoofGoal<>(this, PlayerEntity.class, 4, 0.5, 0.5));
-		goalSelector.addGoal(1, waryGoal = new ActWaryGoal(this, 0.1, 6, () -> StonelingsModule.cautiousStonelings));
-		goalSelector.addGoal(0, new IfFlagGoal(new TemptGoal(this, 0.6, Ingredient.fromTag(Tags.Items.GEMS_DIAMOND), false), () -> StonelingsModule.tamableStonelings));
+	protected void initGoals() {
+		goalSelector.add(5, new WanderAroundFarGoal(this, 0.2, 0.98F));
+		goalSelector.add(4, new FavorBlockGoal(this, 0.2, s -> s.getBlock().isIn(Tags.Blocks.ORES_DIAMOND)));
+		goalSelector.add(3, new IfFlagGoal(new TemptGoal(this, 0.6, Ingredient.fromTag(Tags.Items.GEMS_DIAMOND), false), () -> StonelingsModule.enableDiamondHeart && !StonelingsModule.tamableStonelings));
+		goalSelector.add(2, new RunAndPoofGoal<>(this, PlayerEntity.class, 4, 0.5, 0.5));
+		goalSelector.add(1, waryGoal = new ActWaryGoal(this, 0.1, 6, () -> StonelingsModule.cautiousStonelings));
+		goalSelector.add(0, new IfFlagGoal(new TemptGoal(this, 0.6, Ingredient.fromTag(Tags.Items.GEMS_DIAMOND), false), () -> StonelingsModule.tamableStonelings));
 
 	}
 
-	public static AttributeModifierMap.MutableAttribute prepareAttributes() {
-        return MobEntity.func_233666_p_()
-                .func_233815_a_(Attributes.field_233818_a_, 8.0D) // MAX_HEALTH
-                .func_233815_a_(Attributes.field_233820_c_, 1D); // KNOCKBACK_RESISTANCE
+	public static DefaultAttributeContainer.Builder prepareAttributes() {
+        return MobEntity.createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 8.0D) // MAX_HEALTH
+                .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 1D); // KNOCKBACK_RESISTANCE
     }
 
 	@Override
 	public void tick() {
 		super.tick();
 
-		if (inWater)
+		if (touchingWater)
 			stepHeight = 1F;
 		else
 			stepHeight = 0.6F;
 
-		if (!world.isRemote && world.getDifficulty() == Difficulty.PEACEFUL && !isTame) {
+		if (!world.isClient && world.getDifficulty() == Difficulty.PEACEFUL && !isTame) {
 			remove();
-			for (Entity passenger : getRecursivePassengers())
+			for (Entity passenger : getPassengersDeep())
 				if (!(passenger instanceof PlayerEntity))
 					passenger.remove();
 		}
 
-		this.prevRenderYawOffset = this.prevRotationYaw;
-		this.renderYawOffset = this.rotationYaw;
+		this.prevBodyYaw = this.prevYaw;
+		this.bodyYaw = this.yaw;
 	}
 
 	@Override
-	public EntityClassification getClassification(boolean forSpawnCount) {
+	public SpawnGroup getClassification(boolean forSpawnCount) {
 		if (isTame)
-			return EntityClassification.CREATURE;
-		return EntityClassification.MONSTER;
+			return SpawnGroup.CREATURE;
+		return SpawnGroup.MONSTER;
 	}
 
 	@Override
-	public boolean canDespawn(double distanceToClosestPlayer) {
+	public boolean canImmediatelyDespawn(double distanceToClosestPlayer) {
 		return !isTame;
 	}
 	
@@ -153,31 +153,31 @@ public class StonelingEntity extends CreatureEntity {
 		boolean wasAlive = isAlive();
 		super.checkDespawn();
 		if (!isAlive() && wasAlive)
-			for (Entity passenger : getRecursivePassengers())
+			for (Entity passenger : getPassengersDeep())
 				if (!(passenger instanceof PlayerEntity))
 					passenger.remove();
 	}
 
 	@Override // processInteract
-	public ActionResultType func_230254_b_(PlayerEntity player, @Nonnull Hand hand) {
-		ItemStack stack = player.getHeldItem(hand);
+	public ActionResult interactMob(PlayerEntity player, @Nonnull Hand hand) {
+		ItemStack stack = player.getStackInHand(hand);
 
 		if(!stack.isEmpty() && stack.getItem() == Items.NAME_TAG)
-			return stack.getItem().itemInteractionForEntity(stack, player, this, hand);
+			return stack.getItem().useOnEntity(stack, player, this, hand);
 		else
-			return super.func_230254_b_(player, hand);
+			return super.interactMob(player, hand);
 	}
 
 	@Nonnull
 	@Override
-	public ActionResultType applyPlayerInteraction(PlayerEntity player, Vector3d vec, Hand hand) {
+	public ActionResult interactAt(PlayerEntity player, Vec3d vec, Hand hand) {
 		if(hand == Hand.MAIN_HAND && isAlive()) {
-			ItemStack playerItem = player.getHeldItem(hand);
-			Vector3d pos = getPositionVec();
+			ItemStack playerItem = player.getStackInHand(hand);
+			Vec3d pos = getPos();
 
-			if(!world.isRemote) {
+			if(!world.isClient) {
 				if (isPlayerMade()) {
-					if (!player.isDiscrete() && !playerItem.isEmpty()) {
+					if (!player.isSneaky() && !playerItem.isEmpty()) {
 
 						EnumStonelingVariant currentVariant = getVariant();
 						EnumStonelingVariant targetVariant = null;
@@ -194,34 +194,34 @@ public class StonelingEntity extends CreatureEntity {
 
 						if (targetVariant != null) {
 							if (world instanceof ServerWorld) {
-								((ServerWorld) world).spawnParticle(ParticleTypes.HEART, pos.x, pos.y + getHeight(), pos.z, 1, 0.1, 0.1, 0.1, 0.1);
+								((ServerWorld) world).spawnParticles(ParticleTypes.HEART, pos.x, pos.y + getHeight(), pos.z, 1, 0.1, 0.1, 0.1, 0.1);
 								if (targetVariant != currentVariant)
-									((ServerWorld) world).spawnParticle(new BlockParticleData(ParticleTypes.BLOCK, targetBlock.getDefaultState()), pos.x, pos.y + getHeight() / 2, pos.z, 16, 0.1, 0.1, 0.1, 0.25);
+									((ServerWorld) world).spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, targetBlock.getDefaultState()), pos.x, pos.y + getHeight() / 2, pos.z, 16, 0.1, 0.1, 0.1, 0.25);
 							}
 
 							if (targetVariant != currentVariant) {
 								playSound(QuarkSounds.ENTITY_STONELING_EAT, 1F, 1F);
-								dataManager.set(VARIANT, targetVariant.getIndex());
+								dataTracker.set(VARIANT, targetVariant.getIndex());
 							}
 
-							playSound(QuarkSounds.ENTITY_STONELING_PURR, 1F, 1F + world.rand.nextFloat() * 1F);
+							playSound(QuarkSounds.ENTITY_STONELING_PURR, 1F, 1F + world.random.nextFloat() * 1F);
 
 							heal(1);
 
-							if (!player.abilities.isCreativeMode)
-								playerItem.shrink(1);
+							if (!player.abilities.creativeMode)
+								playerItem.decrement(1);
 
-							return ActionResultType.SUCCESS;
+							return ActionResult.SUCCESS;
 						}
 
-						return ActionResultType.PASS;
+						return ActionResult.PASS;
 					}
 
-					ItemStack stonelingItem = dataManager.get(CARRYING_ITEM);
+					ItemStack stonelingItem = dataTracker.get(CARRYING_ITEM);
 
 					if (!stonelingItem.isEmpty() || !playerItem.isEmpty()) {
-						player.setHeldItem(hand, stonelingItem.copy());
-						dataManager.set(CARRYING_ITEM, playerItem.copy());
+						player.setStackInHand(hand, stonelingItem.copy());
+						dataTracker.set(CARRYING_ITEM, playerItem.copy());
 
 						if (playerItem.isEmpty())
 							playSound(QuarkSounds.ENTITY_STONELING_GIVE, 1F, 1F);
@@ -232,51 +232,51 @@ public class StonelingEntity extends CreatureEntity {
 
 					setPlayerMade(true);
 
-					playSound(QuarkSounds.ENTITY_STONELING_PURR, 1F, 1F + world.rand.nextFloat() * 1F);
+					playSound(QuarkSounds.ENTITY_STONELING_PURR, 1F, 1F + world.random.nextFloat() * 1F);
 
-					if (!player.abilities.isCreativeMode)
-						playerItem.shrink(1);
+					if (!player.abilities.creativeMode)
+						playerItem.decrement(1);
 
 					if (world instanceof ServerWorld)
-						((ServerWorld) world).spawnParticle(ParticleTypes.HEART, pos.x, pos.y + getHeight(), pos.z, 4, 0.1, 0.1, 0.1, 0.1);
+						((ServerWorld) world).spawnParticles(ParticleTypes.HEART, pos.x, pos.y + getHeight(), pos.z, 4, 0.1, 0.1, 0.1, 0.1);
 
-					return ActionResultType.SUCCESS;
+					return ActionResult.SUCCESS;
 				}
 			}
 		}
 
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 
 	@Nullable
 	@Override
-	public ILivingEntityData onInitialSpawn(IWorld world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable ILivingEntityData data, @Nullable CompoundNBT compound) {
+	public EntityData initialize(WorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData data, @Nullable CompoundTag compound) {
 		byte variant;
 		if (data instanceof EnumStonelingVariant)
 			variant = ((EnumStonelingVariant) data).getIndex();
 		else
 			variant = (byte) world.getRandom().nextInt(EnumStonelingVariant.values().length);
 
-		dataManager.set(VARIANT, variant);
-		dataManager.set(HOLD_ANGLE, world.getRandom().nextFloat() * 90 - 45);
+		dataTracker.set(VARIANT, variant);
+		dataTracker.set(HOLD_ANGLE, world.getRandom().nextFloat() * 90 - 45);
 
-		if(!isTame && !world.isRemote() && world instanceof IForgeWorldServer) {
-			if (ModuleLoader.INSTANCE.isModuleEnabled(FrogsModule.class) && rand.nextDouble() < 0.01) {
+		if(!isTame && !world.isClient() && world instanceof IForgeWorldServer) {
+			if (ModuleLoader.INSTANCE.isModuleEnabled(FrogsModule.class) && random.nextDouble() < 0.01) {
 				FrogEntity frog = new FrogEntity(FrogsModule.frogType, world.getWorld(), 0.25f);
-				Vector3d pos = getPositionVec();
+				Vec3d pos = getPos();
 
-				frog.setPosition(pos.x, pos.y, pos.z);
-				world.addEntity(frog);
+				frog.updatePosition(pos.x, pos.y, pos.z);
+				world.spawnEntity(frog);
 				frog.startRiding(this);
 			} else {
-				List<ItemStack> items = ((IForgeWorldServer) world).getWorldServer().getServer().getLootTableManager()
-						.getLootTableFromLocation(CARRY_LOOT_TABLE).generate(new LootContext.Builder((ServerWorld) world).build(LootParameterSets.EMPTY));
+				List<ItemStack> items = ((IForgeWorldServer) world).getWorldServer().getServer().getLootManager()
+						.getTable(CARRY_LOOT_TABLE).generateLoot(new LootContext.Builder((ServerWorld) world).build(LootContextTypes.EMPTY));
 				if (!items.isEmpty())
-					dataManager.set(CARRYING_ITEM, items.get(0));
+					dataTracker.set(CARRYING_ITEM, items.get(0));
 			}
 		}
 
-		return super.onInitialSpawn(world, difficulty, spawnReason, data, compound);
+		return super.initialize(world, difficulty, spawnReason, data, compound);
 	}
 
 
@@ -286,47 +286,47 @@ public class StonelingEntity extends CreatureEntity {
 	}
 
 	@Override
-	public boolean canBreatheUnderwater() {
+	public boolean canBreatheInWater() {
 		return true;
 	}
 
 
 	@Override
-	public boolean isNotColliding(IWorldReader worldReader) {
-		return worldReader.checkNoEntityCollision(this, VoxelShapes.create(getBoundingBox()));
+	public boolean canSpawn(WorldView worldReader) {
+		return worldReader.intersectsEntities(this, VoxelShapes.cuboid(getBoundingBox()));
 	}
 
 	@Override
-	public double getMountedYOffset() {
+	public double getMountedHeightOffset() {
 		return this.getHeight();
 	}
 
 	@Override
-	public boolean isPushedByWater() {
+	public boolean canFly() {
 		return false;
 	}
 
 	@Override
-	protected int decreaseAirSupply(int air) {
+	protected int getNextAirUnderwater(int air) {
 		return air;
 	}
 
 	@Override
-	public boolean onLivingFall(float distance, float damageMultiplier) {
+	public boolean handleFallDamage(float distance, float damageMultiplier) {
 		return false;
 	}
 
 	@Override
-	protected void damageEntity(@Nonnull DamageSource damageSrc, float damageAmount) {
-		super.damageEntity(damageSrc, damageAmount);
+	protected void applyDamage(@Nonnull DamageSource damageSrc, float damageAmount) {
+		super.applyDamage(damageSrc, damageAmount);
 
-		if(!isPlayerMade() && damageSrc.getTrueSource() instanceof PlayerEntity) {
+		if(!isPlayerMade() && damageSrc.getAttacker() instanceof PlayerEntity) {
 			startle();
-			for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(this,
-					getBoundingBox().grow(16))) {
+			for (Entity entity : world.getEntities(this,
+					getBoundingBox().expand(16))) {
 				if (entity instanceof StonelingEntity) {
 					StonelingEntity stoneling = (StonelingEntity) entity;
-					if (!stoneling.isPlayerMade() && stoneling.getEntitySenses().canSee(this)) {
+					if (!stoneling.isPlayerMade() && stoneling.getVisibilityCache().canSee(this)) {
 						startle();
 					}
 				}
@@ -344,16 +344,16 @@ public class StonelingEntity extends CreatureEntity {
 
 		for (PrioritizedGoal task : entries)
 			if (task.getGoal() instanceof TemptGoal)
-				goalSelector.removeGoal(task.getGoal());
+				goalSelector.remove(task.getGoal());
 	}
 
 	@Override
-	protected void dropSpecialItems(DamageSource damage, int looting, boolean wasRecentlyHit) {
-		super.dropSpecialItems(damage, looting, wasRecentlyHit);
+	protected void dropEquipment(DamageSource damage, int looting, boolean wasRecentlyHit) {
+		super.dropEquipment(damage, looting, wasRecentlyHit);
 
 		ItemStack stack = getCarryingItem();
 		if(!stack.isEmpty())
-			entityDropItem(stack, 0F);
+			dropStack(stack, 0F);
 	}
 
 	public void setPlayerMade(boolean value) {
@@ -361,15 +361,15 @@ public class StonelingEntity extends CreatureEntity {
 	}
 
 	public ItemStack getCarryingItem() {
-		return dataManager.get(CARRYING_ITEM);
+		return dataTracker.get(CARRYING_ITEM);
 	}
 
 	public EnumStonelingVariant getVariant() {
-		return EnumStonelingVariant.byIndex(dataManager.get(VARIANT));
+		return EnumStonelingVariant.byIndex(dataTracker.get(VARIANT));
 	}
 
 	public float getItemAngle() {
-		return dataManager.get(HOLD_ANGLE);
+		return dataTracker.get(HOLD_ANGLE);
 	}
 
 	public boolean isPlayerMade() {
@@ -377,29 +377,29 @@ public class StonelingEntity extends CreatureEntity {
 	}
 
 	@Override
-	public void readAdditional(CompoundNBT compound) {
-		super.readAdditional(compound);
+	public void readCustomDataFromTag(CompoundTag compound) {
+		super.readCustomDataFromTag(compound);
 
 		if(compound.contains(TAG_CARRYING_ITEM, 10)) {
-			CompoundNBT itemCmp = compound.getCompound(TAG_CARRYING_ITEM);
-			ItemStack stack = ItemStack.read(itemCmp);
-			dataManager.set(CARRYING_ITEM, stack);
+			CompoundTag itemCmp = compound.getCompound(TAG_CARRYING_ITEM);
+			ItemStack stack = ItemStack.fromTag(itemCmp);
+			dataTracker.set(CARRYING_ITEM, stack);
 		}
 
-		dataManager.set(VARIANT, compound.getByte(TAG_VARIANT));
-		dataManager.set(HOLD_ANGLE, compound.getFloat(TAG_HOLD_ANGLE));
+		dataTracker.set(VARIANT, compound.getByte(TAG_VARIANT));
+		dataTracker.set(HOLD_ANGLE, compound.getFloat(TAG_HOLD_ANGLE));
 		setPlayerMade(compound.getBoolean(TAG_PLAYER_MADE));
 	}
 
 	@Override
-	public boolean canEntityBeSeen(Entity entityIn) {
-		Vector3d pos = getPositionVec();
-		Vector3d epos = entityIn.getPositionVec();
+	public boolean canSee(Entity entityIn) {
+		Vec3d pos = getPos();
+		Vec3d epos = entityIn.getPos();
 		
-		Vector3d origin = new Vector3d(pos.x, pos.y + getEyeHeight(), pos.z);
-		float otherEyes = entityIn.getEyeHeight();
+		Vec3d origin = new Vec3d(pos.x, pos.y + getStandingEyeHeight(), pos.z);
+		float otherEyes = entityIn.getStandingEyeHeight();
 		for (float height = 0; height <= otherEyes; height += otherEyes / 8) {
-			if (this.world.rayTraceBlocks(new RayTraceContext(origin, epos.add(0, height, 0), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this)).getType() == RayTraceResult.Type.MISS)
+			if (this.world.rayTrace(new RayTraceContext(origin, epos.add(0, height, 0), RayTraceContext.ShapeType.COLLIDER, RayTraceContext.FluidHandling.NONE, this)).getType() == HitResult.Type.MISS)
 				return true;
 		}
 
@@ -407,8 +407,8 @@ public class StonelingEntity extends CreatureEntity {
 	}
 
 	@Override
-	public void writeAdditional(CompoundNBT compound) {
-		super.writeAdditional(compound);
+	public void writeCustomDataToTag(CompoundTag compound) {
+		super.writeCustomDataToTag(compound);
 
 		compound.put(TAG_CARRYING_ITEM, getCarryingItem().serializeNBT());
 
@@ -417,14 +417,14 @@ public class StonelingEntity extends CreatureEntity {
 		compound.putBoolean(TAG_PLAYER_MADE, isPlayerMade());
 	}
 
-	public static boolean spawnPredicate(EntityType<? extends StonelingEntity> type, IWorld world, SpawnReason reason, BlockPos pos, Random rand) {
+	public static boolean spawnPredicate(EntityType<? extends StonelingEntity> type, WorldAccess world, SpawnReason reason, BlockPos pos, Random rand) {
 		return world.getDifficulty() != Difficulty.PEACEFUL && pos.getY() <= StonelingsModule.maxYLevel && MiscUtil.validSpawnLight(world, pos, rand) && MiscUtil.validSpawnLocation(type, world, reason, pos);
 	}
 
 	@Override
-	public boolean canSpawn(@Nonnull IWorld world, SpawnReason reason) {
-		BlockState state = world.getBlockState(new BlockPos(getPositionVec()).down());
-		if (state.getMaterial() != Material.ROCK)
+	public boolean canSpawn(@Nonnull WorldAccess world, SpawnReason reason) {
+		BlockState state = world.getBlockState(new BlockPos(getPos()).down());
+		if (state.getMaterial() != Material.STONE)
 			return false;
 		
 		return StonelingsModule.dimensions.canSpawnHere(world) && super.canSpawn(world, reason);
@@ -443,7 +443,7 @@ public class StonelingEntity extends CreatureEntity {
 	}
 
 	@Override
-	public int getTalkInterval() {
+	public int getMinAmbientSoundDelay() {
 		return 1200;
 	}
 
@@ -468,12 +468,12 @@ public class StonelingEntity extends CreatureEntity {
 
 	@Nonnull
 	@Override
-	public IPacket<?> createSpawnPacket() {
+	public Packet<?> createSpawnPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
-	public float getBlockPathWeight(BlockPos pos, IWorldReader world) {
+	public float getPathfindingFavor(BlockPos pos, WorldView world) {
 		return 0.5F - world.getBrightness(pos);
 	}
 }

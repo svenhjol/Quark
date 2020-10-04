@@ -3,9 +3,8 @@ package vazkii.quark.base.world.config;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
 import vazkii.quark.base.module.config.Config;
 import vazkii.quark.base.module.config.IConfigType;
 
@@ -39,11 +38,11 @@ public class DimensionConfig implements IConfigType {
 		return new DimensionConfig(true);
 	}
 
-	public boolean canSpawnHere(IWorld world) {
+	public boolean canSpawnHere(WorldAccess world) {
 		if (world == null || !(world instanceof World))
 			return false;
 
-		return dimensions.contains(((World) world).func_234923_W_().func_240901_a_().toString()) != isBlacklist;
+		return dimensions.contains(((World) world).getRegistryKey().getValue().toString()) != isBlacklist;
 	}
 
 }

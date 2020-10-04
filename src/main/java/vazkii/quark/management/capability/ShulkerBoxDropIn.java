@@ -2,11 +2,11 @@ package vazkii.quark.management.capability;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -33,9 +33,9 @@ public class ShulkerBoxDropIn extends AbstractDropIn {
 		if (!SimilarBlockTypeHandler.isShulkerBox(shulkerBox))
 			return false;
 
-		CompoundNBT cmp = ItemNBTHelper.getCompound(shulkerBox, "BlockEntityTag", false);
+		CompoundTag cmp = ItemNBTHelper.getCompound(shulkerBox, "BlockEntityTag", false);
 		if (cmp != null) {
-			TileEntity te = null;
+			BlockEntity te = null;
 			cmp = cmp.copy();	
 			cmp.putString("id", "minecraft:shulker_box");				
 			if (shulkerBox.getItem() instanceof BlockItem) {
@@ -43,7 +43,7 @@ public class ShulkerBoxDropIn extends AbstractDropIn {
 				BlockState defaultState = shulkerBoxBlock.getDefaultState();
 				if (shulkerBoxBlock.hasTileEntity(defaultState)) {
 					te = shulkerBoxBlock.createTileEntity(defaultState, null);
-					te.func_230337_a_(defaultState, cmp); // read
+					te.fromTag(defaultState, cmp); // read
 				}
 			}
 
@@ -56,7 +56,7 @@ public class ShulkerBoxDropIn extends AbstractDropIn {
 
 					if (!simulate && did) {
 						stack.setCount(result.getCount());
-						te.write(cmp);
+						te.toTag(cmp);
 						ItemNBTHelper.setCompound(shulkerBox, "BlockEntityTag", cmp);
 					}
 

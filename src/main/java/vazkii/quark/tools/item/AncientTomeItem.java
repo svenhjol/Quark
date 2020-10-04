@@ -1,11 +1,14 @@
 package vazkii.quark.tools.item;
 
-import net.minecraft.client.util.ITooltipFlag;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentData;
+import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.item.*;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.text.Text;
+import net.minecraft.util.Rarity;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -21,7 +24,7 @@ public class AncientTomeItem extends QuarkItem {
 
 	public AncientTomeItem(Module module) {
 		super("ancient_tome", module, 
-				new Item.Properties().maxStackSize(1));
+				new Item.Settings().maxCount(1));
 	}
 	
 	@Override
@@ -30,7 +33,7 @@ public class AncientTomeItem extends QuarkItem {
 	}
 	
 	@Override
-	public boolean hasEffect(ItemStack stack) {
+	public boolean hasGlint(ItemStack stack) {
 		return true;
 	}
 
@@ -42,24 +45,24 @@ public class AncientTomeItem extends QuarkItem {
 	@Nonnull
 	@Override
 	public Rarity getRarity(ItemStack stack) {
-		return EnchantedBookItem.getEnchantments(stack).isEmpty() ? super.getRarity(stack) : Rarity.UNCOMMON;
+		return EnchantedBookItem.getEnchantmentTag(stack).isEmpty() ? super.getRarity(stack) : Rarity.UNCOMMON;
 	}
 	
-	public static ItemStack getEnchantedItemStack(EnchantmentData ench) {
+	public static ItemStack getEnchantedItemStack(EnchantmentLevelEntry ench) {
 		ItemStack newStack = new ItemStack(AncientTomesModule.ancient_tome);
 		EnchantedBookItem.addEnchantment(newStack, ench);
 		return newStack;
 	}
 	
 	@Override
-	public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
+	public void appendStacks(@Nonnull ItemGroup group, @Nonnull DefaultedList<ItemStack> items) {
 		if (isEnabled() || group == ItemGroup.SEARCH) {
-			if (group == ItemGroup.SEARCH || group.getRelevantEnchantmentTypes().length != 0) {
+			if (group == ItemGroup.SEARCH || group.getEnchantments().length != 0) {
 				for (Enchantment ench : ForgeRegistries.ENCHANTMENTS) {
 					if ((group == ItemGroup.SEARCH && ench.getMaxLevel() != 1) ||
 							AncientTomesModule.validEnchants.contains(ench)) {
-						if ((group == ItemGroup.SEARCH && ench.type != null) || group.hasRelevantEnchantmentType(ench.type)) {
-							items.add(getEnchantedItemStack(new EnchantmentData(ench, ench.getMaxLevel())));
+						if ((group == ItemGroup.SEARCH && ench.type != null) || group.containsEnchantments(ench.type)) {
+							items.add(getEnchantedItemStack(new EnchantmentLevelEntry(ench, ench.getMaxLevel())));
 						}
 					}
 				}
@@ -68,10 +71,10 @@ public class AncientTomeItem extends QuarkItem {
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public void addInformation(ItemStack stack, World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-		super.addInformation(stack, worldIn, tooltip, flagIn);
-	    ItemStack.addEnchantmentTooltips(tooltip, EnchantedBookItem.getEnchantments(stack));
+	@Environment(EnvType.CLIENT)
+	public void appendTooltip(ItemStack stack, World worldIn, List<Text> tooltip, TooltipContext flagIn) {
+		super.appendTooltip(stack, worldIn, tooltip, flagIn);
+	    ItemStack.appendEnchantments(tooltip, EnchantedBookItem.getEnchantmentTag(stack));
 	}
 
 }

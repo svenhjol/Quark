@@ -2,8 +2,8 @@ package vazkii.quark.world.gen.underground;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import vazkii.quark.world.gen.UndergroundBiomeGenerator.Context;
 import vazkii.quark.world.module.underground.SpiderNestUndergroundBiomeModule;
 

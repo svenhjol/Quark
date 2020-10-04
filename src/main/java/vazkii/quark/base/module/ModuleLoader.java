@@ -1,5 +1,7 @@
 package vazkii.quark.base.module;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.TextureStitchEvent;
@@ -27,7 +29,7 @@ public final class ModuleLoader {
 		resolveConfigSpec();
 	}
 	
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientStart() {
 		dispatch(Module::constructClient);
 	}
@@ -48,7 +50,7 @@ public final class ModuleLoader {
 		dispatch(Module::configChanged);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void configChangedClient() {
 		dispatch(Module::configChangedClient);
 	}
@@ -59,22 +61,22 @@ public final class ModuleLoader {
 		dispatch(Module::setup);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		dispatch(Module::clientSetup);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void modelRegistry() {
 		dispatch(Module::modelRegistry);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void textureStitch(TextureStitchEvent.Pre event) {
 		dispatch(m -> m.textureStitch(event));
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void postTextureStitch(TextureStitchEvent.Post event) {
 		dispatch(m -> m.postTextureStitch(event));
 	}

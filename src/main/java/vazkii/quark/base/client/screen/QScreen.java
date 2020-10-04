@@ -1,12 +1,11 @@
 package vazkii.quark.base.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.button.Button.IPressable;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ButtonWidget.PressAction;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.Util;
-import net.minecraft.util.text.StringTextComponent;
 import vazkii.quark.base.client.config.ConfigCategory;
 
 public abstract class QScreen extends Screen {
@@ -14,7 +13,7 @@ public abstract class QScreen extends Screen {
 	private final Screen parent;
 	
 	public QScreen(Screen parent) {
-		super(new StringTextComponent(""));
+		super(new LiteralText(""));
 		this.parent = parent;
 	}
 	
@@ -23,16 +22,16 @@ public abstract class QScreen extends Screen {
 		super.render(mstack, mouseX, mouseY, pticks);
 	}
 	
-	public void returnToParent(Button button) {
-		minecraft.displayGuiScreen(parent);
+	public void returnToParent(ButtonWidget button) {
+		client.openScreen(parent);
 	}
 	
-	public IPressable webLink(String url) {
-		return b -> Util.getOSType().openURI(url);
+	public PressAction webLink(String url) {
+		return b -> Util.getOperatingSystem().open(url);
 	}
 	
-	public IPressable categoryLink(ConfigCategory category) {
-		return b -> minecraft.displayGuiScreen(new QCategoryScreen(this, category));
+	public PressAction categoryLink(ConfigCategory category) {
+		return b -> client.openScreen(new QCategoryScreen(this, category));
 	}
 	
 

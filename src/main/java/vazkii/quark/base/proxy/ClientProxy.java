@@ -2,9 +2,10 @@ package vazkii.quark.base.proxy;
 
 import java.time.LocalDateTime;
 import java.time.Month;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.TranslatableText;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -18,7 +19,7 @@ import vazkii.quark.base.handler.RenderLayerHandler;
 import vazkii.quark.base.module.ModuleLoader;
 import vazkii.quark.base.module.config.IConfigCallback;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class ClientProxy extends CommonProxy {
 
 	public static boolean jingleBellsMotherfucker = false;
@@ -69,10 +70,10 @@ public class ClientProxy extends CommonProxy {
 		ModuleLoader.INSTANCE.configChangedClient();
 		IngameConfigHandler.INSTANCE.refresh();
 
-		Minecraft mc = Minecraft.getInstance();
-		mc.runAsync(() -> {
-			if(mc.isSingleplayer() && mc.player != null && mc.getIntegratedServer() != null)
-				mc.player.sendMessage(new TranslationTextComponent("quark.misc.reloaded"), null);
+		MinecraftClient mc = MinecraftClient.getInstance();
+		mc.submit(() -> {
+			if(mc.isIntegratedServerRunning() && mc.player != null && mc.getServer() != null)
+				mc.player.sendSystemMessage(new TranslatableText("quark.misc.reloaded"), null);
 		});
 	}
 	

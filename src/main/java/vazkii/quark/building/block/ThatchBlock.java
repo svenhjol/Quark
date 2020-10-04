@@ -1,11 +1,11 @@
 package vazkii.quark.building.block;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
@@ -17,15 +17,15 @@ public class ThatchBlock extends QuarkFlammableBlock {
 
 	public ThatchBlock(Module module) {
 		super("thatch", module, ItemGroup.BUILDING_BLOCKS, 300,
-				Block.Properties.create(Material.ORGANIC, MaterialColor.YELLOW)
+				Block.Properties.of(Material.SOLID_ORGANIC, MaterialColor.YELLOW)
 				.harvestTool(ToolType.HOE)
-				.hardnessAndResistance(0.5F)
-				.sound(SoundType.PLANT));
+				.strength(0.5F)
+				.sounds(BlockSoundGroup.GRASS));
 	}
 	
 	@Override
-	public void onFallenUpon(World worldIn, BlockPos pos, Entity entityIn, float fallDistance) {
-		entityIn.onLivingFall(fallDistance, (float) ThatchModule.fallDamageMultiplier);
+	public void onLandedUpon(World worldIn, BlockPos pos, Entity entityIn, float fallDistance) {
+		entityIn.handleFallDamage(fallDistance, (float) ThatchModule.fallDamageMultiplier);
 	}
 
 }

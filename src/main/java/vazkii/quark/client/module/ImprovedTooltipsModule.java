@@ -1,6 +1,8 @@
 package vazkii.quark.client.module;
 
 import com.google.common.collect.Lists;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderTooltipEvent;
@@ -64,7 +66,7 @@ public class ImprovedTooltipsModule extends Module {
     }
 
     @SubscribeEvent
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void makeTooltip(ItemTooltipEvent event) {
         if (attributeTooltips)
             AttributeTooltips.makeTooltip(event);
@@ -79,7 +81,7 @@ public class ImprovedTooltipsModule extends Module {
     }
 
     @SubscribeEvent
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void renderTooltip(RenderTooltipEvent.PostText event) {
         if (attributeTooltips)
             AttributeTooltips.renderTooltip(event);

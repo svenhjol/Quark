@@ -3,9 +3,8 @@ package vazkii.quark.base.block;
 import net.minecraft.block.AbstractButtonBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.collection.DefaultedList;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.module.Module;
 
@@ -22,7 +21,7 @@ public abstract class QuarkButtonBlock extends AbstractButtonBlock implements IQ
     private final Module module;
     private BooleanSupplier enabledSupplier = () -> true;
 
-    public QuarkButtonBlock(String regname, Module module, ItemGroup creativeTab, Properties properties) {
+    public QuarkButtonBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
         super(false, properties);
         this.module = module;
 
@@ -33,15 +32,15 @@ public abstract class QuarkButtonBlock extends AbstractButtonBlock implements IQ
 
     @Nonnull
     @Override
-    protected abstract SoundEvent getSoundEvent(boolean powered);
+    protected abstract SoundEvent getClickSound(boolean powered);
 
     @Override // tickRate
-    public abstract int func_235471_c_();
+    public abstract int getPressTicks();
     
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+    public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
         if(isEnabled() || group == ItemGroup.SEARCH)
-            super.fillItemGroup(group, items);
+            super.addStacksForDisplay(group, items);
     }
 
     @Override

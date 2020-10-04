@@ -1,6 +1,8 @@
 package vazkii.quark.management.module;
 
-import net.minecraft.client.settings.KeyBinding;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.options.KeyBinding;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.base.client.InventoryButtonHandler;
@@ -28,7 +30,7 @@ public class InventorySortingModule extends Module {
 	public static boolean enableChests = true;
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		KeyBinding sortPlayer = ModKeybindHandler.init("sort_player", null, ModKeybindHandler.INV_GROUP);
 
@@ -55,7 +57,7 @@ public class InventorySortingModule extends Module {
 				provider("sort_container", false, () -> enableChests));
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private ButtonProvider provider(String tooltip, boolean forcePlayer, BooleanSupplier condition) {
 		return (parent, x, y) -> !condition.getAsBoolean() ? null :
 				new MiniInventoryButton(parent, 0, x, y, "quark.gui.button." + tooltip, (b) -> QuarkNetwork.sendToServer(new SortInventoryMessage(forcePlayer)));

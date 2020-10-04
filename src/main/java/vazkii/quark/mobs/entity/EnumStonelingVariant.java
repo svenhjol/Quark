@@ -13,8 +13,8 @@ package vazkii.quark.mobs.entity;
 import com.google.common.collect.Lists;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.entity.ILivingEntityData;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.entity.EntityData;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import vazkii.quark.base.Quark;
 
@@ -22,7 +22,7 @@ import java.util.List;
 
 import static vazkii.quark.world.module.NewStoneTypesModule.*;
 
-public enum EnumStonelingVariant implements ILivingEntityData {
+public enum EnumStonelingVariant implements EntityData {
 	STONE("stone", Blocks.COBBLESTONE, Blocks.STONE),
 	ANDESITE("andesite", Blocks.ANDESITE, Blocks.POLISHED_ANDESITE),
 	DIORITE("diorite", Blocks.DIORITE, Blocks.POLISHED_DIORITE),
@@ -33,11 +33,11 @@ public enum EnumStonelingVariant implements ILivingEntityData {
 	SLATE("slate", slateBlock, polishedBlocks.get(slateBlock)),
 	JASPER("jasper", jasperBlock, polishedBlocks.get(jasperBlock));
 
-	private final ResourceLocation texture;
+	private final Identifier texture;
 	private final List<Block> blocks;
 
 	EnumStonelingVariant(String variantPath, Block... blocks) {
-		this.texture = new ResourceLocation(Quark.MOD_ID, "textures/model/entity/stoneling/" + variantPath + ".png");
+		this.texture = new Identifier(Quark.MOD_ID, "textures/model/entity/stoneling/" + variantPath + ".png");
 		this.blocks = Lists.newArrayList(blocks);
 	}
 
@@ -50,7 +50,7 @@ public enum EnumStonelingVariant implements ILivingEntityData {
 		return (byte) ordinal();
 	}
 
-	public ResourceLocation getTexture() {
+	public Identifier getTexture() {
 		return texture;
 	}
 

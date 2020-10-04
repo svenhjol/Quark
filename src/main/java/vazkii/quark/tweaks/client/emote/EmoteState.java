@@ -13,13 +13,14 @@ package vazkii.quark.tweaks.client.emote;
 import static vazkii.quark.tweaks.client.emote.EmoteBase.PI_F;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.renderer.entity.model.BipedModel;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class EmoteState {
 
 	private float[] states = new float[0];
@@ -29,7 +30,7 @@ public class EmoteState {
 		this.emote = emote;
 	}
 
-	public void save(BipedModel<?> model) {
+	public void save(BipedEntityModel<?> model) {
 		float[] values = new float[1];
 		for(int i = 0; i < ModelAccessor.STATE_COUNT; i++) {
 			ModelAccessor.INSTANCE.getValues(model, i, values);
@@ -37,7 +38,7 @@ public class EmoteState {
 		}
 	}
 
-	public void load(BipedModel<?> model) {
+	public void load(BipedEntityModel<?> model) {
 		if(states.length == 0) {
 			states = new float[ModelAccessor.STATE_COUNT];
 		} else {

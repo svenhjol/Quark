@@ -15,13 +15,13 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.JukeboxBlock;
-import net.minecraft.block.PistonBlockStructureHelper;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.state.properties.ChestType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.enums.ChestType;
+import net.minecraft.block.piston.PistonHandler;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.WorldTickEvent;
@@ -37,8 +37,8 @@ import vazkii.quark.base.module.config.Config;
 @LoadModule(category = ModuleCategory.AUTOMATION, hasSubscriptions = true)
 public class PistonsMoveTileEntitiesModule extends Module {
 
-	private static final WeakHashMap<World, Map<BlockPos, CompoundNBT>> movements = new WeakHashMap<>();
-	private static final WeakHashMap<World, List<Pair<BlockPos, CompoundNBT>>> delayedUpdates = new WeakHashMap<>();
+	private static final WeakHashMap<World, Map<BlockPos, CompoundTag>> movements = new WeakHashMap<>();
+	private static final WeakHashMap<World, List<Pair<BlockPos, CompoundTag>>> delayedUpdates = new WeakHashMap<>();
 
 	@Config
 	public static List<String> renderBlacklist = Lists.newArrayList("psi:programmer", "botania:starfield");
@@ -52,15 +52,15 @@ public class PistonsMoveTileEntitiesModule extends Module {
 		if (!delayedUpdates.containsKey(event.world) || event.phase == Phase.START)
 			return;
 
-		List<Pair<BlockPos, CompoundNBT>> delays = delayedUpdates.get(event.world);
+		List<Pair<BlockPos, CompoundTag>> delays = delayedUpdates.get(event.world);
 		if (delays.isEmpty())
 			return;
 
-		for (Pair<BlockPos, CompoundNBT> delay : delays) {
-			TileEntity tile = TileEntity.func_235657_b_(event.world.getBlockState(delay.getLeft()), delay.getRight()); // create
-			event.world.setTileEntity(delay.getLeft(), tile);
+		for (Pair<BlockPos, CompoundTag> delay : delays) {
+			BlockEntity tile = BlockEntity.createFromTag(event.world.getBlockState(delay.getLeft()), delay.getRight()); // create
+			event.world.setBlockEntity(delay.getLeft(), tile);
 			if (tile != null)
-				tile.updateContainingBlockInfo();
+				tile.resetBlock();
 		}
 
 		delays.clear();
@@ -76,34 +76,34 @@ public class PistonsMoveTileEntitiesModule extends Module {
 
 	public static boolean shouldMoveTE(BlockState state) {
 		// Jukeboxes that are playing can't be moved so the music can be stopped
-		if (state.getValues().containsKey(JukeboxBlock.HAS_RECORD) && state.get(JukeboxBlock.HAS_RECORD))
+		if (state.getEntries().containsKey(JukeboxBlock.HAS_RECORD) && state.get(JukeboxBlock.HAS_RECORD))
 			return true;
 
 		if (state.getBlock() == Blocks.PISTON_HEAD)
 			return true;
 
-		ResourceLocation res = state.getBlock().getRegistryName();
+		Identifier res = state.getBlock().getRegistryName();
 		return res == null || PistonsMoveTileEntitiesModule.movementBlacklist.contains(res.toString()) || PistonsMoveTileEntitiesModule.movementBlacklist.contains(res.getNamespace());
 	}
 
-	public static void detachTileEntities(World world, PistonBlockStructureHelper helper, Direction facing, boolean extending) {
+	public static void detachTileEntities(World world, PistonHandler helper, Direction facing, boolean extending) {
 		if (!ModuleLoader.INSTANCE.isModuleEnabled(PistonsMoveTileEntitiesModule.class))
 			return;
 
 		if (!extending)
 			facing = facing.getOpposite();
 
-		List<BlockPos> moveList = helper.getBlocksToMove();
+		List<BlockPos> moveList = helper.getMovedBlocks();
 
 		for (BlockPos pos : moveList) {
 			BlockState state = world.getBlockState(pos);
 			if (state.getBlock().hasTileEntity(state)) {
-				TileEntity tile = world.getTileEntity(pos);
+				BlockEntity tile = world.getBlockEntity(pos);
 				if (tile != null) {
 					if (hasCallback(tile))
 						getCallback(tile).onPistonMovementStarted();
 
-					world.removeTileEntity(pos);
+					world.removeBlockEntity(pos);
 
 					registerMovement(world, pos.offset(facing), tile);
 				}
@@ -118,94 +118,94 @@ public class PistonsMoveTileEntitiesModule extends Module {
 			return false;
 		}
 
-		if (state.getValues().containsKey(ChestBlock.TYPE))
-			state = state.with(ChestBlock.TYPE, ChestType.SINGLE);
+		if (state.getEntries().containsKey(ChestBlock.CHEST_TYPE))
+			state = state.with(ChestBlock.CHEST_TYPE, ChestType.SINGLE);
 
 		Block block = state.getBlock();
-		TileEntity tile = getAndClearMovement(world, pos);
+		BlockEntity tile = getAndClearMovement(world, pos);
 		boolean destroyed = false;
 
 		if (tile != null) {
 			BlockState currState = world.getBlockState(pos);
-			TileEntity currTile = world.getTileEntity(pos);
+			BlockEntity currTile = world.getBlockEntity(pos);
 
 			world.removeBlock(pos, false);
-			if (!block.isValidPosition(state, world, pos)) {
+			if (!block.canPlaceAt(state, world, pos)) {
 				world.setBlockState(pos, state, flags);
-				world.setTileEntity(pos, tile);
-				Block.spawnDrops(state, world, pos, tile);
+				world.setBlockEntity(pos, tile);
+				Block.dropStacks(state, world, pos, tile);
 				world.removeBlock(pos, false);
 				destroyed = true;
 			}
 
 			if (!destroyed) {
 				world.setBlockState(pos, currState);
-				world.setTileEntity(pos, currTile);
+				world.setBlockEntity(pos, currTile);
 			}
 		}
 
 		if (!destroyed) {
 			world.setBlockState(pos, state, flags);
-			if (world.getTileEntity(pos) != null)
+			if (world.getBlockEntity(pos) != null)
 				world.setBlockState(pos, state, 0);
 
-			if (tile != null && !world.isRemote) {
+			if (tile != null && !world.isClient) {
 				if (delayedUpdateList.contains(block.getRegistryName().toString()))
 					registerDelayedUpdate(world, pos, tile);
 				else {
-					world.setTileEntity(pos, tile);
-					world.getChunk(pos).addTileEntity(pos, tile);
-					tile.updateContainingBlockInfo();
+					world.setBlockEntity(pos, tile);
+					world.getChunk(pos).setBlockEntity(pos, tile);
+					tile.resetBlock();
 
 				}
 			}
-			world.notifyNeighborsOfStateChange(pos, block);
+			world.updateNeighborsAlways(pos, block);
 		}
 
 		return false; // the value is popped, doesn't matter what we return
 	}
 
-	private static void registerMovement(World world, BlockPos pos, TileEntity tile) {
+	private static void registerMovement(World world, BlockPos pos, BlockEntity tile) {
 		if (!movements.containsKey(world))
 			movements.put(world, new HashMap<>());
 
 		movements.get(world).put(pos, tile.serializeNBT());
 	}
 
-	public static TileEntity getMovement(World world, BlockPos pos) {
+	public static BlockEntity getMovement(World world, BlockPos pos) {
 		return getMovement(world, pos, false);
 	}
 
-	private static TileEntity getMovement(World world, BlockPos pos, boolean remove) {
+	private static BlockEntity getMovement(World world, BlockPos pos, boolean remove) {
 		if (!movements.containsKey(world))
 			return null;
 
-		Map<BlockPos, CompoundNBT> worldMovements = movements.get(world);
+		Map<BlockPos, CompoundTag> worldMovements = movements.get(world);
 		if (!worldMovements.containsKey(pos))
 			return null;
 
-		CompoundNBT ret = worldMovements.get(pos);
+		CompoundTag ret = worldMovements.get(pos);
 		if (remove)
 			worldMovements.remove(pos);
 
-		return TileEntity.func_235657_b_(world.getBlockState(pos), ret); // create
+		return BlockEntity.createFromTag(world.getBlockState(pos), ret); // create
 	}
 
-	private static TileEntity getAndClearMovement(World world, BlockPos pos) {
-		TileEntity tile = getMovement(world, pos, true);
+	private static BlockEntity getAndClearMovement(World world, BlockPos pos) {
+		BlockEntity tile = getMovement(world, pos, true);
 
 		if (tile != null) {
 			if (hasCallback(tile))
 				getCallback(tile).onPistonMovementFinished();
 
-			tile.setWorldAndPos(world, pos);
-			tile.validate();
+			tile.setLocation(world, pos);
+			tile.cancelRemoval();
 		}
 
 		return tile;
 	}
 
-	private static void registerDelayedUpdate(World world, BlockPos pos, TileEntity tile) {
+	private static void registerDelayedUpdate(World world, BlockPos pos, BlockEntity tile) {
 		if (!delayedUpdates.containsKey(world))
 			delayedUpdates.put(world, new ArrayList<>());
 
@@ -213,12 +213,12 @@ public class PistonsMoveTileEntitiesModule extends Module {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private static boolean hasCallback(TileEntity tile) {
+	private static boolean hasCallback(BlockEntity tile) {
 		return tile.getCapability(QuarkCapabilities.PISTON_CALLBACK).isPresent();
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private static IPistonCallback getCallback(TileEntity tile) {
+	private static IPistonCallback getCallback(BlockEntity tile) {
 		return tile.getCapability(QuarkCapabilities.PISTON_CALLBACK).orElse(() -> {});
 	}
 

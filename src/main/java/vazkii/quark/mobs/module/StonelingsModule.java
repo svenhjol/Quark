@@ -1,12 +1,14 @@
 package vazkii.quark.mobs.module;
 
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.PlacementType;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnRestriction.Location;
+import net.minecraft.entity.attribute.DefaultAttributeRegistry;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.world.gen.Heightmap.Type;
+import net.minecraft.world.Heightmap.Type;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.BiomeDictionary;
@@ -47,10 +49,10 @@ public class StonelingsModule extends Module {
 
 	@Override
 	public void construct() {
-		diamondHeart = new DiamondHeartItem("diamond_heart", this, new Item.Properties().group(ItemGroup.MISC));
+		diamondHeart = new DiamondHeartItem("diamond_heart", this, new Item.Settings().group(ItemGroup.MISC));
 
-		stonelingType = EntityType.Builder.create(StonelingEntity::new, EntityClassification.CREATURE)
-				.size(0.5F, 0.9F)
+		stonelingType = EntityType.Builder.create(StonelingEntity::new, SpawnGroup.CREATURE)
+				.setDimensions(0.5F, 0.9F)
 				.setTrackingRange(80)
 				.setUpdateInterval(3)
 				.setShouldReceiveVelocityUpdates(true)
@@ -58,17 +60,17 @@ public class StonelingsModule extends Module {
 				.build("stoneling");
 		RegistryHelper.register(stonelingType, "stoneling");
 
-		EntitySpawnHandler.registerSpawn(this, stonelingType, EntityClassification.MONSTER, PlacementType.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, StonelingEntity::spawnPredicate, spawnConfig);
+		EntitySpawnHandler.registerSpawn(this, stonelingType, SpawnGroup.MONSTER, Location.ON_GROUND, Type.MOTION_BLOCKING_NO_LEAVES, StonelingEntity::spawnPredicate, spawnConfig);
 		EntitySpawnHandler.addEgg(stonelingType, 0xA1A1A1, 0x505050, spawnConfig);
 	}
 	
 	@Override
 	public void setup() {
-		GlobalEntityTypeAttributes.put(stonelingType, StonelingEntity.prepareAttributes().func_233813_a_());
+		DefaultAttributeRegistry.put(stonelingType, StonelingEntity.prepareAttributes().build());
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		RenderingRegistry.registerEntityRenderingHandler(stonelingType, StonelingRenderer::new);
 	}

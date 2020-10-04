@@ -14,8 +14,8 @@ public class IronPlatesModule extends Module {
 	
 	@Override
 	public void construct() {
-		VariantHandler.addSlabAndStairs(new QuarkBlock("iron_plate", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(Blocks.IRON_BLOCK)));
-		VariantHandler.addSlabAndStairs(new QuarkBlock("rusty_iron_plate", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(Blocks.IRON_BLOCK)));
+		VariantHandler.addSlabAndStairs(new QuarkBlock("iron_plate", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(Blocks.IRON_BLOCK)));
+		VariantHandler.addSlabAndStairs(new QuarkBlock("rusty_iron_plate", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(Blocks.IRON_BLOCK)));
 
 	}
 

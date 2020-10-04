@@ -3,11 +3,11 @@ package vazkii.quark.automation.block;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import vazkii.quark.base.block.QuarkButtonBlock;
 import vazkii.quark.base.module.Module;
 
@@ -21,21 +21,21 @@ public class MetalButtonBlock extends QuarkButtonBlock {
 
     public MetalButtonBlock(String regname, Module module, int speed) {
         super(regname, module, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.MISCELLANEOUS)
-                        .doesNotBlockMovement()
-                        .hardnessAndResistance(0.5F)
-                        .sound(SoundType.METAL));
+                Block.Properties.of(Material.SUPPORTED)
+                        .noCollision()
+                        .strength(0.5F)
+                        .sounds(BlockSoundGroup.METAL));
         this.speed = speed;
     }
 
     @Override // tickRate
-    public int func_235471_c_() {
+    public int getPressTicks() {
         return speed;
     }
 
     @Nonnull
     @Override
-    protected SoundEvent getSoundEvent(boolean powered) {
+    protected SoundEvent getClickSound(boolean powered) {
         return powered ? SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON : SoundEvents.BLOCK_STONE_BUTTON_CLICK_OFF;
     }
 }

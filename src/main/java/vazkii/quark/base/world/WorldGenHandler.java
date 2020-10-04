@@ -12,19 +12,18 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
-
-import net.minecraft.util.SharedSeedRandom;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.WorldGenRegion;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.world.gen.ChunkRandom;
+import net.minecraft.world.gen.GenerationStep;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.world.gen.decorator.NopeDecoratorConfig;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.DecoratedFeatureConfig;
 import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.IFeatureConfig;
-import net.minecraft.world.gen.feature.structure.StructureManager;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.feature.FeatureConfig;
 import net.minecraftforge.registries.ForgeRegistries;
 import vazkii.quark.base.handler.GeneralConfig;
 import vazkii.quark.base.module.Module;
@@ -32,16 +31,16 @@ import vazkii.quark.base.world.generator.IGenerator;
 
 public class WorldGenHandler {
 
-	private static Map<GenerationStage.Decoration, SortedSet<WeightedGenerator>> generators = new HashMap<>();
+	private static Map<GenerationStep.Feature, SortedSet<WeightedGenerator>> generators = new HashMap<>();
 
 	public static void loadComplete() {
-		for(GenerationStage.Decoration stage : GenerationStage.Decoration.values()) {
-			ConfiguredFeature<?, ?> feature = new DeferedFeature(stage).withConfiguration(IFeatureConfig.NO_FEATURE_CONFIG).withPlacement(new ChunkCornerPlacement().configure(NoPlacementConfig.NO_PLACEMENT_CONFIG));
+		for(GenerationStep.Feature stage : GenerationStep.Feature.values()) {
+			ConfiguredFeature<?, ?> feature = new DeferedFeature(stage).configure(FeatureConfig.DEFAULT).createDecoratedFeature(new ChunkCornerPlacement().configure(NopeDecoratorConfig.DEFAULT));
 			ForgeRegistries.BIOMES.forEach(biome -> biome.addFeature(stage, feature));
 		}
 	}
 	
-	public static void addGenerator(Module module, IGenerator generator, GenerationStage.Decoration stage, int weight) {
+	public static void addGenerator(Module module, IGenerator generator, GenerationStep.Feature stage, int weight) {
 		WeightedGenerator weighted = new WeightedGenerator(module, generator, weight);
 		if(!generators.containsKey(stage))
 			generators.put(stage, new TreeSet<>());
@@ -50,16 +49,16 @@ public class WorldGenHandler {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static void conditionalizeFeatures(GenerationStage.Decoration stage, BiPredicate<Feature<? extends IFeatureConfig>, IFeatureConfig> pred, BooleanSupplier condition) {
+	public static void conditionalizeFeatures(GenerationStep.Feature stage, BiPredicate<Feature<? extends FeatureConfig>, FeatureConfig> pred, BooleanSupplier condition) {
 		ForgeRegistries.BIOMES.forEach(b -> {
-			List<ConfiguredFeature<?, ?>> features = b.getFeatures(stage);
+			List<ConfiguredFeature<?, ?>> features = b.getFeaturesForStep(stage);
 
 			for(int i = 0; i < features.size(); i++) {
 				ConfiguredFeature<?, ?> configuredFeature = features.get(i);
 
 				if(!(configuredFeature instanceof ConditionalConfiguredFeature)) {
 					Feature<?> feature = configuredFeature.feature;
-					IFeatureConfig config = configuredFeature.config;
+					FeatureConfig config = configuredFeature.config;
 
 					if(config instanceof DecoratedFeatureConfig) {
 						DecoratedFeatureConfig dconfig = (DecoratedFeatureConfig) config;
@@ -76,13 +75,13 @@ public class WorldGenHandler {
 		});
 	}
 
-	public static void generateChunk(ISeedReader seedReader, StructureManager structureManager, ChunkGenerator generator, BlockPos pos, GenerationStage.Decoration stage) {
-		if(!(seedReader instanceof WorldGenRegion))
+	public static void generateChunk(ServerWorldAccess seedReader, StructureAccessor structureManager, ChunkGenerator generator, BlockPos pos, GenerationStep.Feature stage) {
+		if(!(seedReader instanceof ChunkRegion))
 			return;
 
-		WorldGenRegion region = (WorldGenRegion) seedReader;
-		SharedSeedRandom random = new SharedSeedRandom();
-		long seed = random.setDecorationSeed(region.getSeed(), region.getMainChunkX() * 16, region.getMainChunkZ() * 16);
+		ChunkRegion region = (ChunkRegion) seedReader;
+		ChunkRandom random = new ChunkRandom();
+		long seed = random.setPopulationSeed(region.getSeed(), region.getCenterChunkX() * 16, region.getCenterChunkZ() * 16);
 		int stageNum = stage.ordinal() * 10000;
 
 		if(generators.containsKey(stage)) {

@@ -8,17 +8,17 @@ import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.ICraftingRecipe;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.CraftingRecipe;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 import vazkii.quark.tweaks.module.DragonScalesModule;
 
-public class ElytraDuplicationRecipe implements ICraftingRecipe {
+public class ElytraDuplicationRecipe implements CraftingRecipe {
 
     public static final Serializer SERIALIZER = new Serializer();
 	
@@ -27,8 +27,8 @@ public class ElytraDuplicationRecipe implements ICraftingRecipe {
 		int sources = 0;
 		boolean foundTarget = false;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
+		for(int i = 0; i < var1.size(); i++) {
+			ItemStack stack = var1.getStack(i);
 			if(!stack.isEmpty()) {
 				if(stack.getItem() instanceof ElytraItem) {
 					if(foundTarget)
@@ -48,12 +48,12 @@ public class ElytraDuplicationRecipe implements ICraftingRecipe {
 	@Nonnull
 	@Override
 	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
-		return getRecipeOutput();
+		return getOutput();
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack getRecipeOutput() {
+	public ItemStack getOutput() {
 		ItemStack stack = new ItemStack(Items.ELYTRA);
 //		if(EnderdragonScales.dyeBlack && ModuleLoader.isFeatureEnabled(DyableElytra.class)) 
 //			ItemNBTHelper.setInt(stack, DyableElytra.TAG_ELYTRA_DYE, 0);
@@ -63,11 +63,11 @@ public class ElytraDuplicationRecipe implements ICraftingRecipe {
 	
 	@Nonnull
 	@Override
-	public NonNullList<ItemStack> getRemainingItems(CraftingInventory inv) {
-		NonNullList<ItemStack> ret = NonNullList.withSize(inv.getSizeInventory(), ItemStack.EMPTY);
+	public DefaultedList<ItemStack> getRemainingItems(CraftingInventory inv) {
+		DefaultedList<ItemStack> ret = DefaultedList.ofSize(inv.size(), ItemStack.EMPTY);
 		
-		for(int i = 0; i < inv.getSizeInventory(); i++) {
-			ItemStack stack = inv.getStackInSlot(i);
+		for(int i = 0; i < inv.size(); i++) {
+			ItemStack stack = inv.getStack(i);
 			if(stack.getItem() == Items.ELYTRA)
 				ret.set(i, stack.copy());
 		}
@@ -76,53 +76,53 @@ public class ElytraDuplicationRecipe implements ICraftingRecipe {
 	}
 
 	@Override
-	public boolean isDynamic() {
+	public boolean isIgnoredInRecipeBook() {
 		return true;
 	}
 	
 	@Override
-	public boolean canFit(int width, int height) {
+	public boolean fits(int width, int height) {
 		return (width * height) >= 2;
 	}
 	
 	@Override
 	@Nonnull
-	public NonNullList<Ingredient> getIngredients() {
-		NonNullList<Ingredient> list = NonNullList.withSize(2, Ingredient.EMPTY);
-		list.set(0, Ingredient.fromStacks(new ItemStack(Items.ELYTRA)));
-		list.set(1, Ingredient.fromStacks(new ItemStack(DragonScalesModule.dragon_scale)));
+	public DefaultedList<Ingredient> getPreviewInputs() {
+		DefaultedList<Ingredient> list = DefaultedList.ofSize(2, Ingredient.EMPTY);
+		list.set(0, Ingredient.ofStacks(new ItemStack(Items.ELYTRA)));
+		list.set(1, Ingredient.ofStacks(new ItemStack(DragonScalesModule.dragon_scale)));
 		return list;
 	}
 	
 	
 	@Override
-	public ResourceLocation getId() {
+	public Identifier getId() {
 		return SERIALIZER.getRegistryName();
 	}
 
 	@Override
-	public IRecipeSerializer<?> getSerializer() {
+	public RecipeSerializer<?> getSerializer() {
 		return SERIALIZER;
 	}
 	
-    public static class Serializer extends ForgeRegistryEntry<IRecipeSerializer<?>> implements IRecipeSerializer<ElytraDuplicationRecipe> {
+    public static class Serializer extends ForgeRegistryEntry<RecipeSerializer<?>> implements RecipeSerializer<ElytraDuplicationRecipe> {
 
         public Serializer() {
             setRegistryName("quark:elytra_duplication");
         }
     	
 		@Override
-		public ElytraDuplicationRecipe read(ResourceLocation recipeId, JsonObject json) {
+		public ElytraDuplicationRecipe read(Identifier recipeId, JsonObject json) {
 			return new ElytraDuplicationRecipe();
 		}
 
 		@Override
-		public ElytraDuplicationRecipe read(ResourceLocation recipeId, PacketBuffer buffer) {
+		public ElytraDuplicationRecipe read(Identifier recipeId, PacketByteBuf buffer) {
 			return new ElytraDuplicationRecipe();
 		}
 
 		@Override
-		public void write(PacketBuffer buffer, ElytraDuplicationRecipe recipe) {
+		public void write(PacketByteBuf buffer, ElytraDuplicationRecipe recipe) {
 			// NO-OP
 		}
     	

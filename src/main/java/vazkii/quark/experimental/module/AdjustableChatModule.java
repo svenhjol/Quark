@@ -1,7 +1,8 @@
 package vazkii.quark.experimental.module;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -19,14 +20,14 @@ public class AdjustableChatModule extends Module {
 	@Config public static int verticalShift = 0;
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void pre(RenderGameOverlayEvent.Pre event) {
 		if(event.getType() == ElementType.CHAT)
 			RenderSystem.translated(horizontalShift, verticalShift, 0);
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void post(RenderGameOverlayEvent.Post event) {
 		if(event.getType() == ElementType.CHAT)
 			RenderSystem.translated(-horizontalShift, -verticalShift, 0);

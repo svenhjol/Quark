@@ -1,6 +1,6 @@
 package vazkii.quark.building.module;
 
-import net.minecraft.block.AbstractBlock.Properties;
+import net.minecraft.block.AbstractBlock.Settings;
 import net.minecraft.block.Blocks;
 import vazkii.quark.base.block.QuarkPaneBlock;
 import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
@@ -13,7 +13,7 @@ public class GoldBarsModule extends Module {
 
 	@Override
 	public void construct() {
-		new QuarkPaneBlock("gold_bars", this, Properties.from(Blocks.IRON_BARS), RenderTypeSkeleton.CUTOUT);
+		new QuarkPaneBlock("gold_bars", this, Settings.copy(Blocks.IRON_BARS), RenderTypeSkeleton.CUTOUT);
 	}
 	
 }

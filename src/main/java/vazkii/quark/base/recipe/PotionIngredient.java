@@ -4,11 +4,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.potion.Potion;
-import net.minecraft.potion.PotionUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.potion.PotionUtil;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,7 +28,7 @@ public class PotionIngredient extends Ingredient {
     private final Potion potion;
 
     public PotionIngredient(Item item, Potion potion) {
-        super(Stream.of(new Ingredient.SingleItemList(BrewingHandler.of(item, potion))));
+        super(Stream.of(new Ingredient.StackEntry(BrewingHandler.of(item, potion))));
         this.item = item;
         this.potion = potion;
     }
@@ -38,7 +38,7 @@ public class PotionIngredient extends Ingredient {
         if (input == null)
             return false;
         //Can't use areItemStacksEqualUsingNBTShareTag because it compares stack size as well
-        return item == input.getItem() && PotionUtils.getPotionFromItem(input) == potion;
+        return item == input.getItem() && PotionUtil.getPotion(input) == potion;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class PotionIngredient extends Ingredient {
 
     @Nonnull
     @Override
-    public JsonElement serialize() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("type", Objects.toString(CraftingHelper.getID(PotionIngredient.Serializer.INSTANCE)));
         json.addProperty("item", Objects.toString(item.getRegistryName()));
@@ -67,22 +67,22 @@ public class PotionIngredient extends Ingredient {
 
         @Nonnull
         @Override
-        public PotionIngredient parse(@Nonnull PacketBuffer buffer) {
-            Item item = ForgeRegistries.ITEMS.getValue(buffer.readResourceLocation());
-            Potion potion = ForgeRegistries.POTION_TYPES.getValue(buffer.readResourceLocation());
+        public PotionIngredient parse(@Nonnull PacketByteBuf buffer) {
+            Item item = ForgeRegistries.ITEMS.getValue(buffer.readIdentifier());
+            Potion potion = ForgeRegistries.POTION_TYPES.getValue(buffer.readIdentifier());
             return new PotionIngredient(item, potion);
         }
 
         @Nonnull
         @Override
         public PotionIngredient parse(@Nonnull JsonObject json) {
-            Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(json.getAsJsonPrimitive("item").getAsString()));
-            Potion potion = ForgeRegistries.POTION_TYPES.getValue(new ResourceLocation(json.getAsJsonPrimitive("item").getAsString()));
+            Item item = ForgeRegistries.ITEMS.getValue(new Identifier(json.getAsJsonPrimitive("item").getAsString()));
+            Potion potion = ForgeRegistries.POTION_TYPES.getValue(new Identifier(json.getAsJsonPrimitive("item").getAsString()));
             return new PotionIngredient(item, potion);
         }
 
         @Override
-        public void write(@Nonnull PacketBuffer buffer, @Nonnull PotionIngredient ingredient) {
+        public void write(@Nonnull PacketByteBuf buffer, @Nonnull PotionIngredient ingredient) {
             buffer.writeString(Objects.toString(ingredient.item.getRegistryName()));
             buffer.writeString(Objects.toString(ingredient.potion.getRegistryName()));
         }

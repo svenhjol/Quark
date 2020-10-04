@@ -4,12 +4,12 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.WallSkullBlock;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.WorldAccess;
 import net.minecraftforge.event.world.NoteBlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.quark.base.handler.MiscUtil;
@@ -29,7 +29,7 @@ public class NoteBlockMobSoundsModule extends Module {
 
 	@SubscribeEvent
 	public void noteBlockPlayed(NoteBlockEvent.Play event) {
-		IWorld world = event.getWorld();
+		WorldAccess world = event.getWorld();
 		BlockPos pos = event.getPos();
 		if(world.getBlockState(pos).getBlock() != Blocks.NOTE_BLOCK)
 			return;
@@ -49,7 +49,7 @@ public class NoteBlockMobSoundsModule extends Module {
 		}
 	}
 
-	public SoundEvent getSoundEvent(IWorld world, BlockPos pos, Direction direction) {
+	public SoundEvent getSoundEvent(WorldAccess world, BlockPos pos, Direction direction) {
 		BlockState state = world.getBlockState(pos.offset(direction)); 
 		Block block = state.getBlock();
 		

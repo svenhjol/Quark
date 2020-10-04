@@ -5,12 +5,12 @@ import java.util.function.BooleanSupplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.structure.StructureManager;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 import vazkii.quark.base.world.config.DimensionConfig;
 import vazkii.quark.base.world.generator.Generator;
 import vazkii.quark.world.block.SpeleothemBlock;
@@ -24,7 +24,7 @@ public class SpeleothemGenerator extends Generator {
 	}
 
 	@Override
-	public void generateChunk(WorldGenRegion world, ChunkGenerator generator, StructureManager structureManager, Random rand, BlockPos pos) {
+	public void generateChunk(ChunkRegion world, ChunkGenerator generator, StructureAccessor structureManager, Random rand, BlockPos pos) {
 		int spread = 10;
 		int tries = SpeleothemsModule.triesPerChunk;
 		int innerSpread = 6;
@@ -32,7 +32,7 @@ public class SpeleothemGenerator extends Generator {
 		int upperBound = SpeleothemsModule.maxYlevel;
 		int offset = 6;
 		
-		if(world.func_230315_m_().func_236040_e_()) { // isNether
+		if(world.getDimension().isUltrawarm()) { // isNether
 			upperBound = 128;
 			offset = 0;
 			tries = SpeleothemsModule.triesPerChunkInNether;
@@ -47,7 +47,7 @@ public class SpeleothemGenerator extends Generator {
 			}
 	}
 	
-	private boolean placeSpeleothemCluster(Random random, IWorld world, BlockPos pos, int spread, int tries) {
+	private boolean placeSpeleothemCluster(Random random, WorldAccess world, BlockPos pos, int spread, int tries) {
 		if(!findAndPlaceSpeleothem(random, world, pos))
 			return false;
 		
@@ -59,15 +59,15 @@ public class SpeleothemGenerator extends Generator {
 		return true;
 	}
 	
-	private boolean findAndPlaceSpeleothem(Random random, IWorld world, BlockPos pos) {
-		if(!world.isAirBlock(pos))
+	private boolean findAndPlaceSpeleothem(Random random, WorldAccess world, BlockPos pos) {
+		if(!world.isAir(pos))
 			return false;
 		
-		int off = world.func_230315_m_().func_236040_e_() ? -1000 : 0; // isNether
+		int off = world.getDimension().isUltrawarm() ? -1000 : 0; // isNether
 		boolean up = random.nextBoolean();
 		Direction diff = (up ? Direction.UP : Direction.DOWN);
 		
-		if(!up && world.canBlockSeeSky(pos))
+		if(!up && world.isSkyVisibleAllowingSea(pos))
  			return false;
 		
 		BlockState stateAt;
@@ -75,7 +75,7 @@ public class SpeleothemGenerator extends Generator {
 			pos = pos.offset(diff);
 			stateAt = world.getBlockState(pos);
 			off++;
-		} while(pos.getY() > 4 && pos.getY() < 200 && !stateAt.isSolid() && off < 10);
+		} while(pos.getY() > 4 && pos.getY() < 200 && !stateAt.isOpaque() && off < 10);
 		
 		Block type = getSpeleothemType(stateAt);
 		placeSpeleothem(random, world, pos, type, !up);
@@ -83,7 +83,7 @@ public class SpeleothemGenerator extends Generator {
 		return true;
 	}
 		
-	private void placeSpeleothem(Random random, IWorld world, BlockPos pos, Block type, boolean up) {
+	private void placeSpeleothem(Random random, WorldAccess world, BlockPos pos, Block type, boolean up) {
 		if(type == null)
 			return;
 		
@@ -94,7 +94,7 @@ public class SpeleothemGenerator extends Generator {
 		
 		for(int i = 0; i < size; i++) {
 			pos = pos.offset(diff);
-			if(!world.isAirBlock(pos))
+			if(!world.isAir(pos))
 				return;
 			
 			SpeleothemSize sizeType = SpeleothemSize.values()[size - i - 1];

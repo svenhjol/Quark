@@ -1,7 +1,7 @@
 package vazkii.quark.automation.module;
 
 import net.minecraft.entity.ai.goal.TemptGoal;
-import net.minecraft.entity.monster.EndermiteEntity;
+import net.minecraft.entity.mob.EndermiteEntity;
 import net.minecraftforge.event.entity.EntityEvent.EnteringChunk;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.quark.automation.ai.FormShulkerGoal;
@@ -22,7 +22,7 @@ public class EndermitesFormShulkersModule extends Module {
             boolean alreadySetUp = endermite.goalSelector.goals.stream().anyMatch((goal) -> goal.getGoal() instanceof TemptGoal);
 
             if(!alreadySetUp) 
-            	endermite.goalSelector.addGoal(2, new FormShulkerGoal(endermite));
+            	endermite.goalSelector.add(2, new FormShulkerGoal(endermite));
 		}
 	}
 	

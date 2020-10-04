@@ -7,30 +7,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.Minecraft;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.potion.PotionUtils;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.potion.PotionUtil;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -62,7 +62,7 @@ import vazkii.quark.management.client.gui.MiniInventoryButton;
 @LoadModule(category = ModuleCategory.CLIENT, hasSubscriptions = true, subscribeOn = Dist.CLIENT)
 public class ChestSearchingModule extends Module {
 
-	@OnlyIn(Dist.CLIENT) 
+	@Environment(EnvType.CLIENT) 
 	private static TextFieldWidget searchBar;
 	
 	private static String text = "";
@@ -72,7 +72,7 @@ public class ChestSearchingModule extends Module {
 	private static int matched;
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		InventoryButtonHandler.addButtonProvider(this, ButtonTargetType.CONTAINER_INVENTORY, 1, (parent, x, y) -> 
 		new MiniInventoryButton(parent, 3, x, y, "quark.gui.button.filter", (b) -> {
@@ -82,18 +82,18 @@ public class ChestSearchingModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void initGui(GuiScreenEvent.InitGuiEvent.Post event) {
 		Screen gui = event.getGui();
-		if(gui instanceof ContainerScreen && !(event.getGui() instanceof IQuarkButtonIgnored) && !GeneralConfig.ignoredScreens.contains(event.getGui().getClass().getName())) {
-			Minecraft mc = gui.getMinecraft();
-			ContainerScreen<?> chest = (ContainerScreen<?>) gui;
-			if(InventoryTransferHandler.accepts(chest.getContainer(), mc.player)) {
-				searchBar = new TextFieldWidget(mc.fontRenderer, chest.getGuiLeft() + 18, chest.getGuiTop() + 6, 117, 10, new StringTextComponent(text));
+		if(gui instanceof HandledScreen && !(event.getGui() instanceof IQuarkButtonIgnored) && !GeneralConfig.ignoredScreens.contains(event.getGui().getClass().getName())) {
+			MinecraftClient mc = gui.getMinecraft();
+			HandledScreen<?> chest = (HandledScreen<?>) gui;
+			if(InventoryTransferHandler.accepts(chest.getScreenHandler(), mc.player)) {
+				searchBar = new TextFieldWidget(mc.textRenderer, chest.getGuiLeft() + 18, chest.getGuiTop() + 6, 117, 10, new LiteralText(text));
 
 				searchBar.setText(text);
-				searchBar.setMaxStringLength(50);
-				searchBar.setEnableBackgroundDrawing(false);
+				searchBar.setMaxLength(50);
+				searchBar.setHasBorder(false);
 				updateSearchStatus();
 
 				return;
@@ -104,9 +104,9 @@ public class ChestSearchingModule extends Module {
 	}
 
 	private void updateSearchStatus() {
-		searchBar.setEnabled(searchEnabled);
+		searchBar.setEditable(searchEnabled);
 		searchBar.setVisible(searchEnabled);
-		searchBar.setFocused2(searchEnabled);
+		searchBar.setSelected(searchEnabled);
 	}
 
 	@SubscribeEvent
@@ -155,7 +155,7 @@ public class ChestSearchingModule extends Module {
 	@SubscribeEvent
 	public void drawTooltipEvent(RenderTooltipEvent.Pre event) {
 		if(searchBar != null && searchEnabled) {
-			renderElements(event.getMatrixStack(), Minecraft.getInstance().currentScreen);
+			renderElements(event.getMatrixStack(), MinecraftClient.getInstance().currentScreen);
 			skip = true;
 		}
 	}
@@ -166,19 +166,19 @@ public class ChestSearchingModule extends Module {
 		drawBackground(matrix, gui, searchBar.x - 11, searchBar.y - 3);
 
 		if(!text.isEmpty()) {
-			if(gui instanceof ContainerScreen) {
-				ContainerScreen<?> guiContainer = (ContainerScreen<?>) gui;
-				Container container = guiContainer.getContainer();
+			if(gui instanceof HandledScreen) {
+				HandledScreen<?> guiContainer = (HandledScreen<?>) gui;
+				ScreenHandler container = guiContainer.getScreenHandler();
 
 				int guiLeft = guiContainer.getGuiLeft();
 				int guiTop = guiContainer.getGuiTop();
 
 				matched = 0;
-				for(Slot s : container.inventorySlots) {
+				for(Slot s : container.slots) {
 					ItemStack stack = s.getStack();
 					if(!namesMatch(stack, text)) {
-						int x = guiLeft + s.xPos;
-						int y = guiTop + s.yPos;
+						int x = guiLeft + s.x;
+						int y = guiTop + s.y;
 
 						RenderSystem.disableDepthTest();
 						Screen.fill(matrix, x, y, x + 16, y + 16, 0xAA000000);
@@ -188,8 +188,8 @@ public class ChestSearchingModule extends Module {
 		}
 
 		if(matched == 0 && !text.isEmpty())
-			searchBar.setTextColor(0xFF5555);
-		else searchBar.setTextColor(0xFFFFFF);
+			searchBar.setEditableColor(0xFF5555);
+		else searchBar.setEditableColor(0xFFFFFF);
 
 		searchBar.render(matrix, 0, 0, 0);
 		RenderSystem.popMatrix();
@@ -201,8 +201,8 @@ public class ChestSearchingModule extends Module {
 
 		RenderSystem.color4f(1F, 1F, 1F, 1F);
 		RenderSystem.disableLighting();
-		Minecraft.getInstance().getTextureManager().bindTexture(MiscUtil.GENERAL_ICONS);
-		Screen.blit(matrix, x, y, 0, 0, 126, 13, 256, 256);
+		MinecraftClient.getInstance().getTextureManager().bindTexture(MiscUtil.GENERAL_ICONS);
+		Screen.drawTexture(matrix, x, y, 0, 0, 126, 13, 256, 256);
 	}
 
 	public static boolean namesMatch(ItemStack stack) {
@@ -210,7 +210,7 @@ public class ChestSearchingModule extends Module {
 	}
 
 	public static boolean namesMatch(ItemStack stack, String search) {
-		search = TextFormatting.getTextWithoutFormattingCodes(search.trim().toLowerCase(Locale.ROOT));
+		search = Formatting.strip(search.trim().toLowerCase(Locale.ROOT));
 		if(search == null || search.isEmpty())
 			return true;
 
@@ -218,15 +218,15 @@ public class ChestSearchingModule extends Module {
 			return false;
 
 		Item item = stack.getItem();
-		ResourceLocation res = item.getRegistryName();
+		Identifier res = item.getRegistryName();
 		if(SimilarBlockTypeHandler.isShulkerBox(res)) {
-			CompoundNBT cmp = ItemNBTHelper.getCompound(stack, "BlockEntityTag", true);
+			CompoundTag cmp = ItemNBTHelper.getCompound(stack, "BlockEntityTag", true);
 			if (cmp != null) {
 				if (!cmp.contains("id", Constants.NBT.TAG_STRING)) {
 					cmp = cmp.copy();
 					cmp.putString("id", "minecraft:shulker_box");
 				}
-				TileEntity te = TileEntity.func_235657_b_(((BlockItem) item).getBlock().getDefaultState(), cmp); // create
+				BlockEntity te = BlockEntity.createFromTag(((BlockItem) item).getBlock().getDefaultState(), cmp); // create
 				if (te != null) {
 					LazyOptional<IItemHandler> handler = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
 					if (handler.isPresent()) {
@@ -240,8 +240,8 @@ public class ChestSearchingModule extends Module {
 			}
 		}
 
-		String name = stack.getDisplayName().getString();
-		name = TextFormatting.getTextWithoutFormattingCodes(name.trim().toLowerCase(Locale.ROOT));
+		String name = stack.getName().getString();
+		name = Formatting.strip(name.trim().toLowerCase(Locale.ROOT));
 
 		StringMatcher matcher = String::contains;
 
@@ -255,38 +255,38 @@ public class ChestSearchingModule extends Module {
 			matcher = (s1, s2) -> Pattern.compile(s2).matcher(s1).find();
 		}
 
-		if(stack.isEnchanted()) {
-			Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
+		if(stack.hasEnchantments()) {
+			Map<Enchantment, Integer> enchants = EnchantmentHelper.get(stack);
 			for(Enchantment e : enchants.keySet())
-				if(e != null && matcher.test(e.getDisplayName(enchants.get(e)).toString().toLowerCase(Locale.ROOT), search))
+				if(e != null && matcher.test(e.getName(enchants.get(e)).toString().toLowerCase(Locale.ROOT), search))
 					return true;
 		}
 
-		List<ITextComponent> potionNames = new ArrayList<>();
-		PotionUtils.addPotionTooltip(stack, potionNames, 1F);
-		for(ITextComponent s : potionNames) {
-			if (matcher.test(TextFormatting.getTextWithoutFormattingCodes(s.toString().trim().toLowerCase(Locale.ROOT)), search))
+		List<Text> potionNames = new ArrayList<>();
+		PotionUtil.buildTooltip(stack, potionNames, 1F);
+		for(Text s : potionNames) {
+			if (matcher.test(Formatting.strip(s.toString().trim().toLowerCase(Locale.ROOT)), search))
 				return true;
 		}
 
 
 
 
-		for(Map.Entry<Enchantment, Integer> entry : EnchantmentHelper.getEnchantments(stack).entrySet()) {
+		for(Map.Entry<Enchantment, Integer> entry : EnchantmentHelper.get(stack).entrySet()) {
 			int lvl = entry.getValue();
 			Enchantment e = entry.getKey();
-			if(e != null && matcher.test(e.getDisplayName(lvl).toString().toLowerCase(Locale.ROOT), search))
+			if(e != null && matcher.test(e.getName(lvl).toString().toLowerCase(Locale.ROOT), search))
 				return true;
 		}
 
 		ItemGroup tab = item.getGroup();
-		if(tab != null && matcher.test(I18n.format(tab.getTranslationKey()).toLowerCase(Locale.ROOT), search))
+		if(tab != null && matcher.test(I18n.translate(tab.getTranslationKey()).toLowerCase(Locale.ROOT), search))
 			return true;
 
 		//		if(search.matches("favou?rites?") && FavoriteItems.isItemFavorited(stack))
 		//			return true;
 
-		ResourceLocation itemName = item.getRegistryName();
+		Identifier itemName = item.getRegistryName();
 		Optional<? extends ModContainer> mod = ModList.get().getModContainerById(itemName.getPath());
 		if(mod.isPresent() && matcher.test(mod.orElse(null).getModInfo().getDisplayName().toLowerCase(Locale.ROOT), search))
 			return true;

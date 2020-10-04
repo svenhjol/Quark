@@ -1,34 +1,41 @@
 package vazkii.quark.mobs.entity;
 
 import com.google.common.collect.Lists;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.SoundType;
 import net.minecraft.entity.*;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.AttributeModifierMap;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.ai.controller.JumpController;
-import net.minecraft.entity.ai.controller.MovementController;
+import net.minecraft.entity.ai.control.JumpControl;
+import net.minecraft.entity.ai.control.MoveControl;
 import net.minecraft.entity.ai.goal.*;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.ai.pathing.Path;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.pathfinding.Path;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Packet;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.tag.ItemTags;
+import net.minecraft.text.Text;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -55,12 +62,12 @@ import java.util.UUID;
 @SuppressWarnings("deprecation")
 public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnData, IForgeShearable {
 
-	public static final ResourceLocation FROG_LOOT_TABLE = new ResourceLocation("quark", "entities/frog");
+	public static final Identifier FROG_LOOT_TABLE = new Identifier("quark", "entities/frog");
 
-	private static final DataParameter<Integer> TALK_TIME = EntityDataManager.createKey(FrogEntity.class, DataSerializers.VARINT);
-	private static final DataParameter<Float> SIZE_MODIFIER = EntityDataManager.createKey(FrogEntity.class, DataSerializers.FLOAT);
-	private static final DataParameter<Boolean> HAS_SWEATER = EntityDataManager.createKey(FrogEntity.class, DataSerializers.BOOLEAN);
-	private static final DataParameter<Boolean> VOID = EntityDataManager.createKey(FrogEntity.class, DataSerializers.BOOLEAN);
+	private static final TrackedData<Integer> TALK_TIME = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.INTEGER);
+	private static final TrackedData<Float> SIZE_MODIFIER = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.FLOAT);
+	private static final TrackedData<Boolean> HAS_SWEATER = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+	private static final TrackedData<Boolean> VOID = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
 	private static final UUID VOID_MODIFIER_UUID = UUID.fromString("212dbecc-7525-4137-a74b-361cc128d24f");
 
@@ -79,77 +86,77 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	public FrogEntity(EntityType<? extends FrogEntity> type, World worldIn, float sizeModifier) {
 		super(type, worldIn);
 		if (sizeModifier != 1)
-			dataManager.set(SIZE_MODIFIER, sizeModifier);
+			dataTracker.set(SIZE_MODIFIER, sizeModifier);
 
-		this.jumpController = new FrogJumpController();
-		this.moveController = new FrogMoveController();
+		this.jumpControl = new FrogJumpController();
+		this.moveControl = new FrogMoveController();
 		this.setMovementSpeed(0.0D);
 	}
 
 	@Override
-	protected void registerData() {
-		super.registerData();
+	protected void initDataTracker() {
+		super.initDataTracker();
 
-		dataManager.register(TALK_TIME, 0);
-		dataManager.register(SIZE_MODIFIER, 1f);
-		dataManager.register(HAS_SWEATER, false);
-		dataManager.register(VOID, false);
+		dataTracker.startTracking(TALK_TIME, 0);
+		dataTracker.startTracking(SIZE_MODIFIER, 1f);
+		dataTracker.startTracking(HAS_SWEATER, false);
+		dataTracker.startTracking(VOID, false);
 	}
 
 	@Override
-	protected void registerGoals() {
-		goalSelector.addGoal(0, new PassivePassengerGoal(this));
-		goalSelector.addGoal(1, new SwimGoal(this));
-		goalSelector.addGoal(2, new FrogPanicGoal(1.25));
-		goalSelector.addGoal(3, new BreedGoal(this, 1.0));
-		goalSelector.addGoal(4, new TemptGoalButNice(this, 1.2, false, getTemptationItems(false), getTemptationItems(true)));
-		goalSelector.addGoal(5, new FollowParentGoal(this, 1.1));
-		goalSelector.addGoal(6, new FavorBlockGoal(this, 1, Blocks.LILY_PAD));
-		goalSelector.addGoal(7, new WaterAvoidingRandomWalkingGoal(this, 1, 0.5F));
-		goalSelector.addGoal(8, new LookAtGoal(this, PlayerEntity.class, 6));
-		goalSelector.addGoal(9, new LookRandomlyGoal(this));
+	protected void initGoals() {
+		goalSelector.add(0, new PassivePassengerGoal(this));
+		goalSelector.add(1, new SwimGoal(this));
+		goalSelector.add(2, new FrogPanicGoal(1.25));
+		goalSelector.add(3, new AnimalMateGoal(this, 1.0));
+		goalSelector.add(4, new TemptGoalButNice(this, 1.2, false, getTemptationItems(false), getTemptationItems(true)));
+		goalSelector.add(5, new FollowParentGoal(this, 1.1));
+		goalSelector.add(6, new FavorBlockGoal(this, 1, Blocks.LILY_PAD));
+		goalSelector.add(7, new WanderAroundFarGoal(this, 1, 0.5F));
+		goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 6));
+		goalSelector.add(9, new LookAroundGoal(this));
 	}
 
-	public static AttributeModifierMap.MutableAttribute prepareAttributes() {
-        return MobEntity.func_233666_p_()
-                .func_233815_a_(Attributes.field_233818_a_, 10.0D) // MAX_HEALTH
-                .func_233815_a_(Attributes.field_233821_d_, 0.25D) // MOVEMENT_SPEED
-				.func_233814_a_(ForgeMod.ENTITY_GRAVITY.get());
+	public static DefaultAttributeContainer.Builder prepareAttributes() {
+        return MobEntity.createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 10.0D) // MAX_HEALTH
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.25D) // MOVEMENT_SPEED
+				.add(ForgeMod.ENTITY_GRAVITY.get());
     }
 	
 	@Nonnull
 	@Override
-	public MovementController getMoveHelper() {
-		return moveController;
+	public MoveControl getMoveControl() {
+		return moveControl;
 	}
 
 	@Nonnull
 	@Override
-	public JumpController getJumpController() {
-		return jumpController;
+	public JumpControl getJumpControl() {
+		return jumpControl;
 	}
 
 	@Override
-	public boolean onLivingFall(float distance, float damageMultiplier) {
+	public boolean handleFallDamage(float distance, float damageMultiplier) {
 		return false;
 	}
 
 	@Override
-	protected float getStandingEyeHeight(@Nonnull Pose pose, EntitySize size) {
+	protected float getActiveEyeHeight(@Nonnull EntityPose pose, EntityDimensions size) {
 		return 0.2f * size.height;
 	}
 
 	@Override
-	public boolean isEntityInsideOpaqueBlock() {
+	public boolean isInsideWall() {
 		return MiscUtil.isEntityInsideOpaqueBlock(this);
 	}
 
 	public int getTalkTime() {
-		return dataManager.get(TALK_TIME);
+		return dataTracker.get(TALK_TIME);
 	}
 
 	public float getSizeModifier() {
-		return dataManager.get(SIZE_MODIFIER);
+		return dataTracker.get(SIZE_MODIFIER);
 	}
 	
 	public static boolean canBeSweatered() {
@@ -161,8 +168,8 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 	@Override
 	public void tick() {
-		if(!world.isRemote && !sweatered) {
-			setSweater(CommonProxy.jingleTheBells && (getUniqueID().getLeastSignificantBits() % 10 == 0));
+		if(!world.isClient && !sweatered) {
+			setSweater(CommonProxy.jingleTheBells && (getUuid().getLeastSignificantBits() % 10 == 0));
 			sweatered = true;
 		}
 		
@@ -173,9 +180,9 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 			this.setJumping(false);
 		}
 
-		if (!isVoid() && hasCustomName() && getPosY() <= 0) {
-			ITextComponent name = getCustomName();
-			if (name != null && name.getUnformattedComponentText().equals("Jack")) {
+		if (!isVoid() && hasCustomName() && getY() <= 0) {
+			Text name = getCustomName();
+			if (name != null && name.asString().equals("Jack")) {
 				setVoid(true);
 			}
 		}
@@ -184,39 +191,39 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 		int talkTime = getTalkTime();
 		if (talkTime > 0)
-			dataManager.set(TALK_TIME, talkTime - 1);
+			dataTracker.set(TALK_TIME, talkTime - 1);
 
 		if (FrogsModule.enableBigFunny && spawnCd > 0 && spawnChain > 0) {
 			spawnCd--;
-			if (spawnCd == 0 && !world.isRemote) {
+			if (spawnCd == 0 && !world.isClient) {
 				float multiplier = 0.8F;
 				FrogEntity newFrog = new FrogEntity(FrogsModule.frogType, world);
-				Vector3d pos = getPositionVec();
-				newFrog.setPosition(pos.x, pos.y, pos.z);
-				newFrog.setMotion((Math.random() - 0.5) * multiplier, (Math.random() - 0.5) * multiplier, (Math.random() - 0.5) * multiplier);
+				Vec3d pos = getPos();
+				newFrog.updatePosition(pos.x, pos.y, pos.z);
+				newFrog.setVelocity((Math.random() - 0.5) * multiplier, (Math.random() - 0.5) * multiplier, (Math.random() - 0.5) * multiplier);
 				newFrog.isDuplicate = true;
 				newFrog.spawnCd = 2;
 				newFrog.spawnChain = spawnChain - 1;
-				world.addEntity(newFrog);
+				world.spawnEntity(newFrog);
 				spawnChain = 0;
 			}
 		}
 
-		if (isVoid() && getPosY() > 256 + 64)
-			outOfWorld();
+		if (isVoid() && getY() > 256 + 64)
+			destroy();
 
-		this.prevRotationYaw = this.prevRotationYawHead;
-		this.rotationYaw = this.rotationYawHead;
+		this.prevYaw = this.prevHeadYaw;
+		this.yaw = this.headYaw;
 	}
 
 	@Override
-	protected boolean canDropLoot() {
-		return !isDuplicate && super.canDropLoot();
+	protected boolean canDropLootAndXp() {
+		return !isDuplicate && super.canDropLootAndXp();
 	}
 
 	@Nonnull
 	@Override
-	protected ResourceLocation getLootTable() {
+	protected Identifier getLootTableId() {
 		return FROG_LOOT_TABLE;
 	}
 
@@ -231,64 +238,64 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 	@Nullable
 	@Override
-	public ItemEntity entityDropItem(@Nonnull ItemStack stack, float offsetY) {
+	public ItemEntity dropStack(@Nonnull ItemStack stack, float offsetY) {
 		if (droppedLegs >= 0) {
 			int count = Math.max(4 - droppedLegs, 0);
 			droppedLegs += stack.getCount();
 
 			if (stack.getCount() > count) {
 				ItemStack copy = stack.copy();
-				copy.shrink(count);
-				copy.getOrCreateChildTag("display")
+				copy.decrement(count);
+				copy.getOrCreateSubTag("display")
 						.putString("LocName", "item.quark.frog_maybe_leg.name");
 
 				stack = stack.copy();
-				stack.shrink(copy.getCount());
+				stack.decrement(copy.getCount());
 
-				super.entityDropItem(copy, offsetY);
+				super.dropStack(copy, offsetY);
 			}
 		}
 
-		return super.entityDropItem(stack, offsetY);
+		return super.dropStack(stack, offsetY);
 	}
 
 	@Nonnull
 	@Override // processInteract
-	public ActionResultType func_230254_b_(@Nonnull PlayerEntity player, @Nonnull Hand hand) {
-		ActionResultType parent = super.func_230254_b_(player, hand);
-		if(parent == ActionResultType.SUCCESS)
+	public ActionResult interactMob(@Nonnull PlayerEntity player, @Nonnull Hand hand) {
+		ActionResult parent = super.interactMob(player, hand);
+		if(parent == ActionResult.SUCCESS)
 			return parent;
 
-		ItemStack stack = player.getHeldItem(hand);
+		ItemStack stack = player.getStackInHand(hand);
 		
 		LocalDate date = LocalDate.now();
 		if(DayOfWeek.from(date) == DayOfWeek.WEDNESDAY && stack.getItem() == Items.CLOCK) {
-			if(!world.isRemote && spawnChain > 0 && !isDuplicate) {
+			if(!world.isClient && spawnChain > 0 && !isDuplicate) {
 				if(FrogsModule.enableBigFunny) {
 					spawnCd = 50;
-					dataManager.set(TALK_TIME, 80);
+					dataTracker.set(TALK_TIME, 80);
 				}
 					
-				Vector3d pos = getPositionVec();
+				Vec3d pos = getPos();
 				world.playSound(null, pos.x, pos.y, pos.z, QuarkSounds.ENTITY_FROG_WEDNESDAY, SoundCategory.NEUTRAL, 1F, 1F);
 			}
 
-			return ActionResultType.SUCCESS;
+			return ActionResult.SUCCESS;
 		}
 		
 		if(stack.getItem().isIn(ItemTags.WOOL) && !hasSweater()) {
-			if(!world.isRemote) {
+			if(!world.isClient) {
 				setSweater(true);
-				Vector3d pos = getPositionVec();
-				world.playSound(null, pos.x, pos.y, pos.z, SoundType.CLOTH.getPlaceSound(), SoundCategory.PLAYERS, 1F, 1F);
-				stack.shrink(1);
+				Vec3d pos = getPos();
+				world.playSound(null, pos.x, pos.y, pos.z, BlockSoundGroup.WOOL.getPlaceSound(), SoundCategory.PLAYERS, 1F, 1F);
+				stack.decrement(1);
 			}
 			
-			player.swingArm(hand);
-			return ActionResultType.SUCCESS;
+			player.swingHand(hand);
+			return ActionResult.SUCCESS;
 		}
 
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 	
 	@Override
@@ -300,7 +307,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	@Override
 	public List<ItemStack> onSheared(PlayerEntity player, @Nonnull ItemStack item, World iworld, BlockPos pos, int fortune) {
 		setSweater(false);
-		Vector3d epos = getPositionVec();
+		Vec3d epos = getPos();
 		world.playSound(null, epos.x, epos.y, epos.z, SoundEvents.ENTITY_SHEEP_SHEAR, SoundCategory.PLAYERS, 1F, 1F);
 
 		return Lists.newArrayList();
@@ -308,7 +315,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 	@Nullable
 	@Override
-	public AgeableEntity createChild(@Nonnull AgeableEntity otherParent) {
+	public PassiveEntity createChild(@Nonnull PassiveEntity otherParent) {
 		if (isDuplicate)
 			return null;
 
@@ -321,7 +328,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 			sizeMod /= 2;
 		}
 
-		double regression = rand.nextGaussian() / 20;
+		double regression = random.nextGaussian() / 20;
 		regression *= Math.abs((sizeMod + regression) / sizeMod);
 
 		return new FrogEntity(FrogsModule.frogType, world, MathHelper.clamp(sizeMod + (float) regression, 0.25f, 2.0f));
@@ -339,11 +346,11 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 		if(temptationItems == null)
 			temptationItems =  new Ingredient[] {
 					Ingredient.merge(Lists.newArrayList(
-							Ingredient.fromItems(Items.SPIDER_EYE),
+							Ingredient.ofItems(Items.SPIDER_EYE),
 							Ingredient.fromTag(ItemTags.FISHES)
 					)),
 					Ingredient.merge(Lists.newArrayList(
-							Ingredient.fromItems(Items.SPIDER_EYE, Items.CLOCK),
+							Ingredient.ofItems(Items.SPIDER_EYE, Items.CLOCK),
 							Ingredient.fromTag(ItemTags.FISHES)
 					))
 			};
@@ -352,15 +359,15 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	@Override
-	public void readAdditional(@Nonnull CompoundNBT compound) {
-		super.readAdditional(compound);
+	public void readCustomDataFromTag(@Nonnull CompoundTag compound) {
+		super.readCustomDataFromTag(compound);
 		spawnCd = compound.getInt("Cooldown");
 		if (compound.contains("Chain"))
 			spawnChain = compound.getInt("Chain");
-		dataManager.set(TALK_TIME, compound.getInt("DudeAmount"));
+		dataTracker.set(TALK_TIME, compound.getInt("DudeAmount"));
 
 		float sizeModifier = compound.contains("FrogAmount") ? compound.getFloat("FrogAmount") : 1f;
-		dataManager.set(SIZE_MODIFIER, sizeModifier);
+		dataTracker.set(SIZE_MODIFIER, sizeModifier);
 
 		isDuplicate = compound.getBoolean("FakeFrog");
 		
@@ -371,8 +378,8 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	@Override
-	public void writeAdditional(@Nonnull CompoundNBT compound) {
-		super.writeAdditional(compound);
+	public void writeCustomDataToTag(@Nonnull CompoundTag compound) {
+		super.writeCustomDataToTag(compound);
 		compound.putFloat("FrogAmount", getSizeModifier());
 		compound.putInt("Cooldown", spawnCd);
 		compound.putInt("Chain", spawnChain);
@@ -403,20 +410,20 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 	
 	public boolean hasSweater() {
-		return dataManager.get(HAS_SWEATER);
+		return dataTracker.get(HAS_SWEATER);
 	}
 	
 	public void setSweater(boolean sweater) {
-		dataManager.set(HAS_SWEATER, sweater);
+		dataTracker.set(HAS_SWEATER, sweater);
 	}
 
 	public boolean isVoid() {
-		return dataManager.get(VOID);
+		return dataTracker.get(VOID);
 	}
 
 	@Override
-	protected float getJumpUpwardsMotion() {
-		float motion = super.getJumpUpwardsMotion();
+	protected float getJumpVelocity() {
+		float motion = super.getJumpVelocity();
 		if (isVoid())
 			return -motion;
 		else
@@ -424,14 +431,14 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	public void setVoid(boolean jack) {
-		if (jack && this.getAttribute(ForgeMod.ENTITY_GRAVITY.get()).getModifier(VOID_MODIFIER_UUID) == null)
-			this.getAttribute(ForgeMod.ENTITY_GRAVITY.get())
-					.func_233769_c_(new AttributeModifier(VOID_MODIFIER_UUID, "Void gravity", -2, AttributeModifier.Operation.MULTIPLY_BASE));
+		if (jack && this.getAttributeInstance(ForgeMod.ENTITY_GRAVITY.get()).getModifier(VOID_MODIFIER_UUID) == null)
+			this.getAttributeInstance(ForgeMod.ENTITY_GRAVITY.get())
+					.addPersistentModifier(new EntityAttributeModifier(VOID_MODIFIER_UUID, "Void gravity", -2, EntityAttributeModifier.Operation.MULTIPLY_BASE));
 		else
-			this.getAttribute(ForgeMod.ENTITY_GRAVITY.get())
-					.func_233770_c_(VOID_MODIFIER_UUID);
+			this.getAttributeInstance(ForgeMod.ENTITY_GRAVITY.get())
+					.tryRemoveModifier(VOID_MODIFIER_UUID);
 
-		dataManager.set(VOID, jack);
+		dataTracker.set(VOID, jack);
 	}
 
 	// Begin copypasta from EntityRabbit
@@ -442,7 +449,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	private int currentMoveTypeDuration;
 
 	@Override
-	public void updateAITasks() {
+	public void mobTick() {
 		if (this.currentMoveTypeDuration > 0) --this.currentMoveTypeDuration;
 
 		if (this.onGround) {
@@ -451,15 +458,15 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 				this.checkLandingDelay();
 			}
 
-			FrogJumpController jumpHelper = (FrogJumpController) this.jumpController;
+			FrogJumpController jumpHelper = (FrogJumpController) this.jumpControl;
 
 			if (!jumpHelper.getIsJumping()) {
-				if (this.moveController.isUpdating() && this.currentMoveTypeDuration == 0) {
-					Path path = this.navigator.getPath();
-					Vector3d Vector3d = new Vector3d(this.moveController.getX(), this.moveController.getY(), this.moveController.getZ());
+				if (this.moveControl.isMoving() && this.currentMoveTypeDuration == 0) {
+					Path path = this.navigation.getCurrentPath();
+					Vec3d Vector3d = new Vec3d(this.moveControl.getTargetX(), this.moveControl.getTargetY(), this.moveControl.getTargetZ());
 
-					if (path != null && path.getCurrentPathIndex() < path.getCurrentPathLength())
-						Vector3d = path.getPosition(this);
+					if (path != null && path.getCurrentNodeIndex() < path.getLength())
+						Vector3d = path.getNodePosition(this);
 
 					this.calculateRotationYaw(Vector3d.x, Vector3d.z);
 					this.startJumping();
@@ -471,25 +478,25 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	@Override // spawnRunningParticles
-	public boolean func_230269_aK_() {
+	public boolean shouldSpawnSprintingParticles() {
 		return false;
 	}
 
 	private void calculateRotationYaw(double x, double z) {
-		Vector3d pos = getPositionVec();
-		this.rotationYaw = (float) (MathHelper.atan2(z - pos.z, x - pos.x) * (180D / Math.PI)) - 90.0F;
+		Vec3d pos = getPos();
+		this.yaw = (float) (MathHelper.atan2(z - pos.z, x - pos.x) * (180D / Math.PI)) - 90.0F;
 	}
 
 	private void enableJumpControl() {
-		((FrogJumpController) this.jumpController).setCanJump(true);
+		((FrogJumpController) this.jumpControl).setCanJump(true);
 	}
 
 	private void disableJumpControl() {
-		((FrogJumpController) this.jumpController).setCanJump(false);
+		((FrogJumpController) this.jumpControl).setCanJump(false);
 	}
 
 	private void updateMoveTypeDuration() {
-		if (this.moveController.getSpeed() < 2.2D)
+		if (this.moveControl.getSpeed() < 2.2D)
 			this.currentMoveTypeDuration = 10;
 		else
 			this.currentMoveTypeDuration = 1;
@@ -501,34 +508,34 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	@Override
-	public void notifyDataManagerChange(@Nonnull DataParameter<?> parameter) {
+	public void onTrackedDataSet(@Nonnull TrackedData<?> parameter) {
 		if (parameter.equals(SIZE_MODIFIER))
-			recalculateSize();
+			calculateDimensions();
 
-		super.notifyDataManagerChange(parameter);
+		super.onTrackedDataSet(parameter);
 	}
 
 	@Override
 	protected void jump() {
 		super.jump();
-		double d0 = this.moveController.getSpeed();
+		double d0 = this.moveControl.getSpeed();
 
 		if (d0 > 0.0D) {
-			Vector3d motion = getMotion();
+			Vec3d motion = getVelocity();
 			double d1 = motion.x * motion.x + motion.z * motion.z;
 
 			if (d1 < 0.01) {
-				this.moveRelative(0.1F, new Vector3d(0.0F, 0.0F, 1.0F));
+				this.updateVelocity(0.1F, new Vec3d(0.0F, 0.0F, 1.0F));
 			}
 		}
 
-		if (!this.world.isRemote)
-			this.world.setEntityState(this, (byte) 1);
+		if (!this.world.isClient)
+			this.world.sendEntityStatus(this, (byte) 1);
 	}
 
 	public void setMovementSpeed(double newSpeed) {
-		this.getNavigator().setSpeed(newSpeed);
-		this.moveController.setMoveTo(this.moveController.getX(), this.moveController.getY(), this.moveController.getZ(), newSpeed);
+		this.getNavigation().setSpeed(newSpeed);
+		this.moveControl.moveTo(this.moveControl.getTargetX(), this.moveControl.getTargetY(), this.moveControl.getTargetZ(), newSpeed);
 	}
 
 	@Override
@@ -536,7 +543,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 		super.setJumping(jumping);
 
 		if (jumping)
-			this.playSound(this.getJumpSound(), this.getSoundVolume(), ((this.rand.nextFloat() - this.rand.nextFloat()) * 0.2F + 1.0F) * 0.8F);
+			this.playSound(this.getJumpSound(), this.getSoundVolume(), ((this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F) * 0.8F);
 	}
 
 	public void startJumping() {
@@ -546,33 +553,33 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public void handleStatusUpdate(byte id) {
+	@Environment(EnvType.CLIENT)
+	public void handleStatus(byte id) {
 		if (id == 1) {
 //			this.createRunningParticles();
 			this.jumpDuration = 10;
 			this.jumpTicks = 0;
 		} else
-			super.handleStatusUpdate(id);
+			super.handleStatus(id);
 	}
 
 	@Nonnull
 	@Override
-	public IPacket<?> createSpawnPacket() {
+	public Packet<?> createSpawnPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
-	public void writeSpawnData(PacketBuffer buffer) {
+	public void writeSpawnData(PacketByteBuf buffer) {
 		buffer.writeFloat(getSizeModifier());
 	}
 
 	@Override
-	public void readSpawnData(PacketBuffer buffer) {
-		dataManager.set(SIZE_MODIFIER, buffer.readFloat());
+	public void readSpawnData(PacketByteBuf buffer) {
+		dataTracker.set(SIZE_MODIFIER, buffer.readFloat());
 	}
 	
-	public class FrogJumpController extends JumpController {
+	public class FrogJumpController extends JumpControl {
 		private boolean canJump;
 
 		public FrogJumpController() {
@@ -580,7 +587,7 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 		}
 
 		public boolean getIsJumping() {
-			return this.isJumping;
+			return this.active;
 		}
 
 		public boolean canJump() {
@@ -593,14 +600,14 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 		@Override
 		public void tick() {
-			if (this.isJumping) {
+			if (this.active) {
 				startJumping();
-				this.isJumping = false;
+				this.active = false;
 			}
 		}
 	}
 
-	public class FrogMoveController extends MovementController {
+	public class FrogMoveController extends MoveControl {
 		private double nextJumpSpeed;
 
 		public FrogMoveController() {
@@ -609,24 +616,24 @@ public class FrogEntity extends AnimalEntity implements IEntityAdditionalSpawnDa
 
 		@Override
 		public void tick() {
-			if (onGround && !isJumping && !((FrogJumpController) jumpController).getIsJumping())
+			if (onGround && !jumping && !((FrogJumpController) jumpControl).getIsJumping())
 				setMovementSpeed(0.0D);
-			else if (this.isUpdating()) setMovementSpeed(this.nextJumpSpeed);
+			else if (this.isMoving()) setMovementSpeed(this.nextJumpSpeed);
 
 			super.tick();
 		}
 
 		@Override
-		public void setMoveTo(double x, double y, double z, double speedIn) {
-			if (isInWater()) speedIn = 1.5D;
+		public void moveTo(double x, double y, double z, double speedIn) {
+			if (isTouchingWater()) speedIn = 1.5D;
 
-			super.setMoveTo(x, y, z, speedIn);
+			super.moveTo(x, y, z, speedIn);
 
 			if (speedIn > 0.0D) this.nextJumpSpeed = speedIn;
 		}
 	}
 	
-	public class FrogPanicGoal extends PanicGoal {
+	public class FrogPanicGoal extends EscapeDangerGoal {
 
 		public FrogPanicGoal(double speedIn) {
 			super(FrogEntity.this, speedIn);

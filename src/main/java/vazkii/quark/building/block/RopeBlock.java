@@ -5,8 +5,10 @@ import javax.annotation.Nonnull;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.PushReaction;
+import net.minecraft.block.Material;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
@@ -14,24 +16,22 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.potion.PotionUtils;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.potion.PotionUtil;
 import net.minecraft.potion.Potions;
-import net.minecraft.stats.Stats;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.stat.Stats;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import vazkii.arl.interf.IBlockItemProvider;
@@ -44,19 +44,19 @@ import vazkii.quark.building.module.RopeModule;
 
 public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 
-	private static final VoxelShape SHAPE = makeCuboidShape(6, 0, 6, 10, 16, 10);
+	private static final VoxelShape SHAPE = createCuboidShape(6, 0, 6, 10, 16, 10);
 
-	public RopeBlock(String regname, Module module, ItemGroup creativeTab, Properties properties) {
+	public RopeBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
 		super(regname, module, creativeTab, properties);
 		
 		RenderLayerHandler.setRenderType(this, RenderTypeSkeleton.CUTOUT);
 	}
 	
 	@Override
-	public BlockItem provideItemBlock(Block block, Item.Properties properties) {
+	public BlockItem provideItemBlock(Block block, Item.Settings properties) {
 		return new BlockItem(block, properties) {
 			@Override
-			public boolean doesSneakBypassUse(ItemStack stack, IWorldReader world, BlockPos pos, PlayerEntity player) {
+			public boolean doesSneakBypassUse(ItemStack stack, WorldView world, BlockPos pos, PlayerEntity player) {
 				return world.getBlockState(pos).getBlock() instanceof RopeBlock;
 			}
 		};
@@ -64,53 +64,53 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 
 	@Override
 	@SuppressWarnings("deprecation")
-	public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
+	public ActionResult onUse(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
 		if(hand == Hand.MAIN_HAND) {
-			ItemStack stack = player.getHeldItem(hand);
-			if(stack.getItem() == asItem() && !player.isDiscrete()) {
+			ItemStack stack = player.getStackInHand(hand);
+			if(stack.getItem() == asItem() && !player.isSneaky()) {
 				if(pullDown(worldIn, pos)) {
 					if(!player.isCreative())
-						stack.shrink(1);
+						stack.decrement(1);
 					
-					worldIn.playSound(null, pos, soundType.getPlaceSound(), SoundCategory.BLOCKS, 0.5F, 1F);
-					return ActionResultType.SUCCESS;
+					worldIn.playSound(null, pos, soundGroup.getPlaceSound(), SoundCategory.BLOCKS, 0.5F, 1F);
+					return ActionResult.SUCCESS;
 				}
 			} else if (stack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY).isPresent()) {
-				return FluidUtil.interactWithFluidHandler(player, hand, worldIn, getBottomPos(worldIn, pos), Direction.UP) ? ActionResultType.SUCCESS : ActionResultType.PASS;
+				return FluidUtil.interactWithFluidHandler(player, hand, worldIn, getBottomPos(worldIn, pos), Direction.UP) ? ActionResult.SUCCESS : ActionResult.PASS;
 			} else if (stack.getItem() == Items.GLASS_BOTTLE) {
 				BlockPos bottomPos = getBottomPos(worldIn, pos);
 				BlockState stateAt = worldIn.getBlockState(bottomPos);
 				if (stateAt.getMaterial() == Material.WATER) {
-					Vector3d playerPos = player.getPositionVec();
+					Vec3d playerPos = player.getPos();
 					worldIn.playSound(player, playerPos.x, playerPos.y, playerPos.z, SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
-					stack.shrink(1);
-					ItemStack bottleStack = PotionUtils.addPotionToItemStack(new ItemStack(Items.POTION), Potions.WATER);
-					player.addStat(Stats.ITEM_USED.get(stack.getItem()));
+					stack.decrement(1);
+					ItemStack bottleStack = PotionUtil.setPotion(new ItemStack(Items.POTION), Potions.WATER);
+					player.incrementStat(Stats.USED.getOrCreateStat(stack.getItem()));
 
 					if (stack.isEmpty())
-						player.setHeldItem(hand, bottleStack);
-					else if (!player.inventory.addItemStackToInventory(bottleStack))
+						player.setStackInHand(hand, bottleStack);
+					else if (!player.inventory.insertStack(bottleStack))
 						player.dropItem(bottleStack, false);
 
 
-					return ActionResultType.SUCCESS;
+					return ActionResult.SUCCESS;
 				}
 
-				return ActionResultType.PASS;
+				return ActionResult.PASS;
 			} else {
 				if(pullUp(worldIn, pos)) {
 					if(!player.isCreative()) {
-						if(!player.addItemStackToInventory(new ItemStack(this)))
+						if(!player.giveItemStack(new ItemStack(this)))
 							player.dropItem(new ItemStack(this), false);
 					}
 					
-					worldIn.playSound(null, pos, soundType.getBreakSound(), SoundCategory.BLOCKS, 0.5F, 1F);
-					return ActionResultType.SUCCESS;
+					worldIn.playSound(null, pos, soundGroup.getBreakSound(), SoundCategory.BLOCKS, 0.5F, 1F);
+					return ActionResult.SUCCESS;
 				}
 			}
 		}
 		
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 
 	public boolean pullUp(World world, BlockPos pos) {
@@ -140,7 +140,7 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 		
 		do {
 			pos = pos.down();
-			if (!World.isValid(pos))
+			if (!World.method_24794(pos))
 				return false;
 
 			BlockState state = world.getBlockState(pos);
@@ -150,12 +150,12 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 				continue;
 			
 			if(endRope) {
-				can = wasAirAtEnd || world.isAirBlock(pos) || state.getMaterial().isReplaceable();
+				can = wasAirAtEnd || world.isAir(pos) || state.getMaterial().isReplaceable();
 				break;
 			}
 			
 			endRope = true;
-			wasAirAtEnd = world.isAirBlock(pos);
+			wasAirAtEnd = world.isAir(pos);
 		} while(true);
 		
 		if(can) {
@@ -164,7 +164,7 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 			
 			BlockState ropePosState = world.getBlockState(ropePos);
 
-			if(world.isAirBlock(ropePos) || ropePosState.getMaterial().isReplaceable()) {
+			if(world.isAir(ropePos) || ropePosState.getMaterial().isReplaceable()) {
 				world.setBlockState(ropePos, getDefaultState());
 				return true;
 			}
@@ -189,16 +189,16 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 		BlockState state = world.getBlockState(srcPos);
 		Block block = state.getBlock();
 		
-		if(state.getBlockHardness(world, srcPos) == -1 || !state.isValidPosition(world, dstPos) || block.isAir(state, world, srcPos) ||
-				state.getPushReaction() != PushReaction.NORMAL || block == Blocks.OBSIDIAN)
+		if(state.getHardness(world, srcPos) == -1 || !state.canPlaceAt(world, dstPos) || block.isAir(state, world, srcPos) ||
+				state.getPistonBehavior() != PistonBehavior.NORMAL || block == Blocks.OBSIDIAN)
 			return;
 		
-		TileEntity tile = world.getTileEntity(srcPos);
+		BlockEntity tile = world.getBlockEntity(srcPos);
 		if(tile != null) {
 			if(RopeModule.forceEnableMoveTileEntities ? PistonsMoveTileEntitiesModule.shouldMoveTE(state) : PistonsMoveTileEntitiesModule.shouldMoveTE(true, state))
 				return;
 
-			tile.remove();
+			tile.markRemoved();
 		}
 		
 		world.setBlockState(srcPos, Blocks.AIR.getDefaultState());
@@ -206,54 +206,54 @@ public class RopeBlock extends QuarkBlock implements IBlockItemProvider {
 		
 		if(tile != null) {
 			tile.setPos(dstPos);
-			TileEntity target = TileEntity.func_235657_b_(state, tile.write(new CompoundNBT())); // create
+			BlockEntity target = BlockEntity.createFromTag(state, tile.toTag(new CompoundTag())); // create
 			if (target != null) {
-				world.setTileEntity(dstPos, target);
+				world.setBlockEntity(dstPos, target);
 
-				target.updateContainingBlockInfo();
+				target.resetBlock();
 
 			}
 		}
 
-		world.notifyNeighborsOfStateChange(dstPos, state.getBlock());
+		world.updateNeighborsAlways(dstPos, state.getBlock());
 	}
 
 	@Override
-	public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
+	public boolean canPlaceAt(BlockState state, WorldView worldIn, BlockPos pos) {
 		BlockPos upPos = pos.up();
 		BlockState upState = worldIn.getBlockState(upPos);
-		return upState.getBlock() == this || upState.isSolidSide(worldIn, upPos, Direction.DOWN);
+		return upState.getBlock() == this || upState.isSideSolidFullSquare(worldIn, upPos, Direction.DOWN);
 	}
 
 	@Override
 	@SuppressWarnings("deprecation")
-	public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
-		if(!state.isValidPosition(worldIn, pos)) {
-			worldIn.playEvent(2001, pos, Block.getStateId(worldIn.getBlockState(pos)));
-			spawnDrops(state, worldIn, pos);
+	public void neighborUpdate(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
+		if(!state.canPlaceAt(worldIn, pos)) {
+			worldIn.syncWorldEvent(2001, pos, Block.getRawIdFromState(worldIn.getBlockState(pos)));
+			dropStacks(state, worldIn, pos);
 			worldIn.setBlockState(pos, Blocks.AIR.getDefaultState());
 		}
 	}
 
 	@Override
-	public boolean isLadder(BlockState state, IWorldReader world, BlockPos pos, LivingEntity entity) {
+	public boolean isLadder(BlockState state, WorldView world, BlockPos pos, LivingEntity entity) {
 		return true;
 	}
 
 	@Nonnull
 	@Override
 	@SuppressWarnings("deprecation")
-	public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+	public VoxelShape getOutlineShape(BlockState state, BlockView worldIn, BlockPos pos, ShapeContext context) {
 		return SHAPE;
 	}
 
 	@Override
-	public int getFlammability(BlockState state, IBlockReader world, BlockPos pos, Direction face) {
+	public int getFlammability(BlockState state, BlockView world, BlockPos pos, Direction face) {
 		return 30;
 	}
 
 	@Override
-	public int getFireSpreadSpeed(BlockState state, IBlockReader world, BlockPos pos, Direction face) {
+	public int getFireSpreadSpeed(BlockState state, BlockView world, BlockPos pos, Direction face) {
 		return 60;
 	}
 

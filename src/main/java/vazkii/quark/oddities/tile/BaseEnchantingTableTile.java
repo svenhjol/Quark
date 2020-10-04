@@ -1,36 +1,36 @@
 package vazkii.quark.oddities.tile;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.INameable;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.ItemScatterer;
+import net.minecraft.util.Nameable;
+import net.minecraft.util.Tickable;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
 import vazkii.arl.block.tile.TileSimpleInventory;
 import vazkii.quark.base.handler.MiscUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-public abstract class BaseEnchantingTableTile extends TileSimpleInventory implements ITickableTileEntity, INameable {
+public abstract class BaseEnchantingTableTile extends TileSimpleInventory implements Tickable, Nameable {
 
 	public int tickCount;
 	public float pageFlip, pageFlipPrev, flipT, flipA, bookSpread, bookSpreadPrev, bookRotation, bookRotationPrev, tRot;
 
 	private static final Random rand = new Random();
-	private ITextComponent customName;
+	private Text customName;
 	
-	public BaseEnchantingTableTile(TileEntityType<?> tileEntityTypeIn) {
+	public BaseEnchantingTableTile(BlockEntityType<?> tileEntityTypeIn) {
 		super(tileEntityTypeIn);
 	}
 
 	@Override
-	public int getSizeInventory() {
+	public int size() {
 		return 3;
 	}
 
@@ -41,21 +41,21 @@ public abstract class BaseEnchantingTableTile extends TileSimpleInventory implem
 
 	@Nonnull
 	@Override
-	public CompoundNBT write(CompoundNBT compound) {
-		super.write(compound);
+	public CompoundTag toTag(CompoundTag compound) {
+		super.toTag(compound);
 
 		if(hasCustomName())
-			compound.putString("CustomName", ITextComponent.Serializer.toJson(customName));
+			compound.putString("CustomName", Text.Serializer.toJson(customName));
 
 		return compound;
 	}
 
 	@Override 
-	public void func_230337_a_(BlockState p_230337_1_, CompoundNBT compound) { // read
-		super.func_230337_a_(p_230337_1_, compound);
+	public void fromTag(BlockState p_230337_1_, CompoundTag compound) { // read
+		super.fromTag(p_230337_1_, compound);
 
 		if(compound.contains("CustomName", 8))
-			customName = ITextComponent.Serializer.func_240643_a_(compound.getString("CustomName"));
+			customName = Text.Serializer.fromJson(compound.getString("CustomName"));
 	}
 
 	@Override
@@ -70,8 +70,8 @@ public abstract class BaseEnchantingTableTile extends TileSimpleInventory implem
 
 		if (entityplayer != null)
 		{
-			double d0 = entityplayer.getPosX() - (this.pos.getX() + 0.5F);
-			double d1 = entityplayer.getPosZ() - (this.pos.getZ() + 0.5F);
+			double d0 = entityplayer.getX() - (this.pos.getX() + 0.5F);
+			double d1 = entityplayer.getZ() - (this.pos.getZ() + 0.5F);
 			this.tRot = (float)MathHelper.atan2(d1, d0);
 			this.bookSpread += 0.1F;
 
@@ -129,15 +129,15 @@ public abstract class BaseEnchantingTableTile extends TileSimpleInventory implem
 	}
 
 	public void dropItem(int i) {
-		ItemStack stack = getStackInSlot(i);
+		ItemStack stack = getStack(i);
 		if(!stack.isEmpty())
-			InventoryHelper.spawnItemStack(world, pos.getX(), pos.getY(), pos.getZ(), stack);
+			ItemScatterer.spawn(world, pos.getX(), pos.getY(), pos.getZ(), stack);
 	}
 
 	@Nonnull
 	@Override
-	public ITextComponent getName() {
-		return hasCustomName() ? customName : new TranslationTextComponent("container.enchant");
+	public Text getName() {
+		return hasCustomName() ? customName : new TranslatableText("container.enchant");
 	}
 
 	@Override
@@ -145,7 +145,7 @@ public abstract class BaseEnchantingTableTile extends TileSimpleInventory implem
 		return customName != null;
 	}
 
-	public void setCustomName(ITextComponent customNameIn) {
+	public void setCustomName(Text customNameIn) {
 		customName = customNameIn;
 	}
 

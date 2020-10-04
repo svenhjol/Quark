@@ -2,33 +2,33 @@ package vazkii.quark.building.client.render;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.Atlases;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.ItemFrameRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.model.ModelManager;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
-import net.minecraft.client.renderer.texture.AtlasTexture;
-import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.TexturedRenderLayers;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.BlockRenderManager;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.ItemFrameEntityRenderer;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.BakedModelManager;
+import net.minecraft.client.render.model.json.ModelTransformation;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.util.ModelIdentifier;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.entity.EntityType;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.storage.MapData;
+import net.minecraft.item.map.MapState;
+import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.base.Quark;
@@ -38,22 +38,22 @@ import vazkii.quark.building.entity.ColoredItemFrameEntity;
  * @author WireSegal
  * Created at 11:58 AM on 8/25/19.
  */
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class ColoredItemFrameRenderer extends EntityRenderer<ColoredItemFrameEntity> {
 
-	private static final ResourceLocation MAP_BACKGROUND_TEXTURES = new ResourceLocation("textures/map/map_background.png");
+	private static final Identifier MAP_BACKGROUND_TEXTURES = new Identifier("textures/map/map_background.png");
 
-	private static final Map<DyeColor, ModelResourceLocation> LOCATIONS_MODEL = new HashMap<>();
-	private static final Map<DyeColor, ModelResourceLocation> LOCATIONS_MODEL_MAP = new HashMap<>();
+	private static final Map<DyeColor, ModelIdentifier> LOCATIONS_MODEL = new HashMap<>();
+	private static final Map<DyeColor, ModelIdentifier> LOCATIONS_MODEL_MAP = new HashMap<>();
 
-	private final Minecraft mc = Minecraft.getInstance();
+	private final MinecraftClient mc = MinecraftClient.getInstance();
 	private final ItemRenderer itemRenderer;
-	private final ItemFrameRenderer defaultRenderer;
+	private final ItemFrameEntityRenderer defaultRenderer;
 
-	public ColoredItemFrameRenderer(EntityRendererManager renderManagerIn, ItemRenderer itemRendererIn) {
+	public ColoredItemFrameRenderer(EntityRenderDispatcher renderManagerIn, ItemRenderer itemRendererIn) {
 		super(renderManagerIn);
 		this.itemRenderer = itemRendererIn;
-		this.defaultRenderer = (ItemFrameRenderer) renderManagerIn.renderers.get(EntityType.ITEM_FRAME);
+		this.defaultRenderer = (ItemFrameEntityRenderer) renderManagerIn.renderers.get(EntityType.ITEM_FRAME);
 
 		for (DyeColor color : DyeColor.values()) {
 			// reinstate when Forge fixes itself
@@ -62,48 +62,48 @@ public class ColoredItemFrameRenderer extends EntityRenderer<ColoredItemFrameEnt
 
 			
 			// func_176610_l = name()
-			LOCATIONS_MODEL.put(color, new ModelResourceLocation(new ResourceLocation(Quark.MOD_ID, color.func_176610_l() + "_frame_empty"), "inventory"));
-			LOCATIONS_MODEL_MAP.put(color, new ModelResourceLocation(new ResourceLocation(Quark.MOD_ID, color.func_176610_l() + "_frame_map"), "inventory"));
+			LOCATIONS_MODEL.put(color, new ModelIdentifier(new Identifier(Quark.MOD_ID, color.asString() + "_frame_empty"), "inventory"));
+			LOCATIONS_MODEL_MAP.put(color, new ModelIdentifier(new Identifier(Quark.MOD_ID, color.asString() + "_frame_map"), "inventory"));
 		}
 	}
 
 	@Override
-	public void render(ColoredItemFrameEntity p_225623_1_, float p_225623_2_, float p_225623_3_, MatrixStack p_225623_4_, IRenderTypeBuffer p_225623_5_, int p_225623_6_) {
+	public void render(ColoredItemFrameEntity p_225623_1_, float p_225623_2_, float p_225623_3_, MatrixStack p_225623_4_, VertexConsumerProvider p_225623_5_, int p_225623_6_) {
 		super.render(p_225623_1_, p_225623_2_, p_225623_3_, p_225623_4_, p_225623_5_, p_225623_6_);
 		p_225623_4_.push();
 		Direction direction = p_225623_1_.getHorizontalFacing();
-		Vector3d Vector3d = this.getRenderOffset(p_225623_1_, p_225623_3_);
+		Vec3d Vector3d = this.getRenderOffset(p_225623_1_, p_225623_3_);
 		p_225623_4_.translate(-Vector3d.getX(), -Vector3d.getY(), -Vector3d.getZ());
-		p_225623_4_.translate((double)direction.getXOffset() * 0.46875D, (double)direction.getYOffset() * 0.46875D, (double)direction.getZOffset() * 0.46875D);
-		p_225623_4_.rotate(Vector3f.XP.rotationDegrees(p_225623_1_.rotationPitch));
-		p_225623_4_.rotate(Vector3f.YP.rotationDegrees(180.0F - p_225623_1_.rotationYaw));
-		BlockRendererDispatcher blockrendererdispatcher = this.mc.getBlockRendererDispatcher();
-		ModelManager modelmanager = blockrendererdispatcher.getBlockModelShapes().getModelManager();
+		p_225623_4_.translate((double)direction.getOffsetX() * 0.46875D, (double)direction.getOffsetY() * 0.46875D, (double)direction.getOffsetZ() * 0.46875D);
+		p_225623_4_.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(p_225623_1_.pitch));
+		p_225623_4_.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion(180.0F - p_225623_1_.yaw));
+		BlockRenderManager blockrendererdispatcher = this.mc.getBlockRenderManager();
+		BakedModelManager modelmanager = blockrendererdispatcher.getModels().getModelManager();
 		DyeColor color = p_225623_1_.getColor();
-		ModelResourceLocation modelresourcelocation = p_225623_1_.getDisplayedItem().getItem() instanceof FilledMapItem ? LOCATIONS_MODEL_MAP.get(color) : LOCATIONS_MODEL.get(color);
+		ModelIdentifier modelresourcelocation = p_225623_1_.getHeldItemStack().getItem() instanceof FilledMapItem ? LOCATIONS_MODEL_MAP.get(color) : LOCATIONS_MODEL.get(color);
 		p_225623_4_.push();
 		p_225623_4_.translate(-0.5D, -0.5D, -0.5D);
-		blockrendererdispatcher.getBlockModelRenderer().renderModelBrightnessColor(p_225623_4_.getLast(), p_225623_5_.getBuffer(Atlases.getSolidBlockType()), (BlockState)null, modelmanager.getModel(modelresourcelocation), 1.0F, 1.0F, 1.0F, p_225623_6_, OverlayTexture.NO_OVERLAY);
+		blockrendererdispatcher.getModelRenderer().render(p_225623_4_.peek(), p_225623_5_.getBuffer(TexturedRenderLayers.getEntitySolid()), (BlockState)null, modelmanager.getModel(modelresourcelocation), 1.0F, 1.0F, 1.0F, p_225623_6_, OverlayTexture.DEFAULT_UV);
 		p_225623_4_.pop();
-		ItemStack itemstack = p_225623_1_.getDisplayedItem();
+		ItemStack itemstack = p_225623_1_.getHeldItemStack();
 		if (!itemstack.isEmpty()) {
-			MapData mapdata = FilledMapItem.getMapData(itemstack, p_225623_1_.world);
+			MapState mapdata = FilledMapItem.getOrCreateMapState(itemstack, p_225623_1_.world);
 			p_225623_4_.translate(0.0D, 0.0D, 0.4375D);
 			int i = mapdata != null ? p_225623_1_.getRotation() % 4 * 2 : p_225623_1_.getRotation();
-			p_225623_4_.rotate(Vector3f.ZP.rotationDegrees((float)i * 360.0F / 8.0F));
+			p_225623_4_.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion((float)i * 360.0F / 8.0F));
 			if (!net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderItemInFrameEvent(p_225623_1_, defaultRenderer, p_225623_4_, p_225623_5_, p_225623_6_))) {
 				if (mapdata != null) {
-					p_225623_4_.rotate(Vector3f.ZP.rotationDegrees(180.0F));
+					p_225623_4_.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(180.0F));
 					float f = 0.0078125F;
 					p_225623_4_.scale(0.0078125F, 0.0078125F, 0.0078125F);
 					p_225623_4_.translate(-64.0D, -64.0D, 0.0D);
 					p_225623_4_.translate(0.0D, 0.0D, -1.0D);
 					if (mapdata != null) {
-						this.mc.gameRenderer.getMapItemRenderer().renderMap(p_225623_4_, p_225623_5_, mapdata, true, p_225623_6_);
+						this.mc.gameRenderer.getMapRenderer().draw(p_225623_4_, p_225623_5_, mapdata, true, p_225623_6_);
 					}
 				} else {
 					p_225623_4_.scale(0.5F, 0.5F, 0.5F);
-					this.itemRenderer.renderItem(itemstack, ItemCameraTransforms.TransformType.FIXED, p_225623_6_, OverlayTexture.NO_OVERLAY, p_225623_4_, p_225623_5_);
+					this.itemRenderer.renderItem(itemstack, ModelTransformation.Mode.FIXED, p_225623_6_, OverlayTexture.DEFAULT_UV, p_225623_4_, p_225623_5_);
 				}
 			}
 		}
@@ -112,20 +112,20 @@ public class ColoredItemFrameRenderer extends EntityRenderer<ColoredItemFrameEnt
 	}
 
 	@Override
-	public Vector3d getRenderOffset(ColoredItemFrameEntity p_225627_1_, float p_225627_2_) {
-		return new Vector3d((double)((float)p_225627_1_.getHorizontalFacing().getXOffset() * 0.3F), -0.25D, (double)((float)p_225627_1_.getHorizontalFacing().getZOffset() * 0.3F));
+	public Vec3d getRenderOffset(ColoredItemFrameEntity p_225627_1_, float p_225627_2_) {
+		return new Vec3d((double)((float)p_225627_1_.getHorizontalFacing().getOffsetX() * 0.3F), -0.25D, (double)((float)p_225627_1_.getHorizontalFacing().getOffsetZ() * 0.3F));
 	}
 
 	@Override
-	public ResourceLocation getEntityTexture(ColoredItemFrameEntity p_110775_1_) {
-		return AtlasTexture.LOCATION_BLOCKS_TEXTURE;
+	public Identifier getEntityTexture(ColoredItemFrameEntity p_110775_1_) {
+		return SpriteAtlasTexture.BLOCK_ATLAS_TEX;
 	}
 
 	@Override
 	protected boolean canRenderName(ColoredItemFrameEntity p_177070_1_) {
-		if (Minecraft.isGuiEnabled() && !p_177070_1_.getDisplayedItem().isEmpty() && p_177070_1_.getDisplayedItem().hasDisplayName() && this.renderManager.pointedEntity == p_177070_1_) {
-			double d0 = this.renderManager.squareDistanceTo(p_177070_1_);
-			float f = p_177070_1_.isDiscrete() ? 32.0F : 64.0F;
+		if (MinecraftClient.isHudEnabled() && !p_177070_1_.getHeldItemStack().isEmpty() && p_177070_1_.getHeldItemStack().hasCustomName() && this.dispatcher.targetedEntity == p_177070_1_) {
+			double d0 = this.dispatcher.getSquaredDistanceToCamera(p_177070_1_);
+			float f = p_177070_1_.isSneaky() ? 32.0F : 64.0F;
 			return d0 < (double)(f * f);
 		} else {
 			return false;
@@ -133,7 +133,7 @@ public class ColoredItemFrameRenderer extends EntityRenderer<ColoredItemFrameEnt
 	}
 	
 	@Override
-	protected void renderName(ColoredItemFrameEntity p_225629_1_, ITextComponent p_225629_2_, MatrixStack p_225629_3_, IRenderTypeBuffer p_225629_4_, int p_225629_5_) {
-		super.renderName(p_225629_1_, p_225629_1_.getDisplayedItem().getDisplayName(), p_225629_3_, p_225629_4_, p_225629_5_);
+	protected void renderName(ColoredItemFrameEntity p_225629_1_, Text p_225629_2_, MatrixStack p_225629_3_, VertexConsumerProvider p_225629_4_, int p_225629_5_) {
+		super.renderLabelIfPresent(p_225629_1_, p_225629_1_.getHeldItemStack().getName(), p_225629_3_, p_225629_4_, p_225629_5_);
 	}
 }

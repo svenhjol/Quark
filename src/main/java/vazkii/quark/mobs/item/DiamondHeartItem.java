@@ -1,21 +1,22 @@
 package vazkii.quark.mobs.item;
 
 import javax.annotation.Nonnull;
-
-import net.minecraft.advancements.CriteriaTriggers;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.item.Rarity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -27,24 +28,24 @@ import vazkii.quark.mobs.module.StonelingsModule;
 
 public class DiamondHeartItem extends QuarkItem {
 
-	public DiamondHeartItem(String regname, Module module, Properties properties) {
+	public DiamondHeartItem(String regname, Module module, Settings properties) {
 		super(regname, module, properties);
 	}
 
 	@Nonnull
 	@Override
-	public ActionResultType onItemUse(ItemUseContext context) {
+	public ActionResult useOnBlock(ItemUsageContext context) {
 		PlayerEntity player = context.getPlayer();
 		World world = context.getWorld();
-		BlockPos pos = context.getPos();
+		BlockPos pos = context.getBlockPos();
 		Hand hand = context.getHand();
-		Direction facing = context.getFace();
+		Direction facing = context.getSide();
 
 		if (player != null) {
 			BlockState stateAt = world.getBlockState(pos);
-			ItemStack stack = player.getHeldItem(hand);
+			ItemStack stack = player.getStackInHand(hand);
 
-			if (player.canPlayerEdit(pos, facing, stack) && stateAt.getBlockHardness(world, pos) != -1) {
+			if (player.canPlaceOn(pos, facing, stack) && stateAt.getHardness(world, pos) != -1) {
 
 				EnumStonelingVariant variant = null;
 				for (EnumStonelingVariant possibleVariant : EnumStonelingVariant.values()) {
@@ -53,30 +54,30 @@ public class DiamondHeartItem extends QuarkItem {
 				}
 
 				if (variant != null) {
-					if (!world.isRemote) {
+					if (!world.isClient) {
 						world.setBlockState(pos, Blocks.AIR.getDefaultState());
-						world.playEvent(2001, pos, Block.getStateId(stateAt));
+						world.syncWorldEvent(2001, pos, Block.getRawIdFromState(stateAt));
 
 						StonelingEntity stoneling = new StonelingEntity(StonelingsModule.stonelingType, world);
-						stoneling.setPosition(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+						stoneling.updatePosition(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
 						stoneling.setPlayerMade(true);
-						stoneling.rotationYaw = player.rotationYaw + 180F;
-						stoneling.onInitialSpawn(world, world.getDifficultyForLocation(pos), SpawnReason.STRUCTURE, variant, null);
-						world.addEntity(stoneling);
+						stoneling.yaw = player.yaw + 180F;
+						stoneling.initialize(world, world.getLocalDifficulty(pos), SpawnReason.STRUCTURE, variant, null);
+						world.spawnEntity(stoneling);
 						
 						if(player instanceof ServerPlayerEntity)
-							CriteriaTriggers.SUMMONED_ENTITY.trigger((ServerPlayerEntity) player, stoneling);
+							Criteria.SUMMONED_ENTITY.trigger((ServerPlayerEntity) player, stoneling);
 
-						if (!player.abilities.isCreativeMode)
-							stack.shrink(1);
+						if (!player.abilities.creativeMode)
+							stack.decrement(1);
 					}
 
-					return ActionResultType.SUCCESS;
+					return ActionResult.SUCCESS;
 				}
 			}
 		}
 		
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 
 	@Nonnull
@@ -86,8 +87,8 @@ public class DiamondHeartItem extends QuarkItem {
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public boolean hasEffect(ItemStack stack) {
+	@Environment(EnvType.CLIENT)
+	public boolean hasGlint(ItemStack stack) {
 		return true;
 	}
 

@@ -11,10 +11,11 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.client.registry.IRenderFactory;
@@ -34,8 +35,8 @@ import vazkii.quark.client.render.variant.VariantRabbitRenderer;
 @LoadModule(category = ModuleCategory.CLIENT, hasSubscriptions = true, subscribeOn = Dist.CLIENT)
 public class VariantAnimalTexturesModule extends Module {
 	
-	private static ListMultimap<VariantTextureType, ResourceLocation> textures;
-	private static Map<VariantTextureType, ResourceLocation> shinyTextures;
+	private static ListMultimap<VariantTextureType, Identifier> textures;
+	private static Map<VariantTextureType, Identifier> shinyTextures;
 	
 	private static final int COW_COUNT = 4;
 	private static final int PIG_COUNT = 3;
@@ -61,9 +62,9 @@ public class VariantAnimalTexturesModule extends Module {
 		textures = Multimaps.newListMultimap(new EnumMap<>(VariantTextureType.class), ArrayList::new);
 		shinyTextures = new HashMap<>();
 		
-		registerTextures(VariantTextureType.COW, COW_COUNT, new ResourceLocation("textures/entity/cow/cow.png"));
-		registerTextures(VariantTextureType.PIG, PIG_COUNT, new ResourceLocation("textures/entity/pig/pig.png"));
-		registerTextures(VariantTextureType.CHICKEN, CHICKEN_COUNT, new ResourceLocation("textures/entity/chicken.png"));
+		registerTextures(VariantTextureType.COW, COW_COUNT, new Identifier("textures/entity/cow/cow.png"));
+		registerTextures(VariantTextureType.PIG, PIG_COUNT, new Identifier("textures/entity/pig/pig.png"));
+		registerTextures(VariantTextureType.CHICKEN, CHICKEN_COUNT, new Identifier("textures/entity/chicken.png"));
 		registerShiny(VariantTextureType.RABBIT);
 		registerShiny(VariantTextureType.LLAMA);
 
@@ -81,14 +82,14 @@ public class VariantAnimalTexturesModule extends Module {
 			RenderingRegistry.registerEntityRenderingHandler(EntityType.BEE, VariantBeeRenderer::new);
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	public static ResourceLocation getTextureOrShiny(Entity e, VariantTextureType type, boolean enabled) {
+	@Environment(EnvType.CLIENT)
+	public static Identifier getTextureOrShiny(Entity e, VariantTextureType type, boolean enabled) {
 		return getTextureOrShiny(e, type, () -> getRandomTexture(e, type, enabled));
 	}
 	
-	@OnlyIn(Dist.CLIENT)
-	public static ResourceLocation getTextureOrShiny(Entity e, VariantTextureType type, Supplier<ResourceLocation> nonShiny) {
-		UUID id = e.getUniqueID();
+	@Environment(EnvType.CLIENT)
+	public static Identifier getTextureOrShiny(Entity e, VariantTextureType type, Supplier<Identifier> nonShiny) {
+		UUID id = e.getUuid();
 		long most = id.getMostSignificantBits();
 		if(shinyAnimalChance > 0 && (most % shinyAnimalChance) == 0)
 			return shinyTextures.get(type);
@@ -96,23 +97,23 @@ public class VariantAnimalTexturesModule extends Module {
 		return nonShiny.get();
 	}
 	
-	@OnlyIn(Dist.CLIENT)
-	private static ResourceLocation getRandomTexture(Entity e, VariantTextureType type, boolean enabled) {
-		List<ResourceLocation> styles = textures.get(type);
+	@Environment(EnvType.CLIENT)
+	private static Identifier getRandomTexture(Entity e, VariantTextureType type, boolean enabled) {
+		List<Identifier> styles = textures.get(type);
 		if(!enabled)
 			return styles.get(styles.size() - 1);
 		
-		UUID id = e.getUniqueID();
+		UUID id = e.getUuid();
 		long most = id.getMostSignificantBits();
 		int choice = Math.abs((int) (most % styles.size()));
 		return styles.get(choice);
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	private static void registerTextures(VariantTextureType type, int count, ResourceLocation vanilla) {
+	@Environment(EnvType.CLIENT)
+	private static void registerTextures(VariantTextureType type, int count, Identifier vanilla) {
 		String name = type.name().toLowerCase(Locale.ROOT);
 		for(int i = 1; i < count + 1; i++)
-			textures.put(type, new ResourceLocation(Quark.MOD_ID, String.format("textures/model/entity/variants/%s%d.png", name, i)));
+			textures.put(type, new Identifier(Quark.MOD_ID, String.format("textures/model/entity/variants/%s%d.png", name, i)));
 		
 		if(vanilla != null)
 			textures.put(type, vanilla);
@@ -120,7 +121,7 @@ public class VariantAnimalTexturesModule extends Module {
 	}
 	
 	private static void registerShiny(VariantTextureType type) {
-		shinyTextures.put(type, new ResourceLocation(Quark.MOD_ID, String.format("textures/model/entity/variants/%s_shiny.png", type.name().toLowerCase(Locale.ROOT))));
+		shinyTextures.put(type, new Identifier(Quark.MOD_ID, String.format("textures/model/entity/variants/%s_shiny.png", type.name().toLowerCase(Locale.ROOT))));
 	}
 
 	public enum VariantTextureType {

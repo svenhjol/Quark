@@ -1,7 +1,7 @@
 package vazkii.quark.management.module;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.quark.base.Quark;
@@ -18,7 +18,7 @@ import vazkii.quark.management.capability.ShulkerBoxDropIn;
 @LoadModule(category = ModuleCategory.MANAGEMENT, hasSubscriptions = true)
 public class ShulkerBoxRightClickModule extends Module {
 
-    private static final ResourceLocation SHULKER_BOX_CAP = new ResourceLocation(Quark.MOD_ID, "shulker_box_drop_in");
+    private static final Identifier SHULKER_BOX_CAP = new Identifier(Quark.MOD_ID, "shulker_box_drop_in");
 
     @SubscribeEvent
     public void onAttachCapability(AttachCapabilitiesEvent<ItemStack> event) {

@@ -10,21 +10,21 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 
 import net.minecraft.block.Blocks;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.state.property.Properties;
+import net.minecraft.structure.Structure;
+import net.minecraft.structure.Structure.StructureBlockInfo;
+import net.minecraft.structure.StructurePlacementData;
+import net.minecraft.structure.pool.SinglePoolElement;
+import net.minecraft.structure.pool.StructurePool;
+import net.minecraft.structure.pool.StructurePoolBasedGenerator;
+import net.minecraft.structure.pool.StructurePoolElement;
+import net.minecraft.structure.processor.StructureProcessor;
+import net.minecraft.structure.processor.StructureProcessorType;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.world.IWorldReader;
-import net.minecraft.world.gen.feature.jigsaw.JigsawManager;
-import net.minecraft.world.gen.feature.jigsaw.JigsawPattern;
-import net.minecraft.world.gen.feature.jigsaw.JigsawPiece;
-import net.minecraft.world.gen.feature.jigsaw.SingleJigsawPiece;
-import net.minecraft.world.gen.feature.template.IStructureProcessorType;
-import net.minecraft.world.gen.feature.template.PlacementSettings;
-import net.minecraft.world.gen.feature.template.StructureProcessor;
-import net.minecraft.world.gen.feature.template.Template;
-import net.minecraft.world.gen.feature.template.Template.BlockInfo;
+import net.minecraft.world.WorldView;
 import net.minecraftforge.registries.ForgeRegistries;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.Quark;
@@ -34,7 +34,7 @@ public class JigsawRegistryHelper {
 	public static final FakeAirProcessor FAKE_AIR = new FakeAirProcessor();
 	
 	private static Codec<FakeAirProcessor> fakeAirCodec = Codec.unit(FAKE_AIR);
-	private static IStructureProcessorType<FakeAirProcessor> fakeAirType = () -> fakeAirCodec;
+	private static StructureProcessorType<FakeAirProcessor> fakeAirType = () -> fakeAirCodec;
 	
 	public static PoolBuilder pool(String namespace, String name) {
 		return new PoolBuilder(namespace, name);
@@ -81,15 +81,15 @@ public class JigsawRegistryHelper {
 		}
 		
 		@SuppressWarnings("deprecation")
-		public void register(JigsawPattern.PlacementBehaviour placementBehaviour) {
-			ResourceLocation resource = new ResourceLocation(Quark.MOD_ID, namespace + "/" + name);
+		public void register(StructurePool.Projection placementBehaviour) {
+			Identifier resource = new Identifier(Quark.MOD_ID, namespace + "/" + name);
 			
-			List<Pair<JigsawPiece, Integer>> createdPieces = 
+			List<Pair<StructurePoolElement, Integer>> createdPieces = 
 			pieces.stream()
-			.map(proto -> Pair.of((JigsawPiece) new SingleJigsawPiece((Quark.MOD_ID + ":" + namespace + "/" + proto.name), proto.processors), proto.weight))
+			.map(proto -> Pair.of((StructurePoolElement) new SinglePoolElement((Quark.MOD_ID + ":" + namespace + "/" + proto.name), proto.processors), proto.weight))
 			.collect(ImmutableList.toImmutableList());
 			
-			JigsawManager.REGISTRY.register(new JigsawPattern(resource, new ResourceLocation("empty"), createdPieces, placementBehaviour));
+			StructurePoolBasedGenerator.REGISTRY.add(new StructurePool(resource, new Identifier("empty"), createdPieces, placementBehaviour));
 		}
  		
 		private class PiecePrototype {
@@ -117,18 +117,18 @@ public class JigsawRegistryHelper {
 	    }
 	    
 	    @Override
-	    public BlockInfo process(IWorldReader worldReaderIn, BlockPos pos, BlockPos otherposidk, BlockInfo p_215194_3_, BlockInfo blockInfo, PlacementSettings placementSettingsIn, Template template) {
+	    public StructureBlockInfo process(WorldView worldReaderIn, BlockPos pos, BlockPos otherposidk, StructureBlockInfo p_215194_3_, StructureBlockInfo blockInfo, StructurePlacementData placementSettingsIn, Structure template) {
 	        if(blockInfo.state.getBlock() == Blocks.BARRIER)
-	            return new BlockInfo(blockInfo.pos, Blocks.CAVE_AIR.getDefaultState(), new CompoundNBT());
+	            return new StructureBlockInfo(blockInfo.pos, Blocks.CAVE_AIR.getDefaultState(), new CompoundTag());
 	        
-	        else if(blockInfo.state.getValues().containsKey(BlockStateProperties.WATERLOGGED) && blockInfo.state.get(BlockStateProperties.WATERLOGGED))
-	        	return new BlockInfo(blockInfo.pos, blockInfo.state.with(BlockStateProperties.WATERLOGGED, false), blockInfo.nbt);
+	        else if(blockInfo.state.getEntries().containsKey(Properties.WATERLOGGED) && blockInfo.state.get(Properties.WATERLOGGED))
+	        	return new StructureBlockInfo(blockInfo.pos, blockInfo.state.with(Properties.WATERLOGGED, false), blockInfo.tag);
 	            
 	    	return blockInfo;
 	    }
 
 		@Override
-		protected IStructureProcessorType<?> getType() {
+		protected StructureProcessorType<?> getType() {
 			return fakeAirType;
 		}
 	    

@@ -4,31 +4,31 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.model.RenderMaterial;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.state.properties.ChestType;
-import net.minecraft.tileentity.ChestTileEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.enums.ChestType;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.util.SpriteIdentifier;
+import net.minecraft.util.Identifier;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import vazkii.quark.base.Quark;
 import vazkii.quark.base.client.GenericChestTERenderer;
 import vazkii.quark.building.module.VariantChestsModule.IChestTextureProvider;
 
-public class VariantChestTileEntityRenderer extends GenericChestTERenderer<ChestTileEntity> {
+public class VariantChestTileEntityRenderer extends GenericChestTERenderer<ChestBlockEntity> {
 
 	private static Map<Block, ChestTextureBatch> chestTextures = new HashMap<>();
 	
 	public static Block invBlock = null; 
 
-	public VariantChestTileEntityRenderer(TileEntityRendererDispatcher disp) {
+	public VariantChestTileEntityRenderer(BlockEntityRenderDispatcher disp) {
 		super(disp);
 	}
 
 	@Override
-	public RenderMaterial getMaterial(ChestTileEntity t, ChestType type) {
+	public SpriteIdentifier getMaterial(ChestBlockEntity t, ChestType type) {
 		Block block = invBlock;
 		if(block == null)
-			block = t.getBlockState().getBlock();
+			block = t.getCachedState().getBlock();
 		
 		ChestTextureBatch batch = chestTextures.get(block);
 		if(batch == null)
@@ -42,7 +42,7 @@ public class VariantChestTileEntityRenderer extends GenericChestTERenderer<Chest
 	}
 
 	public static void accept(TextureStitchEvent.Pre event, Block chest) {
-		ResourceLocation atlas = event.getMap().getTextureLocation();
+		Identifier atlas = event.getMap().getId();
 
 		if(chest instanceof IChestTextureProvider) {
 			IChestTextureProvider prov = (IChestTextureProvider) chest;
@@ -55,10 +55,10 @@ public class VariantChestTileEntityRenderer extends GenericChestTERenderer<Chest
 		}
 	}
 
-	private static void add(TextureStitchEvent.Pre event, ResourceLocation atlas, Block chest, String path, String normal, String left, String right) {
-		ResourceLocation resNormal = new ResourceLocation(Quark.MOD_ID, path + normal);
-		ResourceLocation resLeft = new ResourceLocation(Quark.MOD_ID, path + left);
-		ResourceLocation resRight = new ResourceLocation(Quark.MOD_ID, path + right);
+	private static void add(TextureStitchEvent.Pre event, Identifier atlas, Block chest, String path, String normal, String left, String right) {
+		Identifier resNormal = new Identifier(Quark.MOD_ID, path + normal);
+		Identifier resLeft = new Identifier(Quark.MOD_ID, path + left);
+		Identifier resRight = new Identifier(Quark.MOD_ID, path + right);
 
 		ChestTextureBatch batch = new ChestTextureBatch(atlas, resNormal, resLeft, resRight);
 		chestTextures.put(chest, batch);
@@ -69,12 +69,12 @@ public class VariantChestTileEntityRenderer extends GenericChestTERenderer<Chest
 	}
 
 	private static class ChestTextureBatch {
-		public final RenderMaterial normal, left, right;
+		public final SpriteIdentifier normal, left, right;
 
-		public ChestTextureBatch(ResourceLocation atlas, ResourceLocation normal, ResourceLocation left, ResourceLocation right) {
-			this.normal = new RenderMaterial(atlas, normal);
-			this.left = new RenderMaterial(atlas, left);
-			this.right = new RenderMaterial(atlas, right);
+		public ChestTextureBatch(Identifier atlas, Identifier normal, Identifier left, Identifier right) {
+			this.normal = new SpriteIdentifier(atlas, normal);
+			this.left = new SpriteIdentifier(atlas, left);
+			this.right = new SpriteIdentifier(atlas, right);
 		}
 
 	}

@@ -8,7 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.PaneBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.collection.DefaultedList;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.handler.RenderLayerHandler;
 import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
@@ -31,9 +31,9 @@ public class QuarkPaneBlock extends PaneBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {	
+	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {	
 		if(group == ItemGroup.SEARCH || isEnabled())
-			super.fillItemGroup(group, items);
+			super.addStacksForDisplay(group, items);
 	}
 
 	@Nullable

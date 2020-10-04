@@ -1,10 +1,10 @@
 package vazkii.quark.automation.module;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.Material;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.sound.BlockSoundGroup;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.automation.block.ChuteBlock;
 import vazkii.quark.automation.tile.ChuteTileEntity;
@@ -19,16 +19,16 @@ import vazkii.quark.base.module.ModuleCategory;
 @LoadModule(category = ModuleCategory.AUTOMATION)
 public class ChuteModule extends Module {
 
-    public static TileEntityType<ChuteTileEntity> tileEntityType;
+    public static BlockEntityType<ChuteTileEntity> tileEntityType;
 
     @Override
     public void construct() {
         Block chute = new ChuteBlock("chute", this, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.WOOD)
-                        .hardnessAndResistance(2.5F)
-                        .sound(SoundType.WOOD));
+                Block.Properties.of(Material.WOOD)
+                        .strength(2.5F)
+                        .sounds(BlockSoundGroup.WOOD));
 
-        tileEntityType = TileEntityType.Builder.create(ChuteTileEntity::new, chute).build(null);
+        tileEntityType = BlockEntityType.Builder.create(ChuteTileEntity::new, chute).build(null);
         RegistryHelper.register(tileEntityType, "chute");
     }
 }

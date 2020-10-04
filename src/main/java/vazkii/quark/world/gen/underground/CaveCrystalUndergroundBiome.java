@@ -4,8 +4,8 @@ import it.unimi.dsi.fastutil.ints.Int2ByteArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ByteMap;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import vazkii.quark.world.gen.UndergroundBiomeGenerator.Context;
 import vazkii.quark.world.module.underground.CaveCrystalUndergroundBiomeModule;
 
@@ -32,7 +32,7 @@ public class CaveCrystalUndergroundBiome extends BasicUndergroundBiome {
 
 		if(context.random.nextDouble() < CaveCrystalUndergroundBiomeModule.crystalSpawnChance) {
 			BlockPos floorPos = pos.down();
-			while (context.world.isAirBlock(floorPos))
+			while (context.world.isAir(floorPos))
 				floorPos = floorPos.down();
 
 			if (!context.world.getBlockState(pos).isIn(CaveCrystalUndergroundBiomeModule.crystalTag)) {
@@ -57,7 +57,7 @@ public class CaveCrystalUndergroundBiome extends BasicUndergroundBiome {
 
 		if(context.random.nextDouble() < CaveCrystalUndergroundBiomeModule.crystalSpawnChance) {
 			BlockPos ceilPos = pos.up();
-			while (context.world.isAirBlock(ceilPos))
+			while (context.world.isAir(ceilPos))
 				ceilPos = ceilPos.up();
 
 			if (!context.world.getBlockState(pos).isIn(CaveCrystalUndergroundBiomeModule.crystalTag)) { 
@@ -84,7 +84,7 @@ public class CaveCrystalUndergroundBiome extends BasicUndergroundBiome {
 
 				BlockPos shiftPos = pos.offset(dir);
 
-				if (!context.world.getBlockState(shiftPos).isSolidSide(context.world, shiftPos, dir.getOpposite()))
+				if (!context.world.getBlockState(shiftPos).isSideSolidFullSquare(context.world, shiftPos, dir.getOpposite()))
 					context.world.setBlockState(shiftPos, STONE, 2);
 			}
 		}

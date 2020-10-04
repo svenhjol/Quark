@@ -1,45 +1,45 @@
 package vazkii.quark.mobs.client.render;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.MobRenderer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3f;
 import vazkii.quark.mobs.client.model.FrogModel;
 import vazkii.quark.mobs.entity.FrogEntity;
 
 import javax.annotation.Nonnull;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.MobEntityRenderer;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
+import net.minecraft.util.Identifier;
 
-public class FrogRenderer extends MobRenderer<FrogEntity, FrogModel> {
+public class FrogRenderer extends MobEntityRenderer<FrogEntity, FrogModel> {
 
-	private static final ResourceLocation TEXTURE = new ResourceLocation("quark", "textures/model/entity/frog.png");
-	private static final ResourceLocation TEXTURE_SWEATER = new ResourceLocation("quark", "textures/model/entity/events/sweater_frog.png");
-	private static final ResourceLocation TEXTURE_FUNNY = new ResourceLocation("quark", "textures/model/entity/events/funny_rat_frog.png");
-	private static final ResourceLocation TEXTURE_SWEATER_FUNNY = new ResourceLocation("quark", "textures/model/entity/events/sweater_funny_rat_frog.png");
-	private static final ResourceLocation TEXTURE_SNAKE = new ResourceLocation("quark", "textures/model/entity/events/snake_block_frog.png");
-	private static final ResourceLocation TEXTURE_SWEATER_SNAKE = new ResourceLocation("quark", "textures/model/entity/events/sweater_snake_block_frog.png");
-	private static final ResourceLocation TEXTURE_KERMIT = new ResourceLocation("quark", "textures/model/entity/events/kermit_frog.png");
-	private static final ResourceLocation TEXTURE_SWEATER_KERMIT = new ResourceLocation("quark", "textures/model/entity/events/sweater_kermit_frog.png");
-	private static final ResourceLocation TEXTURE_VOID = new ResourceLocation("quark", "textures/model/entity/events/void_frog.png");
-	private static final ResourceLocation TEXTURE_SWEATER_VOID = new ResourceLocation("quark", "textures/model/entity/events/sweater_void_frog.png");
+	private static final Identifier TEXTURE = new Identifier("quark", "textures/model/entity/frog.png");
+	private static final Identifier TEXTURE_SWEATER = new Identifier("quark", "textures/model/entity/events/sweater_frog.png");
+	private static final Identifier TEXTURE_FUNNY = new Identifier("quark", "textures/model/entity/events/funny_rat_frog.png");
+	private static final Identifier TEXTURE_SWEATER_FUNNY = new Identifier("quark", "textures/model/entity/events/sweater_funny_rat_frog.png");
+	private static final Identifier TEXTURE_SNAKE = new Identifier("quark", "textures/model/entity/events/snake_block_frog.png");
+	private static final Identifier TEXTURE_SWEATER_SNAKE = new Identifier("quark", "textures/model/entity/events/sweater_snake_block_frog.png");
+	private static final Identifier TEXTURE_KERMIT = new Identifier("quark", "textures/model/entity/events/kermit_frog.png");
+	private static final Identifier TEXTURE_SWEATER_KERMIT = new Identifier("quark", "textures/model/entity/events/sweater_kermit_frog.png");
+	private static final Identifier TEXTURE_VOID = new Identifier("quark", "textures/model/entity/events/void_frog.png");
+	private static final Identifier TEXTURE_SWEATER_VOID = new Identifier("quark", "textures/model/entity/events/sweater_void_frog.png");
 
-	public FrogRenderer(EntityRendererManager manager) {
+	public FrogRenderer(EntityRenderDispatcher manager) {
 		super(manager, new FrogModel(), 0.2F);
 	}
 
 	@Override
 	protected void applyRotations(@Nonnull FrogEntity frog, @Nonnull MatrixStack matrix, float ageInTicks, float rotationYaw, float partialTicks) {
-		super.applyRotations(frog, matrix, ageInTicks, rotationYaw, partialTicks);
+		super.setupTransforms(frog, matrix, ageInTicks, rotationYaw, partialTicks);
 
 		if (frog.isVoid()) {
 			matrix.translate(0.0D, frog.getHeight(), 0.0D);
-			matrix.rotate(Vector3f.ZP.rotationDegrees(180.0F));
+			matrix.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(180.0F));
 		}
 	}
 
 	@Nonnull
 	@Override
-	public ResourceLocation getEntityTexture(@Nonnull FrogEntity entity) {
+	public Identifier getEntityTexture(@Nonnull FrogEntity entity) {
 		if (entity.isVoid())
 			return entity.hasSweater() ? TEXTURE_SWEATER_VOID : TEXTURE_VOID;
 

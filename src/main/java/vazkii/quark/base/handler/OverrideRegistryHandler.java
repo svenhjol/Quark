@@ -22,7 +22,7 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.Items;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biomes;
 import net.minecraftforge.registries.ForgeRegistryEntry;
@@ -39,7 +39,7 @@ public final class OverrideRegistryHandler {
 	}
 
 	private static void registerBlockItem(Block block, @Nullable ItemGroup group) {
-		Item.Properties props = new Item.Properties();
+		Item.Settings props = new Item.Settings();
 		if(group != null)
 			props = props.group(group);
 		
@@ -56,7 +56,7 @@ public final class OverrideRegistryHandler {
 	}
 
 	public static <T extends ForgeRegistryEntry<T>> void register(T obj, Class<?> registryType, String baseName) {
-		ResourceLocation regName = new ResourceLocation("minecraft", baseName);
+		Identifier regName = new Identifier("minecraft", baseName);
 		try {
 			Field field = ForgeRegistryEntry.class.getDeclaredField("registryName");
 			field.setAccessible(true);

@@ -16,23 +16,23 @@ import com.google.common.base.Predicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.particles.RedstoneParticleData;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.particle.DustParticleEffect;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.Tickable;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -45,7 +45,7 @@ import vazkii.quark.base.handler.QuarkSounds;
 import vazkii.quark.oddities.block.PipeBlock;
 import vazkii.quark.oddities.module.PipesModule;
 
-public class PipeTileEntity extends TileSimpleInventory implements ITickableTileEntity {
+public class PipeTileEntity extends TileSimpleInventory implements Tickable {
 
 	public PipeTileEntity() {
 		super(PipesModule.tileEntityType);
@@ -64,19 +64,19 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 
 	@Override
 	public void tick() {
-		if(!isPipeEnabled() && world.getGameTime() % 10 == 0 && world instanceof ServerWorld) 
-			((ServerWorld) world).spawnParticle(new RedstoneParticleData(1.0F, 0.0F, 0.0F, 1.0F), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
+		if(!isPipeEnabled() && world.getTime() % 10 == 0 && world instanceof ServerWorld) 
+			((ServerWorld) world).spawnParticles(new DustParticleEffect(1.0F, 0.0F, 0.0F, 1.0F), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
 
 		BlockState blockAt = world.getBlockState(pos);
 		if (isPipeEnabled() && blockAt.getBlock() instanceof PipeBlock) {
 			for (Direction side : Direction.values()) {
-				if (!world.isRemote && PipeBlock.getType(blockAt, side) == null) {
-					double minX = pos.getX() + 0.25 + 0.5 * Math.min(0, side.getXOffset());
-					double minY = pos.getY() + 0.25 + 0.5 * Math.min(0, side.getYOffset());
-					double minZ = pos.getZ() + 0.25 + 0.5 * Math.min(0, side.getZOffset());
-					double maxX = pos.getX() + 0.75 + 0.5 * Math.max(0, side.getXOffset());
-					double maxY = pos.getY() + 0.75 + 0.5 * Math.max(0, side.getYOffset());
-					double maxZ = pos.getZ() + 0.75 + 0.5 * Math.max(0, side.getZOffset());
+				if (!world.isClient && PipeBlock.getType(blockAt, side) == null) {
+					double minX = pos.getX() + 0.25 + 0.5 * Math.min(0, side.getOffsetX());
+					double minY = pos.getY() + 0.25 + 0.5 * Math.min(0, side.getOffsetY());
+					double minZ = pos.getZ() + 0.25 + 0.5 * Math.min(0, side.getOffsetZ());
+					double maxX = pos.getX() + 0.75 + 0.5 * Math.max(0, side.getOffsetX());
+					double maxY = pos.getY() + 0.75 + 0.5 * Math.max(0, side.getOffsetY());
+					double maxZ = pos.getZ() + 0.75 + 0.5 * Math.max(0, side.getOffsetZ());
 
 					Direction opposite = side.getOpposite();
 
@@ -85,20 +85,20 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 						if(entity == null || !entity.isAlive())
 							return false;
 						
-						Vector3d motion = entity.getMotion();
-						Direction dir = Direction.getFacingFromVector(motion.x, motion.y, motion.z);
+						Vec3d motion = entity.getVelocity();
+						Direction dir = Direction.getFacing(motion.x, motion.y, motion.z);
 						
 						return dir == opposite;
 					};
 					
-					for (ItemEntity item : world.getEntitiesWithinAABB(ItemEntity.class, new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ), predicate)) {
-						passIn(item.getItem().copy(), side);
+					for (ItemEntity item : world.getEntities(ItemEntity.class, new Box(minX, minY, minZ, maxX, maxY, maxZ), predicate)) {
+						passIn(item.getStack().copy(), side);
 						
 						if (PipesModule.doPipesWhoosh) { 
 							if (isTheGoodDay(world))
-								world.playSound(null, item.getPosX(), item.getPosY(), item.getPosZ(), QuarkSounds.BLOCK_PIPE_PICKUP_LENNY, SoundCategory.BLOCKS, 1f, 1f);
+								world.playSound(null, item.getX(), item.getY(), item.getZ(), QuarkSounds.BLOCK_PIPE_PICKUP_LENNY, SoundCategory.BLOCKS, 1f, 1f);
 							else
-								world.playSound(null, item.getPosX(), item.getPosY(), item.getPosZ(), QuarkSounds.BLOCK_PIPE_PICKUP, SoundCategory.BLOCKS, 1f, 1f);
+								world.playSound(null, item.getX(), item.getY(), item.getZ(), QuarkSounds.BLOCK_PIPE_PICKUP, SoundCategory.BLOCKS, 1f, 1f);
 						}
 
 						any = true;
@@ -114,9 +114,9 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 		int currentOut = getComparatorOutput();
 
 		if(!pipeItems.isEmpty()) {
-			if(PipesModule.maxPipeItems > 0 && pipeItems.size() > PipesModule.maxPipeItems && !world.isRemote) {
-				world.playEvent(2001, pos, Block.getStateId(world.getBlockState(pos)));
-				dropItem(new ItemStack(getBlockState().getBlock()));
+			if(PipesModule.maxPipeItems > 0 && pipeItems.size() > PipesModule.maxPipeItems && !world.isClient) {
+				world.syncWorldEvent(2001, pos, Block.getRawIdFromState(world.getBlockState(pos)));
+				dropItem(new ItemStack(getCachedState().getBlock()));
 				world.removeBlock(getPos(), false);
 			}
 
@@ -147,7 +147,7 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 		}
 
 		if(getComparatorOutput() != currentOut)
-			world.updateComparatorOutputLevel(getPos(), getBlockState().getBlock());
+			world.updateComparators(getPos(), getCachedState().getBlock());
 	}
 
 	public int getComparatorOutput() {
@@ -166,24 +166,24 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 			pipeItems.add(item);
 			item.timeInWorld = time;
 			if(getComparatorOutput() != currentOut)
-				world.updateComparatorOutputLevel(getPos(), getBlockState().getBlock());
+				world.updateComparators(getPos(), getCachedState().getBlock());
 		} else queuedItems.add(item);
 
 		return true;
 	}
 
 	public boolean passIn(ItemStack stack, Direction face) {
-		return passIn(stack, face, null, world.rand.nextLong(), 0);
+		return passIn(stack, face, null, world.random.nextLong(), 0);
 	}
 
 	protected void passOut(PipeItem item) {
 		BlockPos targetPos = getPos().offset(item.outgoingFace);
-		TileEntity tile = world.getTileEntity(targetPos);
+		BlockEntity tile = world.getBlockEntity(targetPos);
 		boolean did = false;
 		if(tile != null) {
 			if(tile instanceof PipeTileEntity)
 				did = ((PipeTileEntity) tile).passIn(item.stack, item.outgoingFace.getOpposite(), null, item.rngSeed, item.timeInWorld);
-			else if (!world.isRemote) {
+			else if (!world.isClient) {
 				ItemStack result = putIntoInv(item.stack, tile, item.outgoingFace.getOpposite(), false);
 				if(result.getCount() != item.stack.getCount()) {
 					did = true;
@@ -198,7 +198,7 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	private void bounceBack(PipeItem item, ItemStack stack) {
-		if(!world.isRemote)
+		if(!world.isClient)
 			passIn(stack == null ? item.stack : stack, item.outgoingFace, item.incomingFace, item.rngSeed, item.timeInWorld);
 	}
 
@@ -207,15 +207,15 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	public void dropItem(ItemStack stack, Direction facing, boolean playSound) {
-		if(!world.isRemote) {
+		if(!world.isClient) {
 			double posX = pos.getX() + 0.5;
 			double posY = pos.getY() + 0.25;
 			double posZ = pos.getZ() + 0.5;
 
 			if (facing != null) {
-				posX -= facing.getXOffset() * 0.4;
-				posY -= facing.getYOffset() * 0.65;
-				posZ -= facing.getZOffset() * 0.4;
+				posX -= facing.getOffsetX() * 0.4;
+				posY -= facing.getOffsetY() * 0.65;
+				posZ -= facing.getOffsetZ() * 0.4;
 			}
 
 			boolean shootOut = isPipeEnabled();
@@ -232,19 +232,19 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 			}
 
 			ItemEntity entity = new ItemEntity(world, posX, posY, posZ, stack);
-			entity.setDefaultPickupDelay();
+			entity.setToDefaultPickupDelay();
 
 			double velocityMod = 0.5;
 			if (!shootOut)
 				velocityMod = 0.125;
 
 			if (facing != null) {
-				double mx = -facing.getXOffset() * velocityMod;
-				double my = -facing.getYOffset() * velocityMod;
-				double mz = -facing.getZOffset() * velocityMod;
-				entity.setMotion(mx, my, mz);
+				double mx = -facing.getOffsetX() * velocityMod;
+				double my = -facing.getOffsetY() * velocityMod;
+				double mz = -facing.getOffsetZ() * velocityMod;
+				entity.setVelocity(mx, my, mz);
 			}
-			world.addEntity(entity);
+			world.spawnEntity(entity);
 		}
 	}
 
@@ -255,24 +255,24 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	@Override
-	public void readSharedNBT(CompoundNBT cmp) {
+	public void readSharedNBT(CompoundTag cmp) {
 		super.readSharedNBT(cmp);
 
-		ListNBT pipeItemList = cmp.getList(TAG_PIPE_ITEMS, cmp.getId());
+		ListTag pipeItemList = cmp.getList(TAG_PIPE_ITEMS, cmp.getType());
 		pipeItems.clear();
 		pipeItemList.forEach(listCmp -> {
-			PipeItem item = PipeItem.readFromNBT((CompoundNBT) listCmp);
+			PipeItem item = PipeItem.readFromNBT((CompoundTag) listCmp);
 			pipeItems.add(item);
 		});
 	}
 
 	@Override
-	public void writeSharedNBT(CompoundNBT cmp) {
+	public void writeSharedNBT(CompoundTag cmp) {
 		super.writeSharedNBT(cmp);
 
-		ListNBT pipeItemList = new ListNBT();
+		ListTag pipeItemList = new ListTag();
 		for(PipeItem item : pipeItems) {
-			CompoundNBT listCmp = new CompoundNBT();
+			CompoundTag listCmp = new CompoundTag();
 			item.writeToNBT(listCmp);
 			pipeItemList.add(listCmp);
 		}
@@ -280,7 +280,7 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	protected boolean canFit(ItemStack stack, BlockPos pos, Direction face) {
-		TileEntity tile = world.getTileEntity(pos);
+		BlockEntity tile = world.getBlockEntity(pos);
 		if(tile == null)
 			return false;
 
@@ -297,16 +297,16 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 		return state.getBlock() instanceof PipeBlock && state.get(PipeBlock.ENABLED);
 	}
 
-	protected ItemStack putIntoInv(ItemStack stack, TileEntity tile, Direction face, boolean simulate) {
+	protected ItemStack putIntoInv(ItemStack stack, BlockEntity tile, Direction face, boolean simulate) {
 		IItemHandler handler = null;
 		
 		LazyOptional<IItemHandler> opt = tile.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, face); 
 		if(opt.isPresent())
 			handler = opt.orElse(null);
-		else if(tile instanceof ISidedInventory)
-			handler = new SidedInvWrapper((ISidedInventory) tile, face);
-		else if(tile instanceof IInventory)
-			handler = new InvWrapper((IInventory) tile);
+		else if(tile instanceof SidedInventory)
+			handler = new SidedInvWrapper((SidedInventory) tile, face);
+		else if(tile instanceof Inventory)
+			handler = new InvWrapper((Inventory) tile);
 
 		if(handler != null)
 			return simulate ? ItemStack.EMPTY : ItemHandlerHelper.insertItem(handler, stack, simulate);
@@ -314,12 +314,12 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	@Override
-	public boolean canInsertItem(int index, @Nonnull ItemStack itemStackIn, @Nonnull Direction direction) {
+	public boolean canInsert(int index, @Nonnull ItemStack itemStackIn, @Nonnull Direction direction) {
 		return index == direction.ordinal() && isPipeEnabled();
 	}
 
 	@Override
-	public void setInventorySlotContents(int i, @Nonnull ItemStack itemstack) {
+	public void setStack(int i, @Nonnull ItemStack itemstack) {
 		if(!itemstack.isEmpty()) {
 			Direction side = Direction.values()[i];
 			passIn(itemstack, side);
@@ -328,7 +328,7 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 	}
 
 	@Override
-	public int getSizeInventory() {
+	public int size() {
 		return 6;
 	}
 
@@ -373,7 +373,7 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 			ticksInPipe++;
 			timeInWorld++;
 
-			if(!pipe.world.isRemote && ticksInPipe == PipesModule.pipeSpeed / 2 - 1) {
+			if(!pipe.world.isClient && ticksInPipe == PipesModule.pipeSpeed / 2 - 1) {
 				Direction target = getTargetFace(pipe);
 				if (outgoingFace != target)
 					pipe.needsSync = true;
@@ -425,8 +425,8 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 			return (ticksInPipe + partial) / PipesModule.pipeSpeed;
 		}
 
-		public void writeToNBT(CompoundNBT cmp) {
-			stack.write(cmp);
+		public void writeToNBT(CompoundTag cmp) {
+			stack.toTag(cmp);
 			cmp.putInt(TAG_TICKS, ticksInPipe);
 			cmp.putInt(TAG_INCOMING, incomingFace.ordinal());
 			cmp.putInt(TAG_OUTGOING, outgoingFace.ordinal());
@@ -435,8 +435,8 @@ public class PipeTileEntity extends TileSimpleInventory implements ITickableTile
 			cmp.putInt(TAG_TIME_IN_WORLD, timeInWorld);
 		}
 
-		public static PipeItem readFromNBT(CompoundNBT cmp) {
-			ItemStack stack = ItemStack.read(cmp);
+		public static PipeItem readFromNBT(CompoundTag cmp) {
+			ItemStack stack = ItemStack.fromTag(cmp);
 			Direction inFace = Direction.values()[cmp.getInt(TAG_INCOMING)];
 			long rngSeed = cmp.getLong(TAG_RNG_SEED);
 			

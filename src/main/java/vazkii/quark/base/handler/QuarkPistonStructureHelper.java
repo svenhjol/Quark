@@ -10,18 +10,18 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.PistonBlock;
-import net.minecraft.block.PistonBlockStructureHelper;
-import net.minecraft.block.material.PushReaction;
-import net.minecraft.util.Direction;
+import net.minecraft.block.piston.PistonBehavior;
+import net.minecraft.block.piston.PistonHandler;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import vazkii.quark.api.ICollateralMover;
 import vazkii.quark.api.ICollateralMover.MoveResult;
 import vazkii.quark.api.INonSticky;
 
-public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
+public class QuarkPistonStructureHelper extends PistonHandler {
 
-	private final PistonBlockStructureHelper parent;
+	private final PistonHandler parent;
 
 	private final World world;
 	private final BlockPos pistonPos;
@@ -30,7 +30,7 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 	private final List<BlockPos> toMove = Lists.<BlockPos>newArrayList();
 	private final List<BlockPos> toDestroy = Lists.<BlockPos>newArrayList();
 
-	public QuarkPistonStructureHelper(PistonBlockStructureHelper parent, World worldIn, BlockPos posIn, Direction pistonFacing, boolean extending) {
+	public QuarkPistonStructureHelper(PistonHandler parent, World worldIn, BlockPos posIn, Direction pistonFacing, boolean extending) {
 		super(worldIn, posIn, pistonFacing, extending);
 		this.parent = parent;
 
@@ -46,21 +46,21 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 	}
 
 	@Override
-	public boolean canMove() {
+	public boolean calculatePush() {
 		if(!GeneralConfig.usePistonLogicRepl)
-			return parent.canMove();
+			return parent.calculatePush();
 
 		toMove.clear();
 		toDestroy.clear();
 		BlockState iblockstate = world.getBlockState(blockToMove);
 
-		if(!PistonBlock.canPush(iblockstate, world, blockToMove, moveDirection, false, moveDirection)) {
-			if(iblockstate.getPushReaction() == PushReaction.DESTROY) {
+		if(!PistonBlock.isMovable(iblockstate, world, blockToMove, moveDirection, false, moveDirection)) {
+			if(iblockstate.getPistonBehavior() == PistonBehavior.DESTROY) {
 				toDestroy.add(blockToMove);
 				return true;
 			} else return false;
 		}
-		else if(!addBlockLine(blockToMove, moveDirection))
+		else if(!tryMove(blockToMove, moveDirection))
 			return false;
 		else {
 			for(int i = 0; i < toMove.size(); ++i) {
@@ -74,14 +74,14 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 		}
 	}
 	
-	private boolean addBlockLine(BlockPos origin, Direction face) {
+	private boolean tryMove(BlockPos origin, Direction face) {
 		final int max = GeneralConfig.pistonPushLimit; 
 
 		BlockPos target = origin;
 		BlockState iblockstate = world.getBlockState(target);
 
 		if(iblockstate.getBlock().isAir(iblockstate, world, origin) 
-				|| !PistonBlock.canPush(iblockstate, world, origin, moveDirection, false, face)
+				|| !PistonBlock.isMovable(iblockstate, world, origin, moveDirection, false, face)
 				|| origin.equals(pistonPos)
 				|| toMove.contains(origin))
 			return true;
@@ -111,7 +111,7 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 					target = origin.offset(moveDirection.getOpposite(), lineLen);
 					iblockstate = world.getBlockState(target);
 					
-					if(iblockstate.getBlock().isAir(iblockstate, world, target) || !PistonBlock.canPush(iblockstate, world, target, moveDirection, false, moveDirection.getOpposite()) || target.equals(pistonPos))
+					if(iblockstate.getBlock().isAir(iblockstate, world, target) || !PistonBlock.isMovable(iblockstate, world, target, moveDirection, false, moveDirection.getOpposite()) || target.equals(pistonPos))
 						break;
 					
 					if(getStickCompatibility(world, iblockstate, oldState, target, oldPos, moveDirection) != MoveResult.MOVE)
@@ -149,7 +149,7 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 					MoveResult res = MoveResult.MOVE;
 
 					if(k > -1) {
-						reorderListAtCollision(i1, k);
+						setMovedBlocks(i1, k);
 
 						for(int l = 0; l <= k + i1; ++l) {
 							BlockPos blockpos2 = toMove.get(l);
@@ -171,10 +171,10 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 						if(iblockstate.getBlock().isAir(iblockstate, world, blockpos1))
 							return true;
 
-						if(!PistonBlock.canPush(iblockstate, world, blockpos1, moveDirection, true, moveDirection) || blockpos1.equals(pistonPos))
+						if(!PistonBlock.isMovable(iblockstate, world, blockpos1, moveDirection, true, moveDirection) || blockpos1.equals(pistonPos))
 							return false;
 
-						if(iblockstate.getPushReaction() == PushReaction.DESTROY) {
+						if(iblockstate.getPistonBehavior() == PistonBehavior.DESTROY) {
 							toDestroy.add(blockpos1);
 							toMove.remove(blockpos1);
 							return true;
@@ -206,7 +206,7 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 		}
 	}
 
-	private void reorderListAtCollision(int p_177255_1_, int p_177255_2_) {
+	private void setMovedBlocks(int p_177255_1_, int p_177255_2_) {
 		List<BlockPos> list = Lists.<BlockPos>newArrayList();
 		List<BlockPos> list1 = Lists.<BlockPos>newArrayList();
 		List<BlockPos> list2 = Lists.<BlockPos>newArrayList();
@@ -239,11 +239,11 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 				case PREVENT:
 					return MoveResult.PREVENT;
 				case MOVE:
-					if(!addBlockLine(targetPos, face))
+					if(!tryMove(targetPos, face))
 						return MoveResult.PREVENT;
 					break;
 				case BREAK:
-					if(PistonBlock.canPush(targetState, world, targetPos, moveDirection, true, moveDirection)) {
+					if(PistonBlock.isMovable(targetState, world, targetPos, moveDirection, true, moveDirection)) {
 						toDestroy.add(targetPos);
 						toMove.remove(targetPos);
 						return MoveResult.BREAK;
@@ -301,18 +301,18 @@ public class QuarkPistonStructureHelper extends PistonBlockStructureHelper {
 
 	@Nonnull
 	@Override
-	public List<BlockPos> getBlocksToMove() {
+	public List<BlockPos> getMovedBlocks() {
 		if(!GeneralConfig.usePistonLogicRepl) 
-			return parent.getBlocksToMove();
+			return parent.getMovedBlocks();
 
 		return toMove;
 	}
 
 	@Nonnull
 	@Override
-	public List<BlockPos> getBlocksToDestroy() {
+	public List<BlockPos> getBrokenBlocks() {
 		if(!GeneralConfig.usePistonLogicRepl) 
-			return parent.getBlocksToDestroy();
+			return parent.getBrokenBlocks();
 
 		return toDestroy;
 	}

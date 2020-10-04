@@ -5,33 +5,32 @@ import java.util.Locale;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
-
-import net.minecraft.client.renderer.entity.BeeRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
+import net.minecraft.client.render.entity.BeeEntityRenderer;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.entity.passive.BeeEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import vazkii.quark.base.Quark;
 import vazkii.quark.client.module.VariantAnimalTexturesModule;
 
-public class VariantBeeRenderer extends BeeRenderer {
+public class VariantBeeRenderer extends BeeEntityRenderer {
 
 	private static final List<String> VARIANTS = ImmutableList.of(
 			"acebee", "agenbee", "arobee", "beefluid", "beesexual", 
 			"beequeer", "enbee", "gaybee", "interbee", "lesbeean", 
 			"panbee", "polysexbee", "transbee", "helen");
 	
-	public VariantBeeRenderer(EntityRendererManager renderManagerIn) {
+	public VariantBeeRenderer(EntityRenderDispatcher renderManagerIn) {
 		super(renderManagerIn);
 	}
 	
 	@Override
-	public ResourceLocation getEntityTexture(BeeEntity entity) {
+	public Identifier getTexture(BeeEntity entity) {
 		if(entity.hasCustomName() || VariantAnimalTexturesModule.everyBeeIsLGBT) {
 			String custName = entity.hasCustomName() ? entity.getCustomName().getString().trim() : "";
 			String name = custName.toLowerCase(Locale.ROOT);
 			
 			if(VariantAnimalTexturesModule.everyBeeIsLGBT) {
-				UUID id = entity.getUniqueID();
+				UUID id = entity.getUuid();
 				long most = id.getMostSignificantBits();
 				name = VARIANTS.get(Math.abs((int) (most % VARIANTS.size())));
 			}
@@ -50,11 +49,11 @@ public class VariantBeeRenderer extends BeeRenderer {
 					type = "nectar";
 				
 				String path = String.format("textures/model/entity/variants/bees/%s/%s.png", name, type);
-				return new ResourceLocation(Quark.MOD_ID, path);
+				return new Identifier(Quark.MOD_ID, path);
 			}
 		}
 		
-		return super.getEntityTexture(entity);
+		return super.getTexture(entity);
 	}
 
 }

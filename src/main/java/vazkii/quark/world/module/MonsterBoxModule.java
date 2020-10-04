@@ -1,15 +1,15 @@
 package vazkii.quark.world.module;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootParameterSets;
 import net.minecraft.loot.LootTable;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.loot.context.LootContext;
+import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.GameRules;
-import net.minecraft.world.gen.GenerationStage.Decoration;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import vazkii.arl.util.RegistryHelper;
@@ -29,9 +29,9 @@ import vazkii.quark.world.tile.MonsterBoxTileEntity;
 public class MonsterBoxModule extends Module {
 
 	public static final String TAG_MONSTER_BOX_SPAWNED = "quark:monster_box_spawned";
-	public static final ResourceLocation MONSTER_BOX_LOOT_TABLE = new ResourceLocation(Quark.MOD_ID, "misc/monster_box");
+	public static final Identifier MONSTER_BOX_LOOT_TABLE = new Identifier(Quark.MOD_ID, "misc/monster_box");
 	
-	public static TileEntityType<MonsterBoxTileEntity> tileEntityType;
+	public static BlockEntityType<MonsterBoxTileEntity> tileEntityType;
 	
 	@Config(description = "The chance for the monster box generator to try and place one in a chunk, 1 is 100%\nThis can be higher than 100% if you want multiple per chunk, , 0 is 0%") 
 	public static double chancePerChunk = 0.8;
@@ -49,22 +49,22 @@ public class MonsterBoxModule extends Module {
 	public void construct() {
 		monster_box = new MonsterBoxBlock(this);
 		
-        tileEntityType = TileEntityType.Builder.create(MonsterBoxTileEntity::new, monster_box).build(null);
+        tileEntityType = BlockEntityType.Builder.create(MonsterBoxTileEntity::new, monster_box).build(null);
         RegistryHelper.register(tileEntityType, "monster_box");
 	}
 	
 	@Override
 	public void setup() {
-		WorldGenHandler.addGenerator(this, new MonsterBoxGenerator(dimensions), Decoration.UNDERGROUND_DECORATION, WorldGenWeights.MONSTER_BOXES);
+		WorldGenHandler.addGenerator(this, new MonsterBoxGenerator(dimensions), Feature.UNDERGROUND_DECORATION, WorldGenWeights.MONSTER_BOXES);
 	}
 	
 	@SubscribeEvent
 	public void onDrops(LivingDropsEvent event) {
 		LivingEntity entity = event.getEntityLiving();
 		if(enableExtraLootTable && entity.getEntityWorld() instanceof ServerWorld && entity.getPersistentData().getBoolean(TAG_MONSTER_BOX_SPAWNED) && entity.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT)) {
-			LootTable loot = ((ServerWorld) entity.getEntityWorld()).getServer().getLootTableManager().getLootTableFromLocation(MONSTER_BOX_LOOT_TABLE);
+			LootTable loot = ((ServerWorld) entity.getEntityWorld()).getServer().getLootManager().getTable(MONSTER_BOX_LOOT_TABLE);
 			if(loot != null)
-				loot.generate(new LootContext.Builder((ServerWorld) entity.getEntityWorld()).build(LootParameterSets.EMPTY), entity::entityDropItem);
+				loot.generateLoot(new LootContext.Builder((ServerWorld) entity.getEntityWorld()).build(LootContextTypes.EMPTY), entity::dropStack);
 		}
 	}
 	

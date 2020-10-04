@@ -8,21 +8,21 @@ import javax.annotation.Nonnull;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.merchant.villager.VillagerProfession;
-import net.minecraft.entity.merchant.villager.VillagerTrades.ITrade;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.MerchantOffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.item.map.MapIcon.Type;
+import net.minecraft.item.map.MapState;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.village.TradeOffer;
+import net.minecraft.village.TradeOffers.Factory;
+import net.minecraft.village.VillagerProfession;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biomes;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.MapData;
-import net.minecraft.world.storage.MapDecoration.Type;
 import net.minecraftforge.event.village.VillagerTradesEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -61,7 +61,7 @@ public class PathfinderMapsModule extends Module {
 
 
 	private static String getBiomeDescriptor(Biome biome) {
-		ResourceLocation rl = biome.getRegistryName();
+		Identifier rl = biome.getRegistryName();
 		if(rl == null)
 			return "unknown";
 		return rl.getPath();
@@ -90,7 +90,7 @@ public class PathfinderMapsModule extends Module {
 	@SubscribeEvent
 	public void onTradesLoaded(VillagerTradesEvent event) {
 		if(event.getType() == VillagerProfession.CARTOGRAPHER) {
-			Int2ObjectMap<List<ITrade>> trades = event.getTrades();
+			Int2ObjectMap<List<Factory>> trades = event.getTrades();
 			tradeList.forEach((info) -> trades.get(info.level).add(new PathfinderMapTrade(info)));
 		}
 	}
@@ -119,7 +119,7 @@ public class PathfinderMapsModule extends Module {
 		if(tokens.length != 6)
 			throw new IllegalArgumentException("Wrong number of parameters " + tokens.length + " (expected 6)");
 
-		ResourceLocation biomeName = new ResourceLocation(tokens[0]);
+		Identifier biomeName = new Identifier(tokens[0]);
 		if(!ForgeRegistries.BIOMES.containsKey(biomeName))
 			throw new IllegalArgumentException("No biome exists with name " + biomeName);
 
@@ -151,16 +151,16 @@ public class PathfinderMapsModule extends Module {
 		if(biomePos == null)
 			return ItemStack.EMPTY;
 			
-		ItemStack stack = FilledMapItem.setupNewMap(world, biomePos.getX(), biomePos.getZ(), (byte) 2, true, true);
+		ItemStack stack = FilledMapItem.createMap(world, biomePos.getX(), biomePos.getZ(), (byte) 2, true, true);
 		// fillExplorationMap
-		FilledMapItem.func_226642_a_((ServerWorld) world, stack);
-		MapData.addTargetDecoration(stack, biomePos, "+", Type.RED_X);
-		stack.setDisplayName(new TranslationTextComponent(info.name));
+		FilledMapItem.fillExplorationMap((ServerWorld) world, stack);
+		MapState.addDecorationsTag(stack, biomePos, "+", Type.RED_X);
+		stack.setCustomName(new TranslatableText(info.name));
 
 		return stack;
 	}
 
-	private static class PathfinderMapTrade implements ITrade {
+	private static class PathfinderMapTrade implements Factory {
 
 		public final TradeInfo info;
 
@@ -169,17 +169,17 @@ public class PathfinderMapsModule extends Module {
 		}
 
 		@Override
-		public MerchantOffer getOffer(@Nonnull Entity entity, @Nonnull Random random) {
+		public TradeOffer create(@Nonnull Entity entity, @Nonnull Random random) {
 			if(!info.enabled)
 				return null;
 			
 			int i = random.nextInt(info.maxPrice - info.minPrice + 1) + info.minPrice;
 
-			ItemStack itemstack = createMap(entity.world, entity.func_233580_cy_(), info); // getPosition 
+			ItemStack itemstack = createMap(entity.world, entity.getBlockPos(), info); // getPosition 
 			if(itemstack.isEmpty())
 				return null;
 			
-			return new MerchantOffer(new ItemStack(Items.EMERALD, i), new ItemStack(Items.COMPASS), itemstack, 12, xpFromTrade * Math.max(1, (info.level - 1)), 0.2F);
+			return new TradeOffer(new ItemStack(Items.EMERALD, i), new ItemStack(Items.COMPASS), itemstack, 12, xpFromTrade * Math.max(1, (info.level - 1)), 0.2F);
 		}
 	}
 

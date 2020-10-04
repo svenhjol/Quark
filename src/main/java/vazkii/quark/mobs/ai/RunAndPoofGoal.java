@@ -15,19 +15,19 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.RandomPositionGenerator;
+import net.minecraft.entity.ai.TargetFinder;
 import net.minecraft.entity.ai.goal.Goal;
+import net.minecraft.entity.ai.pathing.EntityNavigation;
+import net.minecraft.entity.ai.pathing.Path;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.pathfinding.Path;
-import net.minecraft.pathfinding.PathNavigator;
-import net.minecraft.util.EntityPredicates;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.predicate.entity.EntityPredicates;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import vazkii.quark.base.handler.QuarkSounds;
 import vazkii.quark.mobs.entity.StonelingEntity;
 
@@ -40,7 +40,7 @@ public class RunAndPoofGoal<T extends Entity> extends Goal {
 	protected T closestLivingEntity;
 	private final float avoidDistance;
 	private Path path;
-	private final PathNavigator navigation;
+	private final EntityNavigation navigation;
 	private final Class<T> classToAvoid;
 	private final Predicate<T> avoidTargetSelector;
 
@@ -49,57 +49,57 @@ public class RunAndPoofGoal<T extends Entity> extends Goal {
 	}
 
 	public RunAndPoofGoal(StonelingEntity entity, Class<T> classToAvoid, Predicate<T> avoidTargetSelector, float avoidDistance, double farSpeed, double nearSpeed) {
-		this.canBeSeenSelector = target -> target != null && target.isAlive() && entity.getEntitySenses().canSee(target) && !entity.isOnSameTeam(target);
+		this.canBeSeenSelector = target -> target != null && target.isAlive() && entity.getVisibilityCache().canSee(target) && !entity.isTeammate(target);
 		this.entity = entity;
 		this.classToAvoid = classToAvoid;
 		this.avoidTargetSelector = avoidTargetSelector;
 		this.avoidDistance = avoidDistance;
 		this.farSpeed = farSpeed;
 		this.nearSpeed = nearSpeed;
-		this.navigation = entity.getNavigator();
-		setMutexFlags(EnumSet.of(Flag.MOVE, Flag.JUMP));
+		this.navigation = entity.getNavigation();
+		setControls(EnumSet.of(Control.MOVE, Control.JUMP));
 	}
 
 	@Override
-	public boolean shouldExecute() {
+	public boolean canStart() {
 		if (entity.isPlayerMade() || !entity.isStartled())
 			return false;
 
-		List<T> entities = this.entity.world.getEntitiesWithinAABB(this.classToAvoid, this.entity.getBoundingBox().grow(this.avoidDistance, 3.0D, this.avoidDistance),
-				entity -> EntityPredicates.CAN_AI_TARGET.test(entity) && this.canBeSeenSelector.test(entity) && this.avoidTargetSelector.test(entity));
+		List<T> entities = this.entity.world.getEntities(this.classToAvoid, this.entity.getBoundingBox().expand(this.avoidDistance, 3.0D, this.avoidDistance),
+				entity -> EntityPredicates.EXCEPT_CREATIVE_OR_SPECTATOR.test(entity) && this.canBeSeenSelector.test(entity) && this.avoidTargetSelector.test(entity));
 
 		if (entities.isEmpty())
 			return false;
 		else {
 			this.closestLivingEntity = entities.get(0);
-			Vector3d target = RandomPositionGenerator.findRandomTargetBlockAwayFrom(this.entity, 16, 7, this.closestLivingEntity.getPositionVec());
+			Vec3d target = TargetFinder.findTargetAwayFrom(this.entity, 16, 7, this.closestLivingEntity.getPos());
 
-			if (target != null && this.closestLivingEntity.getDistanceSq(target.x, target.y, target.z) < this.closestLivingEntity.getDistanceSq(this.entity))
+			if (target != null && this.closestLivingEntity.squaredDistanceTo(target.x, target.y, target.z) < this.closestLivingEntity.squaredDistanceTo(this.entity))
 				return false;
 			else {
 				if (target != null)
-					this.path = this.navigation.getPathToPos(target.x, target.y, target.z, 0);
+					this.path = this.navigation.findPathTo(target.x, target.y, target.z, 0);
 				return target == null || this.path != null;
 			}
 		}
 	}
 
 	@Override
-	public boolean shouldContinueExecuting() {
-		if (this.path == null || this.navigation.noPath()) {
+	public boolean shouldContinue() {
+		if (this.path == null || this.navigation.isIdle()) {
 			return false;
 		}
 
 		BlockPos.Mutable pos = new BlockPos.Mutable();
-		Vector3d epos = entity.getPositionVec();
+		Vec3d epos = entity.getPos();
 		
 		for (int i = 0; i < 8; ++i) {
-			int j = MathHelper.floor(epos.x + (i % 2 - 0.5F) * 0.1F + entity.getEyeHeight());
+			int j = MathHelper.floor(epos.x + (i % 2 - 0.5F) * 0.1F + entity.getStandingEyeHeight());
 			int k = MathHelper.floor(epos.y + ((i >> 1) % 2 - 0.5F) * entity.getWidth() * 0.8F);
 			int l = MathHelper.floor(epos.z + ((i >> 2) % 2 - 0.5F) * entity.getWidth() * 0.8F);
 
 			if (pos.getX() != k || pos.getY() != j || pos.getZ() != l) {
-				pos.setPos(k, j, l);
+				pos.set(k, j, l);
 
 				if (entity.world.getBlockState(pos).getMaterial().blocksMovement()) {
 					return false;
@@ -111,28 +111,28 @@ public class RunAndPoofGoal<T extends Entity> extends Goal {
 	}
 
 	@Override
-	public void startExecuting() {
-		Vector3d epos = entity.getPositionVec();
+	public void start() {
+		Vec3d epos = entity.getPos();
 
 		if (this.path != null)
-			this.navigation.setPath(this.path, this.farSpeed);
+			this.navigation.startMovingAlong(this.path, this.farSpeed);
 		entity.world.playSound(null, epos.x, epos.y, epos.z, QuarkSounds.ENTITY_STONELING_MEEP, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 	}
 
 	@Override
-	public void resetTask() {
+	public void stop() {
 		this.closestLivingEntity = null;
 
 		World world = entity.world;
 
 		if (world instanceof ServerWorld) {
 			ServerWorld ws = (ServerWorld) world;
-			Vector3d epos = entity.getPositionVec();
+			Vec3d epos = entity.getPos();
 
-			ws.spawnParticle(ParticleTypes.CLOUD, epos.x, epos.y, epos.z, 40, 0.5, 0.5, 0.5, 0.1);
-			ws.spawnParticle(ParticleTypes.EXPLOSION, epos.x, epos.y, epos.z, 20, 0.5, 0.5, 0.5, 0);
+			ws.spawnParticles(ParticleTypes.CLOUD, epos.x, epos.y, epos.z, 40, 0.5, 0.5, 0.5, 0.1);
+			ws.spawnParticles(ParticleTypes.EXPLOSION, epos.x, epos.y, epos.z, 20, 0.5, 0.5, 0.5, 0);
 		}
-		for (Entity passenger : entity.getRecursivePassengers())
+		for (Entity passenger : entity.getPassengersDeep())
 			if (!(passenger instanceof PlayerEntity))
 				passenger.remove();
 		entity.remove();
@@ -140,10 +140,10 @@ public class RunAndPoofGoal<T extends Entity> extends Goal {
 
 	@Override
 	public void tick() {
-		if (this.entity.getDistanceSq(this.closestLivingEntity) < 49.0D)
-			this.entity.getNavigator().setSpeed(this.nearSpeed);
+		if (this.entity.squaredDistanceTo(this.closestLivingEntity) < 49.0D)
+			this.entity.getNavigation().setSpeed(this.nearSpeed);
 		else
-			this.entity.getNavigator().setSpeed(this.farSpeed);
+			this.entity.getNavigation().setSpeed(this.farSpeed);
 	}
 
 }

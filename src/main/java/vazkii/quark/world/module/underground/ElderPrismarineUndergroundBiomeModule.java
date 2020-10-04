@@ -1,10 +1,10 @@
 package vazkii.quark.world.module.underground;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import vazkii.quark.base.block.QuarkBlock;
@@ -35,21 +35,21 @@ public class ElderPrismarineUndergroundBiomeModule extends UndergroundBiomeModul
     @Override
 	public void construct() {
 		elder_prismarine = new ElderPrismarineBlock("elder_prismarine", this, ItemGroup.BUILDING_BLOCKS, 
-				Block.Properties.create(Material.ROCK, MaterialColor.ADOBE)
-				.func_235861_h_() // needs tool
+				Block.Properties.of(Material.STONE, MaterialColor.ORANGE)
+				.requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-				.hardnessAndResistance(1.5F, 10F)
-				.sound(SoundType.STONE));
+				.strength(1.5F, 10F)
+				.sounds(BlockSoundGroup.STONE));
 		
 		VariantHandler.addSlabStairsWall(elder_prismarine);
-		VariantHandler.addSlabAndStairs(new ElderPrismarineBlock("elder_prismarine_bricks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(elder_prismarine)));
-		VariantHandler.addSlabAndStairs(new ElderPrismarineBlock("dark_elder_prismarine", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(elder_prismarine)));
+		VariantHandler.addSlabAndStairs(new ElderPrismarineBlock("elder_prismarine_bricks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(elder_prismarine)));
+		VariantHandler.addSlabAndStairs(new ElderPrismarineBlock("dark_elder_prismarine", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(elder_prismarine)));
 		
 		elder_sea_lantern = new QuarkBlock("elder_sea_lantern", this, ItemGroup.BUILDING_BLOCKS, 
-				Block.Properties.create(Material.GLASS, MaterialColor.ADOBE)
-				.hardnessAndResistance(0.3F)
-				.func_235838_a_(b -> 15) // lightValue
-				.sound(SoundType.GLASS));
+				Block.Properties.of(Material.GLASS, MaterialColor.ORANGE)
+				.strength(0.3F)
+				.lightLevel(b -> 15) // lightValue
+				.sounds(BlockSoundGroup.GLASS));
 		
 		super.construct();
 	}

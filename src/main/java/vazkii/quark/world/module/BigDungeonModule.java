@@ -3,11 +3,11 @@ package vazkii.quark.world.module;
 import com.google.common.collect.ImmutableSet;
 
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.DimensionSettings;
-import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.chunk.ChunkGeneratorType;
+import net.minecraft.world.gen.chunk.StructureConfig;
+import net.minecraft.world.gen.feature.ConfiguredStructureFeature;
+import net.minecraft.world.gen.feature.DefaultFeatureConfig;
 import net.minecraft.world.gen.feature.StructureFeature;
-import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.settings.StructureSeparationSettings;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.registries.ForgeRegistries;
 import vazkii.arl.util.RegistryHelper;
@@ -37,14 +37,14 @@ public class BigDungeonModule extends Module {
 	@Config
 	public static BiomeTypeConfig biomeTypes = new BiomeTypeConfig(true, Type.OCEAN, Type.BEACH, Type.NETHER, Type.END);
 
-	public static final BigDungeonStructure STRUCTURE = new BigDungeonStructure(NoFeatureConfig.field_236558_a_);
+	public static final BigDungeonStructure STRUCTURE = new BigDungeonStructure(DefaultFeatureConfig.CODEC);
 	
 	@Override
 	public void construct() {
 		//		new FloodFillItem(this);
 		RegistryHelper.register(STRUCTURE);
 		
-		Structure.field_236365_a_.put(Quark.MOD_ID + ":big_dungeon", STRUCTURE);
+		StructureFeature.STRUCTURES.put(Quark.MOD_ID + ":big_dungeon", STRUCTURE);
 	}
 
 	@Override
@@ -52,19 +52,19 @@ public class BigDungeonModule extends Module {
 	public void setup() {
 		STRUCTURE.setup();	
 		
-		StructureSeparationSettings settings = new StructureSeparationSettings(20, 11, 79234823);
+		StructureConfig settings = new StructureConfig(20, 11, 79234823);
 		
 		// Register separation settings for big dungeon in the settings presets
-		ImmutableSet.of(DimensionSettings.Preset.field_236122_b_, DimensionSettings.Preset.field_236123_c_, DimensionSettings.Preset.field_236124_d_, 
-				DimensionSettings.Preset.field_236125_e_, DimensionSettings.Preset.field_236126_f_, DimensionSettings.Preset.field_236127_g_)
-		.forEach(p -> p.func_236137_b_().func_236108_a_().func_236195_a_().put(STRUCTURE, settings));
+		ImmutableSet.of(ChunkGeneratorType.Preset.OVERWORLD, ChunkGeneratorType.Preset.AMPLIFIED, ChunkGeneratorType.Preset.NETHER, 
+				ChunkGeneratorType.Preset.END, ChunkGeneratorType.Preset.CAVES, ChunkGeneratorType.Preset.FLOATING_ISLANDS)
+		.forEach(p -> p.getChunkGeneratorType().getConfig().getStructures().put(STRUCTURE, settings));
 
-		StructureFeature structure = STRUCTURE.func_236391_a_(NoFeatureConfig.NO_FEATURE_CONFIG);
+		ConfiguredStructureFeature structure = STRUCTURE.configure(DefaultFeatureConfig.DEFAULT);
 
 		if(enabled) 
 			for(Biome b : ForgeRegistries.BIOMES.getValues()) { 
 				if(biomeTypes.canSpawn(b))
-					b.func_235063_a_(structure);
+					b.addStructureFeature(structure);
 			}
 	}
 

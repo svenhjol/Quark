@@ -19,7 +19,7 @@ public class TurfModule extends Module {
     @Override
     public void construct() {
         IQuarkBlock turf = new TurfBlock("turf", this, ItemGroup.BUILDING_BLOCKS,
-                Block.Properties.from(Blocks.GRASS_BLOCK));
+                Block.Properties.copy(Blocks.GRASS_BLOCK));
         VariantHandler.addSlabAndStairs(turf);
     }
 }

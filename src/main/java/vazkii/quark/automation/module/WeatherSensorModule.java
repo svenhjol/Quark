@@ -1,10 +1,10 @@
 package vazkii.quark.automation.module;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraftforge.common.ToolType;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.automation.block.WeatherSensorBlock;
@@ -19,17 +19,17 @@ import vazkii.quark.base.module.ModuleCategory;
  */
 @LoadModule(category = ModuleCategory.AUTOMATION)
 public class WeatherSensorModule extends Module {
-    public static TileEntityType<WeatherSensorTileEntity> weatherSensorTEType;
+    public static BlockEntityType<WeatherSensorTileEntity> weatherSensorTEType;
 
     @Override
     public void construct() {
         Block weatherSensor = new WeatherSensorBlock("weather_sensor", this, ItemGroup.REDSTONE,
-                Block.Properties.create(Material.ROCK, MaterialColor.MAGENTA)
-                .func_235861_h_() // needs tool
+                Block.Properties.of(Material.STONE, MaterialColor.MAGENTA)
+                .requiresTool() // needs tool
         		.harvestTool(ToolType.PICKAXE)
-        		.hardnessAndResistance(0.2F));
+        		.strength(0.2F));
         
-        weatherSensorTEType = TileEntityType.Builder.create(WeatherSensorTileEntity::new, weatherSensor).build(null);
+        weatherSensorTEType = BlockEntityType.Builder.create(WeatherSensorTileEntity::new, weatherSensor).build(null);
         RegistryHelper.register(weatherSensorTEType, "weather_sensor");
     }
 

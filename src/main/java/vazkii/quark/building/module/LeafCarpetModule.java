@@ -32,7 +32,7 @@ public class LeafCarpetModule extends Module {
 	
 	@Override
 	public void setup() {
-		carpets.forEach(c -> ComposterBlock.CHANCES.put(c.asItem(), 0.2F));
+		carpets.forEach(c -> ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.put(c.asItem(), 0.2F));
 	}
 	
 	private void carpet(Block base) {

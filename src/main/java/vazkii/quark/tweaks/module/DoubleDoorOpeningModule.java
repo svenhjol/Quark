@@ -2,11 +2,11 @@ package vazkii.quark.tweaks.module;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.state.properties.DoorHingeSide;
-import net.minecraft.state.properties.DoubleBlockHalf;
-import net.minecraft.util.Direction;
+import net.minecraft.block.Material;
+import net.minecraft.block.enums.DoorHinge;
+import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -25,7 +25,7 @@ public class DoubleDoorOpeningModule extends Module {
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
-		if(!event.getWorld().isRemote || event.getPlayer().isDiscrete() || event.isCanceled() || event.getResult() == Result.DENY || event.getUseBlock() == Result.DENY)
+		if(!event.getWorld().isClient || event.getPlayer().isSneaky() || event.isCanceled() || event.getResult() == Result.DENY || event.getUseBlock() == Result.DENY)
 			return;
 
 		World world = event.getWorld();
@@ -44,14 +44,14 @@ public class DoubleDoorOpeningModule extends Module {
 		BlockState state = world.getBlockState(pos);
 		Direction direction = state.get(DoorBlock.FACING);
 		boolean isOpen = state.get(DoorBlock.OPEN);
-		DoorHingeSide isMirrored = state.get(DoorBlock.HINGE);
+		DoorHinge isMirrored = state.get(DoorBlock.HINGE);
 
-		BlockPos mirrorPos = pos.offset(isMirrored == DoorHingeSide.RIGHT ? direction.rotateYCCW() : direction.rotateY());
+		BlockPos mirrorPos = pos.offset(isMirrored == DoorHinge.RIGHT ? direction.rotateYCounterclockwise() : direction.rotateYClockwise());
 		BlockPos doorPos = state.get(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? mirrorPos : mirrorPos.down();
 		BlockState other = world.getBlockState(doorPos);
 
-		if(state.getMaterial() != Material.IRON && other.getBlock() == state.getBlock() && other.get(DoorBlock.FACING) == direction && other.get(DoorBlock.OPEN) == isOpen && other.get(DoorBlock.HINGE) != isMirrored) {
-			BlockState newState = other.func_235896_a_(DoorBlock.OPEN); // cycle
+		if(state.getMaterial() != Material.METAL && other.getBlock() == state.getBlock() && other.get(DoorBlock.FACING) == direction && other.get(DoorBlock.OPEN) == isOpen && other.get(DoorBlock.HINGE) != isMirrored) {
+			BlockState newState = other.cycle(DoorBlock.OPEN); // cycle
 			world.setBlockState(doorPos, newState);
 		}
 	}

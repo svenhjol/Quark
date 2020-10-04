@@ -1,20 +1,20 @@
 package vazkii.quark.client.render.variant;
 
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.PigRenderer;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.PigEntityRenderer;
 import net.minecraft.entity.passive.PigEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Identifier;
 import vazkii.quark.client.module.VariantAnimalTexturesModule;
 import vazkii.quark.client.module.VariantAnimalTexturesModule.VariantTextureType;
 
-public class VariantPigRenderer extends PigRenderer {
+public class VariantPigRenderer extends PigEntityRenderer {
 
-	public VariantPigRenderer(EntityRendererManager renderManagerIn) {
+	public VariantPigRenderer(EntityRenderDispatcher renderManagerIn) {
 		super(renderManagerIn);
 	}
 	
 	@Override
-	public ResourceLocation getEntityTexture(PigEntity entity) {
+	public Identifier getTexture(PigEntity entity) {
 		return VariantAnimalTexturesModule.getTextureOrShiny(entity, VariantTextureType.PIG, VariantAnimalTexturesModule.enablePig);
 	}
 

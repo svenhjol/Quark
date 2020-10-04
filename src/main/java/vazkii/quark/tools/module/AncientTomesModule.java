@@ -2,23 +2,23 @@ package vazkii.quark.tools.module;
 
 import com.google.common.collect.Maps;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.EnchantedBookItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.loot.ItemLootEntry;
-import net.minecraft.loot.LootEntry;
-import net.minecraft.loot.LootFunctionType;
 import net.minecraft.loot.LootTables;
-import net.minecraft.loot.conditions.ILootCondition;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.loot.condition.LootCondition;
+import net.minecraft.loot.entry.ItemEntry;
+import net.minecraft.loot.entry.LootPoolEntry;
+import net.minecraft.loot.function.LootFunctionType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.text.LiteralText;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.event.AnvilUpdateEvent;
 import net.minecraftforge.event.LootTableLoadEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -61,18 +61,18 @@ public class AncientTomesModule extends Module {
 	@SubscribeEvent
 	public void onLootTableLoad(LootTableLoadEvent event) {
 		int weight = 0;
-		if(event.getName().equals(LootTables.CHESTS_STRONGHOLD_LIBRARY))
+		if(event.getName().equals(LootTables.STRONGHOLD_LIBRARY_CHEST))
 			weight = libraryWeight;
-		else if(event.getName().equals(LootTables.CHESTS_SIMPLE_DUNGEON))
+		else if(event.getName().equals(LootTables.SIMPLE_DUNGEON_CHEST))
 			weight = dungeonWeight;
 		else if(event.getName().equals(MonsterBoxModule.MONSTER_BOX_LOOT_TABLE))
 			weight = monsterBoxWeight;
 		
 		if(weight > 0) {
-			LootEntry entry = ItemLootEntry.builder(ancient_tome)
+			LootPoolEntry entry = ItemEntry.builder(ancient_tome)
 					.weight(weight)
 					.quality(itemQuality)
-					.acceptFunction(() -> new EnchantTome(new ILootCondition[0]))
+					.apply(() -> new EnchantTome(new LootCondition[0]))
 					.build();
 			
 			MiscUtil.addToLootTable(event.getTable(), entry);
@@ -84,7 +84,7 @@ public class AncientTomesModule extends Module {
 		ancient_tome = new AncientTomeItem(this);
 
 		tomeEnchantType = new LootFunctionType(new EnchantTome.Serializer());
-		Registry.register(Registry.field_239694_aZ_, new ResourceLocation(Quark.MOD_ID, "tome_enchant"), tomeEnchantType);
+		Registry.register(Registry.LOOT_FUNCTION_TYPE, new Identifier(Quark.MOD_ID, "tome_enchant"), tomeEnchantType);
 
 	}
 
@@ -106,8 +106,8 @@ public class AncientTomesModule extends Module {
 				handleTome(right, left, event);
 
 			else if(right.getItem() == Items.ENCHANTED_BOOK) {
-				Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(right);
-				Map<Enchantment, Integer> currentEnchants = EnchantmentHelper.getEnchantments(left);
+				Map<Enchantment, Integer> enchants = EnchantmentHelper.get(right);
+				Map<Enchantment, Integer> currentEnchants = EnchantmentHelper.get(left);
 				boolean hasOverLevel = false;
 				boolean hasMatching = false;
 				for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
@@ -118,7 +118,7 @@ public class AncientTomesModule extends Module {
 					int level = entry.getValue();
 					if (level > enchantment.getMaxLevel()) {
 						hasOverLevel = true;
-						if (enchantment.canApply(left)) {
+						if (enchantment.isAcceptableItem(left)) {
 							hasMatching = true;
 							//remove incompatible enchantments
 							for (Iterator<Enchantment> iterator = currentEnchants.keySet().iterator(); iterator.hasNext(); ) {
@@ -126,20 +126,20 @@ public class AncientTomesModule extends Module {
 								if (comparingEnchantment == enchantment)
 									continue;
 
-								if (!comparingEnchantment.isCompatibleWith(enchantment)) {
+								if (!comparingEnchantment.canCombine(enchantment)) {
 									iterator.remove();
 								}
 							}
 							currentEnchants.put(enchantment, level);
 						}
-					} else if (enchantment.canApply(left)) {
+					} else if (enchantment.isAcceptableItem(left)) {
 						boolean compatible = true;
 						//don't apply incompatible enchantments
 						for (Enchantment comparingEnchantment : currentEnchants.keySet()) {
 							if (comparingEnchantment == enchantment)
 								continue;
 
-							if (comparingEnchantment != null && !comparingEnchantment.isCompatibleWith(enchantment)) {
+							if (comparingEnchantment != null && !comparingEnchantment.canCombine(enchantment)) {
 								compatible = false;
 								break;
 							}
@@ -153,11 +153,11 @@ public class AncientTomesModule extends Module {
 				if (hasOverLevel) {
 					if (hasMatching) {
 						ItemStack out = left.copy();
-						EnchantmentHelper.setEnchantments(currentEnchants, out);
+						EnchantmentHelper.set(currentEnchants, out);
 						String name = event.getName();
 						int cost = applyCost;
 						if(name != null && !name.isEmpty()) {
-							out.setDisplayName(new StringTextComponent(name));
+							out.setCustomName(new LiteralText(name));
 							cost++;
 						}
 						event.setOutput(out);
@@ -171,7 +171,7 @@ public class AncientTomesModule extends Module {
 	}
 
 	private void handleTome(ItemStack book, ItemStack tome, AnvilUpdateEvent event) {
-		Map<Enchantment, Integer> enchantsBook = EnchantmentHelper.getEnchantments(book);
+		Map<Enchantment, Integer> enchantsBook = EnchantmentHelper.get(book);
 		Map<Enchantment, Integer> enchantsTome = getTomeEnchantments(tome);
 
 		if (enchantsTome == null)
@@ -185,7 +185,7 @@ public class AncientTomesModule extends Module {
 
 		ItemStack output = new ItemStack(Items.ENCHANTED_BOOK);
 		for (Map.Entry<Enchantment, Integer> entry : enchantsBook.entrySet())
-			EnchantedBookItem.addEnchantment(output, new EnchantmentData(entry.getKey(), entry.getValue()));
+			EnchantedBookItem.addEnchantment(output, new EnchantmentLevelEntry(entry.getKey(), entry.getValue()));
 
 		event.setOutput(output);
 		event.setCost(mergeCost);
@@ -239,11 +239,11 @@ public class AncientTomesModule extends Module {
 			return null;
 
 		Map<Enchantment, Integer> map = Maps.newLinkedHashMap();
-		ListNBT listnbt = EnchantedBookItem.getEnchantments(stack);
+		ListTag listnbt = EnchantedBookItem.getEnchantmentTag(stack);
 
 		for(int i = 0; i < listnbt.size(); ++i) {
-			CompoundNBT compoundnbt = listnbt.getCompound(i);
-			Enchantment e = ForgeRegistries.ENCHANTMENTS.getValue(ResourceLocation.tryCreate(compoundnbt.getString("id")));
+			CompoundTag compoundnbt = listnbt.getCompound(i);
+			Enchantment e = ForgeRegistries.ENCHANTMENTS.getValue(Identifier.tryParse(compoundnbt.getString("id")));
 			map.put(e, compoundnbt.getInt("lvl"));
 		}
 

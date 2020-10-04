@@ -1,19 +1,18 @@
 package vazkii.quark.automation.base;
 
-import net.minecraft.util.IStringSerializable;
-
 import java.util.Locale;
+import net.minecraft.util.StringIdentifiable;
 
 /**
  * @author WireSegal
  * Created at 10:12 AM on 8/26/19.
  */
-public enum RandomizerPowerState implements IStringSerializable {
+public enum RandomizerPowerState implements StringIdentifiable {
     OFF, LEFT, RIGHT;
 
 
     @Override
-    public String func_176610_l() { // getName
+    public String asString() { // getName
         return name().toLowerCase(Locale.ROOT);
     }
 }

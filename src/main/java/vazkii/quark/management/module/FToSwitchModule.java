@@ -1,12 +1,14 @@
 package vazkii.quark.management.module;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.container.Slot;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.screen.slot.Slot;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiScreenEvent.KeyboardKeyPressedEvent;
@@ -22,20 +24,20 @@ import vazkii.quark.base.network.message.SwapItemsMessage;
 public class FToSwitchModule extends Module {
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	@SuppressWarnings("rawtypes")
 	public void keyboardEvent(KeyboardKeyPressedEvent event) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		
-		if(event.getKeyCode() == mc.gameSettings.keyBindSwapHands.getKey().getKeyCode() && event.getGui() instanceof ContainerScreen) {
-			ContainerScreen gui = (ContainerScreen) event.getGui();
+		if(event.getKeyCode() == mc.options.keySwapHands.getKey().getCode() && event.getGui() instanceof HandledScreen) {
+			HandledScreen gui = (HandledScreen) event.getGui();
 			Slot slot = gui.getSlotUnderMouse();
-			if(slot != null && slot.canTakeStack(mc.player)) {
-				IInventory inv = slot.inventory;
+			if(slot != null && slot.canTakeItems(mc.player)) {
+				Inventory inv = slot.inventory;
 				if(inv instanceof PlayerInventory) {
 					int index = slot.getSlotIndex();
 
-					if(index < ((PlayerInventory) inv).mainInventory.size()) {
+					if(index < ((PlayerInventory) inv).main.size()) {
 						QuarkNetwork.sendToServer(new SwapItemsMessage(index));
 						event.setCanceled(true);
 					}
@@ -45,15 +47,15 @@ public class FToSwitchModule extends Module {
 	}
 
 	public static void switchItems(PlayerEntity player, int slot) {
-		if(!ModuleLoader.INSTANCE.isModuleEnabled(FToSwitchModule.class) || slot >= player.inventory.mainInventory.size())
+		if(!ModuleLoader.INSTANCE.isModuleEnabled(FToSwitchModule.class) || slot >= player.inventory.main.size())
 			return;
 
-		int offHandSlot = player.inventory.getSizeInventory() - 1;
-		ItemStack stackAtSlot = player.inventory.getStackInSlot(slot);
-		ItemStack stackAtOffhand = player.inventory.getStackInSlot(offHandSlot);
+		int offHandSlot = player.inventory.size() - 1;
+		ItemStack stackAtSlot = player.inventory.getStack(slot);
+		ItemStack stackAtOffhand = player.inventory.getStack(offHandSlot);
 
-		player.inventory.setInventorySlotContents(slot, stackAtOffhand);
-		player.inventory.setInventorySlotContents(offHandSlot, stackAtSlot);
+		player.inventory.setStack(slot, stackAtOffhand);
+		player.inventory.setStack(offHandSlot, stackAtSlot);
 	}
 	
 }

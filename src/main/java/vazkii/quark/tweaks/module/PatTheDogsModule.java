@@ -1,13 +1,13 @@
 package vazkii.quark.tweaks.module;
 
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.potion.Effects;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.AnimalTameEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -36,8 +36,8 @@ public class PatTheDogsModule extends Module {
             boolean alreadySetUp = wolf.goalSelector.goals.stream().anyMatch((goal) -> goal.getGoal() instanceof WantLoveGoal);
 
             if (!alreadySetUp) {
-                wolf.goalSelector.addGoal(4, new NuzzleGoal(wolf, 0.5F, 16, 2, SoundEvents.ENTITY_WOLF_WHINE));
-                wolf.goalSelector.addGoal(5, new WantLoveGoal(wolf, 0.2F));
+                wolf.goalSelector.add(4, new NuzzleGoal(wolf, 0.5F, 16, 2, SoundEvents.ENTITY_WOLF_WHINE));
+                wolf.goalSelector.add(5, new WantLoveGoal(wolf, 0.2F));
             }
         }
     }
@@ -48,18 +48,18 @@ public class PatTheDogsModule extends Module {
             WolfEntity wolf = (WolfEntity) event.getTarget();
             PlayerEntity player = event.getPlayer();
 
-            if(player.isDiscrete() && player.getHeldItemMainhand().isEmpty()) {
+            if(player.isSneaky() && player.getMainHandStack().isEmpty()) {
                 if(event.getHand() == Hand.MAIN_HAND && WantLoveGoal.canPet(wolf)) {
                     if(player.world instanceof ServerWorld) {
-                    	Vector3d pos = wolf.getPositionVec();
-                        ((ServerWorld) player.world).spawnParticle(ParticleTypes.HEART, pos.x, pos.y + 0.5, pos.z, 1, 0, 0, 0, 0.1);
+                    	Vec3d pos = wolf.getPos();
+                        ((ServerWorld) player.world).spawnParticles(ParticleTypes.HEART, pos.x, pos.y + 0.5, pos.z, 1, 0, 0, 0, 0.1);
                         wolf.playSound(SoundEvents.ENTITY_WOLF_WHINE, 1F, 0.5F + (float) Math.random() * 0.5F);
-                    } else player.swingArm(Hand.MAIN_HAND);
+                    } else player.swingHand(Hand.MAIN_HAND);
 
                     WantLoveGoal.setPetTime(wolf);
 
-                    if (wolf instanceof FoxhoundEntity && !player.isInWater() && !player.isPotionActive(Effects.FIRE_RESISTANCE) && !player.isCreative())
-                        player.setFire(5);
+                    if (wolf instanceof FoxhoundEntity && !player.isTouchingWater() && !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE) && !player.isCreative())
+                        player.setOnFireFor(5);
                 }
 
                 event.setCanceled(true);

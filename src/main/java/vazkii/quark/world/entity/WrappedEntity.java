@@ -5,27 +5,27 @@ import javax.annotation.Nonnull;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.monster.ZombieEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 public class WrappedEntity extends ZombieEntity {
 
-	public static final ResourceLocation WRAPPED_LOOT_TABLE = new ResourceLocation("quark", "entities/wrapped");
+	public static final Identifier WRAPPED_LOOT_TABLE = new Identifier("quark", "entities/wrapped");
 	
 	public WrappedEntity(EntityType<? extends WrappedEntity> type, World worldIn) {
 		super(type, worldIn);
 	}
 
 	@Override
-	public boolean attackEntityAsMob(Entity entityIn) {
-		boolean flag = super.attackEntityAsMob(entityIn);
-		if (flag && this.getHeldItemMainhand().isEmpty() && entityIn instanceof LivingEntity) {
-			float f = this.world.getDifficultyForLocation(new BlockPos(getPosX(), getPosY(), getPosY())).getAdditionalDifficulty();
-			((LivingEntity)entityIn).addPotionEffect(new EffectInstance(Effects.SLOWNESS, 140 * (int)f));
+	public boolean tryAttack(Entity entityIn) {
+		boolean flag = super.tryAttack(entityIn);
+		if (flag && this.getMainHandStack().isEmpty() && entityIn instanceof LivingEntity) {
+			float f = this.world.getLocalDifficulty(new BlockPos(getX(), getY(), getY())).getLocalDifficulty();
+			((LivingEntity)entityIn).addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 140 * (int)f));
 		}
 
 		return flag;
@@ -33,7 +33,7 @@ public class WrappedEntity extends ZombieEntity {
 	
 	@Nonnull
 	@Override
-	protected ResourceLocation getLootTable() {
+	protected Identifier getLootTableId() {
 		return WRAPPED_LOOT_TABLE;
 	}
 

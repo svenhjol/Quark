@@ -2,10 +2,12 @@ package vazkii.quark.tweaks.client.emote;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import net.minecraft.resources.ResourcePack;
-import net.minecraft.resources.ResourcePackType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.ResourceLocationException;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.resource.AbstractFileResourcePack;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.InvalidIdentifierException;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.quark.base.Quark;
@@ -16,8 +18,8 @@ import java.io.*;
 import java.util.*;
 import java.util.function.Predicate;
 
-@OnlyIn(Dist.CLIENT)
-public class CustomEmoteIconResourcePack extends ResourcePack {
+@Environment(EnvType.CLIENT)
+public class CustomEmoteIconResourcePack extends AbstractFileResourcePack {
 
 	private final List<String> verifiedNames = new ArrayList<>();
 	private final List<String> existingNames = new ArrayList<>();
@@ -28,15 +30,15 @@ public class CustomEmoteIconResourcePack extends ResourcePack {
 
 	@Nonnull
 	@Override
-	public Set<String> getResourceNamespaces(@Nonnull ResourcePackType type) {
-		if (type == ResourcePackType.CLIENT_RESOURCES)
+	public Set<String> getNamespaces(@Nonnull ResourceType type) {
+		if (type == ResourceType.CLIENT_RESOURCES)
 			return ImmutableSet.of(EmoteHandler.CUSTOM_EMOTE_NAMESPACE);
 		return ImmutableSet.of();
 	}
 
 	@Nonnull
 	@Override
-	protected InputStream getInputStream(@Nonnull String name) throws IOException {
+	protected InputStream openFile(@Nonnull String name) throws IOException {
 		if(name.equals("pack.mcmeta"))
 			return Quark.class.getResourceAsStream("/proxypack.mcmeta");
 		
@@ -52,17 +54,17 @@ public class CustomEmoteIconResourcePack extends ResourcePack {
 	
 	@Nonnull
 	@Override
-	public Collection<ResourceLocation> getAllResourceLocations(@Nonnull ResourcePackType type, @Nonnull String pathIn, String idk, int maxDepth, @Nonnull Predicate<String> filter) {
-		File rootPath = new File(this.file, type.getDirectoryName());
-		List<ResourceLocation> allResources = Lists.newArrayList();
+	public Collection<Identifier> findResources(@Nonnull ResourceType type, @Nonnull String pathIn, String idk, int maxDepth, @Nonnull Predicate<String> filter) {
+		File rootPath = new File(this.base, type.getDirectory());
+		List<Identifier> allResources = Lists.newArrayList();
 
-		for (String namespace : this.getResourceNamespaces(type))
+		for (String namespace : this.getNamespaces(type))
 			this.crawl(new File(new File(rootPath, namespace), pathIn), maxDepth, namespace, allResources, pathIn + "/", filter);
 
 		return allResources;
 	}
 
-	private void crawl(File rootPath, int maxDepth, String namespace, List<ResourceLocation> allResources, String path, Predicate<String> filter) {
+	private void crawl(File rootPath, int maxDepth, String namespace, List<Identifier> allResources, String path, Predicate<String> filter) {
 		File[] files = rootPath.listFiles();
 		if (files != null) {
 			for (File file : files) {
@@ -71,8 +73,8 @@ public class CustomEmoteIconResourcePack extends ResourcePack {
 						this.crawl(file, maxDepth - 1, namespace, allResources, path + file.getName() + "/", filter);
 				} else if (!file.getName().endsWith(".mcmeta") && filter.test(file.getName())) {
 					try {
-						allResources.add(new ResourceLocation(namespace, path + file.getName()));
-					} catch (ResourceLocationException e) {
+						allResources.add(new Identifier(namespace, path + file.getName()));
+					} catch (InvalidIdentifierException e) {
 						Quark.LOG.error(e.getMessage());
 					}
 				}
@@ -86,7 +88,7 @@ public class CustomEmoteIconResourcePack extends ResourcePack {
 	}
 
 	@Override
-	protected boolean resourceExists(@Nonnull String name) {
+	protected boolean containsFile(@Nonnull String name) {
 		if(!verifiedNames.contains(name)) {
 			File file = getFile(name);
 			if(file.exists())

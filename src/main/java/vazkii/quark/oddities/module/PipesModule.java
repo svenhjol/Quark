@@ -1,7 +1,9 @@
 package vazkii.quark.oddities.module;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -18,7 +20,7 @@ import vazkii.quark.oddities.tile.PipeTileEntity;
 @LoadModule(category = ModuleCategory.ODDITIES, requiredMod = Quark.ODDITIES_ID)
 public class PipesModule extends Module {
 
-    public static TileEntityType<PipeTileEntity> tileEntityType;
+    public static BlockEntityType<PipeTileEntity> tileEntityType;
 
 	@Config(description = "How long it takes for an item to cross a pipe. Bigger = slower.") 
 	public static int pipeSpeed = 5;
@@ -33,7 +35,7 @@ public class PipesModule extends Module {
     public void construct() {
     	Block pipe = new PipeBlock(this);
     	
-    	tileEntityType = TileEntityType.Builder.create(PipeTileEntity::new, pipe).build(null);
+    	tileEntityType = BlockEntityType.Builder.create(PipeTileEntity::new, pipe).build(null);
 		RegistryHelper.register(tileEntityType, "pipe");
     }
     
@@ -43,7 +45,7 @@ public class PipesModule extends Module {
     }
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
 		ClientRegistry.bindTileEntityRenderer(tileEntityType, PipeTileEntityRenderer::new);
 	}

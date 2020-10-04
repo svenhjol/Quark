@@ -56,16 +56,16 @@ public class UtilityRecipesModule extends Module {
     @Override
     public void configChanged() {
         if (effectiveDragonBreath)
-            Items.DRAGON_BREATH.containerItem = null;
+            Items.DRAGON_BREATH.recipeRemainder = null;
         else
-            Items.DRAGON_BREATH.containerItem = Items.GLASS_BOTTLE;
+            Items.DRAGON_BREATH.recipeRemainder = Items.GLASS_BOTTLE;
 
         if (compostableToxins) {
-            ComposterBlock.CHANCES.put(Items.POISONOUS_POTATO, 0.85F);
-            ComposterBlock.CHANCES.put(Items.ROTTEN_FLESH, 0.3F);
+            ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.put(Items.POISONOUS_POTATO, 0.85F);
+            ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.put(Items.ROTTEN_FLESH, 0.3F);
         } else {
-            ComposterBlock.CHANCES.removeFloat(Items.POISONOUS_POTATO);
-            ComposterBlock.CHANCES.removeFloat(Items.ROTTEN_FLESH);
+            ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.removeFloat(Items.POISONOUS_POTATO);
+            ComposterBlock.ITEM_TO_LEVEL_INCREASE_CHANCE.removeFloat(Items.ROTTEN_FLESH);
         }
     }
 

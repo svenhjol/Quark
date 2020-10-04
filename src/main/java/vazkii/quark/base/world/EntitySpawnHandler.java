@@ -3,18 +3,17 @@ package vazkii.quark.base.world;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntitySpawnPlacementRegistry;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.IPlacementPredicate;
-import net.minecraft.entity.EntitySpawnPlacementRegistry.PlacementType;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnRestriction;
+import net.minecraft.entity.SpawnRestriction.Location;
+import net.minecraft.entity.SpawnRestriction.SpawnPredicate;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biome.SpawnListEntry;
-import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.biome.Biome.SpawnEntry;
 import net.minecraftforge.registries.ForgeRegistries;
 import vazkii.quark.base.item.QuarkSpawnEggItem;
 import vazkii.quark.base.module.Module;
@@ -24,8 +23,8 @@ public class EntitySpawnHandler {
 
 	private static List<TrackedSpawnConfig> trackedSpawnConfigs = new LinkedList<>();
 	
-	public static <T extends MobEntity> void registerSpawn(Module module, EntityType<T> entityType, EntityClassification classification, PlacementType placementType, Heightmap.Type heightMapType, IPlacementPredicate<T> placementPredicate, EntitySpawnConfig config) {
-		EntitySpawnPlacementRegistry.register(entityType, placementType, heightMapType, placementPredicate);
+	public static <T extends MobEntity> void registerSpawn(Module module, EntityType<T> entityType, SpawnGroup classification, Location placementType, Heightmap.Type heightMapType, SpawnPredicate<T> placementPredicate, EntitySpawnConfig config) {
+		SpawnRestriction.register(entityType, placementType, heightMapType, placementPredicate);
         
         config.setModule(module);
         trackedSpawnConfigs.add(new TrackedSpawnConfig(entityType, classification, config));
@@ -37,7 +36,7 @@ public class EntitySpawnHandler {
 	
 	public static void addEgg(EntityType<?> entityType, int color1, int color2, Module module, BooleanSupplier enabledSupplier) {
 		new QuarkSpawnEggItem(entityType, color1,  color2, entityType.getRegistryName().getPath() + "_spawn_egg", module, 
-				new Item.Properties().group(ItemGroup.MISC))
+				new Item.Settings().group(ItemGroup.MISC))
 				.setCondition(enabledSupplier);
 	}
 
@@ -48,8 +47,8 @@ public class EntitySpawnHandler {
 			c.refresh();
 			
 			for(Biome b : ForgeRegistries.BIOMES.getValues()) {
-				List<SpawnListEntry> l = b.getSpawns(c.classification);
-				l.removeIf(e -> e.entityType == c.entityType);
+				List<SpawnEntry> l = b.getEntitySpawnList(c.classification);
+				l.removeIf(e -> e.type == c.entityType);
 				
 				if(enabled && c.config.biomes.canSpawn(b))
 					l.add(c.entry);
@@ -60,11 +59,11 @@ public class EntitySpawnHandler {
 	private static class TrackedSpawnConfig {
 
 		final EntityType<?> entityType;
-		final EntityClassification classification;
+		final SpawnGroup classification;
 		final EntitySpawnConfig config;
-		SpawnListEntry entry;
+		SpawnEntry entry;
 		
-		TrackedSpawnConfig(EntityType<?> entityType, EntityClassification classification, EntitySpawnConfig config) {
+		TrackedSpawnConfig(EntityType<?> entityType, SpawnGroup classification, EntitySpawnConfig config) {
 			this.entityType = entityType;
 			this.classification = classification;
 			this.config = config;
@@ -72,7 +71,7 @@ public class EntitySpawnHandler {
 		}
 		
 		void refresh() {
-			entry = new SpawnListEntry(entityType, config.spawnWeight, Math.min(config.minGroupSize, config.maxGroupSize), Math.max(config.minGroupSize, config.maxGroupSize));
+			entry = new SpawnEntry(entityType, config.spawnWeight, Math.min(config.minGroupSize, config.maxGroupSize), Math.max(config.minGroupSize, config.maxGroupSize));
 		}
 		
 	}

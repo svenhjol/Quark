@@ -9,13 +9,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.block.Material;
+import net.minecraft.block.MaterialColor;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -67,10 +64,10 @@ public class NewStoneTypesModule extends Module {
 	
 	private Block makeStone(String name, StoneTypeConfig config, BigStoneClusterConfig bigConfig, BooleanSupplier enabledCond, MaterialColor color) {
 		BooleanSupplier trueEnabledCond = () -> !bigConfig.enabled && enabledCond.getAsBoolean();
-		Block.Properties props = Block.Properties.create(Material.ROCK, color)
-				.func_235861_h_() // needs tool
+		Block.Properties props = Block.Properties.of(Material.STONE, color)
+				.requiresTool() // needs tool
 				.harvestTool(ToolType.PICKAXE)
-				.hardnessAndResistance(1.5F, 6.0F); 
+				.strength(1.5F, 6.0F); 
 		
 		QuarkBlock normal = new QuarkBlock(name, this, ItemGroup.BUILDING_BLOCKS, props).setCondition(enabledCond);
 		QuarkBlock polished = new QuarkBlock("polished_" + name, this, ItemGroup.BUILDING_BLOCKS, props).setCondition(enabledCond);
@@ -80,7 +77,7 @@ public class NewStoneTypesModule extends Module {
 		VariantHandler.addSlabAndStairs(polished);
 		
 		defers.add(() ->
-			WorldGenHandler.addGenerator(this, new OreGenerator(config.dimensions, config.oregen, normal.getDefaultState(), OreGenerator.ALL_DIMS_STONE_MATCHER, trueEnabledCond), Decoration.UNDERGROUND_ORES, WorldGenWeights.NEW_STONES)
+			WorldGenHandler.addGenerator(this, new OreGenerator(config.dimensions, config.oregen, normal.getDefaultState(), OreGenerator.ALL_DIMS_STONE_MATCHER, trueEnabledCond), Feature.UNDERGROUND_ORES, WorldGenWeights.NEW_STONES)
 		);
 		
 		return normal;

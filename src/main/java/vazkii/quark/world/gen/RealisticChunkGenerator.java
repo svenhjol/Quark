@@ -2,49 +2,50 @@ package vazkii.quark.world.gen;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.provider.BiomeProvider;
-import net.minecraft.world.biome.provider.EndBiomeProvider;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.DimensionSettings;
-import net.minecraft.world.gen.NoiseChunkGenerator;
-import net.minecraft.world.gen.settings.NoiseSettings;
+import net.minecraft.world.biome.source.BiomeSource;
+import net.minecraft.world.biome.source.TheEndBiomeSource;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.world.gen.chunk.ChunkGeneratorType;
+import net.minecraft.world.gen.chunk.NoiseConfig;
+import net.minecraft.world.gen.chunk.SurfaceChunkGenerator;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-public class RealisticChunkGenerator extends NoiseChunkGenerator {
+public class RealisticChunkGenerator extends SurfaceChunkGenerator {
 	public static final Codec<RealisticChunkGenerator> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
-			BiomeProvider.field_235202_a_.fieldOf("biome_source").forGetter(generator -> generator.biomeProvider),
+			BiomeSource.field_24713.fieldOf("biome_source").forGetter(generator -> generator.biomeSource),
 			Codec.LONG.fieldOf("seed").stable().forGetter(generator -> generator.seed),
-			DimensionSettings.field_236098_b_.fieldOf("settings").forGetter(generator -> generator.field_236080_h_))
+			ChunkGeneratorType.field_24781.fieldOf("settings").forGetter(generator -> generator.field_24774))
 			.apply(instance, instance.stable(RealisticChunkGenerator::new)));
 	private final long seed;
 
-	public RealisticChunkGenerator(BiomeProvider biomeProvider, long seed, DimensionSettings settings) {
+	public RealisticChunkGenerator(BiomeSource biomeProvider, long seed, ChunkGeneratorType settings) {
 		super(biomeProvider, seed, settings);
 		this.seed = seed;
 	}
 
 	@Override
-	protected Codec<? extends ChunkGenerator> func_230347_a_() {
+	protected Codec<? extends ChunkGenerator> method_28506() {
 		return CODEC;
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public ChunkGenerator func_230349_a_(long p_230349_1_) {
-		return new RealisticChunkGenerator(this.biomeProvider.func_230320_a_(p_230349_1_), p_230349_1_, this.field_236080_h_);
+	@Environment(EnvType.CLIENT)
+	public ChunkGenerator withSeed(long p_230349_1_) {
+		return new RealisticChunkGenerator(this.biomeSource.withSeed(p_230349_1_), p_230349_1_, this.field_24774);
 	}
 
 	@Override
-	public void fillNoiseColumn(double[] noiseColumn, int noiseX, int noiseZ) {
-		NoiseSettings settings = this.field_236080_h_.func_236113_b_();
+	public void sampleNoiseColumn(double[] noiseColumn, int noiseX, int noiseZ) {
+		NoiseConfig settings = this.field_24774.method_28559();
 		double densityMax;
 		double variance;
-		if (this.field_236083_v_ != null) {
-			densityMax = EndBiomeProvider.func_235317_a_(this.field_236083_v_, noiseX, noiseZ) - 8.0F;
+		if (this.field_24777 != null) {
+			densityMax = TheEndBiomeSource.getNoiseAt(this.field_24777, noiseX, noiseZ) - 8.0F;
 			if (densityMax > 0.0D) {
 				variance = 0.25D;
 			} else {
@@ -54,18 +55,18 @@ public class RealisticChunkGenerator extends NoiseChunkGenerator {
 			float weightedScale = 0.0F;
 			float weightedDepth = 0.0F;
 			float weight = 0.0F;
-			int seaLevel = this.func_230356_f_();
-			float centerDepth = this.biomeProvider.getNoiseBiome(noiseX, seaLevel, noiseZ).getDepth();
+			int seaLevel = this.getSeaLevel();
+			float centerDepth = this.biomeSource.getBiomeForNoiseGen(noiseX, seaLevel, noiseZ).getDepth();
 
 			// Biome interpolation
 			for(int localX = -2; localX <= 2; ++localX) {
 				for(int localZ = -2; localZ <= 2; ++localZ) {
-					Biome biome = this.biomeProvider.getNoiseBiome(noiseX + localX, seaLevel, noiseZ + localZ);
+					Biome biome = this.biomeSource.getBiomeForNoiseGen(noiseX + localX, seaLevel, noiseZ + localZ);
 					float depth = biome.getDepth();
 					float scale = biome.getScale();
 
 					float weightScale = depth > centerDepth ? 0.5F : 1.0F;
-					float weightAt = weightScale * field_236081_j_[localX + 2 + (localZ + 2) * 5] / (depth + 2.0F);
+					float weightAt = weightScale * field_24775[localX + 2 + (localZ + 2) * 5] / (depth + 2.0F);
 					weightedScale += scale * weightAt;
 					weightedDepth += depth * weightAt;
 					weight += weightAt;
@@ -84,18 +85,18 @@ public class RealisticChunkGenerator extends NoiseChunkGenerator {
 		double verticalNoiseScale = 75.0;
 		double horizontalNoiseStretch = horizontalNoiseScale / 165.0;
 		double verticalNoiseStretch = verticalNoiseScale / 106.612;
-		double topTarget = settings.func_236172_c_().func_236186_a_();
-		double topSize = settings.func_236172_c_().func_236188_b_();
-		double topOffset = settings.func_236172_c_().func_236189_c_();
-		double bottomTarget = settings.func_236173_d_().func_236186_a_();
-		double bottomSize = settings.func_236173_d_().func_236188_b_();
-		double bottomOffset = settings.func_236173_d_().func_236189_c_();
-		double randomDensityOffset = settings.func_236179_j_() ? this.func_236095_c_(noiseX, noiseZ) : 0.0D;
-		double densityFactor = settings.func_236176_g_();
-		double densityOffset = settings.func_236177_h_();
+		double topTarget = settings.getTopSlide().getTarget();
+		double topSize = settings.getTopSlide().getSize();
+		double topOffset = settings.getTopSlide().getOffset();
+		double bottomTarget = settings.getBottomSlide().getTarget();
+		double bottomSize = settings.getBottomSlide().getSize();
+		double bottomOffset = settings.getBottomSlide().getOffset();
+		double randomDensityOffset = settings.hasRandomDensityOffset() ? this.method_28553(noiseX, noiseZ) : 0.0D;
+		double densityFactor = settings.getDensityFactor();
+		double densityOffset = settings.getDensityOffset();
 
 		for(int y = 0; y <= this.noiseSizeY; ++y) {
-			double noise = this.func_222552_a(noiseX, y, noiseZ, horizontalNoiseScale, verticalNoiseScale, horizontalNoiseStretch, verticalNoiseStretch);
+			double noise = this.sampleNoise(noiseX, y, noiseZ, horizontalNoiseScale, verticalNoiseScale, horizontalNoiseStretch, verticalNoiseStretch);
 			double yOffset = 1.0D - (double) y * 2.0D / (double)this.noiseSizeY + randomDensityOffset;
 			double finalDensity = yOffset * densityFactor + densityOffset;
 			double falloff = (finalDensity + densityMax) * variance;

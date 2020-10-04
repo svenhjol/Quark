@@ -11,23 +11,24 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.PistonBlock;
-import net.minecraft.block.material.PushReaction;
-import net.minecraft.client.Minecraft;
+import net.minecraft.block.piston.PistonBehavior;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.item.crafting.RecipeManager;
-import net.minecraft.util.Direction;
-import net.minecraft.util.NonNullList;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.Recipe;
+import net.minecraft.recipe.RecipeManager;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -86,12 +87,12 @@ public class MagnetSystem {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public static void tick(ClientTickEvent event) {
 		if(!ModuleLoader.INSTANCE.isModuleEnabled(MagnetsModule.class))
 			return;
 		
-		if (Minecraft.getInstance().world == null) {
+		if (MinecraftClient.getInstance().world == null) {
 			magnetizableBlocks.clear();
 		}
 	}
@@ -102,18 +103,18 @@ public class MagnetSystem {
 				magnetTracker.applyForce(pos, magnitude, pushing, dir, distance, origin));
 	}
 	
-	public static PushReaction getPushAction(MagnetTileEntity magnet, BlockPos pos, BlockState state, Direction moveDir) {
+	public static PistonBehavior getPushAction(MagnetTileEntity magnet, BlockPos pos, BlockState state, Direction moveDir) {
 		World world = magnet.getWorld();
 		if(world != null && isBlockMagnetic(state)) {
 			BlockPos targetLocation = pos.offset(moveDir);
 			BlockState stateAtTarget = world.getBlockState(targetLocation);
 			if (stateAtTarget.isAir(world, targetLocation))
-				return PushReaction.IGNORE;
-			else if (stateAtTarget.getPushReaction() == PushReaction.DESTROY)
-				return PushReaction.DESTROY;
+				return PistonBehavior.IGNORE;
+			else if (stateAtTarget.getPistonBehavior() == PistonBehavior.DESTROY)
+				return PistonBehavior.DESTROY;
 		}
 
-		return PushReaction.BLOCK;
+		return PistonBehavior.BLOCK;
 	}
 	
 	public static boolean isBlockMagnetic(BlockState state) {
@@ -129,17 +130,17 @@ public class MagnetSystem {
 	
 	private static void loadMagnetizableBlocks(World world) {
 		RecipeManager manager = world.getRecipeManager();
-		if(!manager.getRecipes().isEmpty()) {
-			Collection<IRecipe<?>> recipes = manager.getRecipes();
+		if(!manager.values().isEmpty()) {
+			Collection<Recipe<?>> recipes = manager.values();
 
 			Multimap<Item, Item> recipeDigestion = HashMultimap.create();
 
-			for(IRecipe<?> recipe : recipes) {
-				Item out = recipe.getRecipeOutput().getItem();
+			for(Recipe<?> recipe : recipes) {
+				Item out = recipe.getOutput().getItem();
 
-				NonNullList<Ingredient> ingredients = recipe.getIngredients();
+				DefaultedList<Ingredient> ingredients = recipe.getPreviewInputs();
 				for(Ingredient ingredient : ingredients) {
-					for (ItemStack inStack : ingredient.getMatchingStacks())
+					for (ItemStack inStack : ingredient.getMatchingStacksClient())
 						recipeDigestion.put(inStack.getItem(), out);
 				}
 			}

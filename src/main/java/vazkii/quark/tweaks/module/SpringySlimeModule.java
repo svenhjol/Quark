@@ -14,16 +14,16 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SlimeBlock;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
+import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.Direction.AxisDirection;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.util.math.Direction.AxisDirection;
+import net.minecraft.util.math.Vec3d;
 import vazkii.quark.base.handler.OverrideRegistryHandler;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
@@ -45,18 +45,18 @@ public class SpringySlimeModule extends Module {
 	private static final ThreadLocal<MutableVectorHolder> motionRecorder = ThreadLocal.withInitial(MutableVectorHolder::new);
 
 	public static void recordMotion(Entity entity) {
-		motionRecorder.get().importFrom(entity.getMotion());
+		motionRecorder.get().importFrom(entity.getVelocity());
 	}
 
 	public static void collideWithSlimeBlock(BlockPos pos, Entity entity) {
-		if (entity instanceof AbstractArrowEntity && ModuleLoader.INSTANCE.isModuleEnabled(SpringySlimeModule.class)) {
-			Vector3d motion = entity.getMotion();
+		if (entity instanceof PersistentProjectileEntity && ModuleLoader.INSTANCE.isModuleEnabled(SpringySlimeModule.class)) {
+			Vec3d motion = entity.getVelocity();
 			double motionX = motion.x;
 			double motionY = motion.y;
 			double motionZ = motion.z;
 
-			Vector3d epos = entity.getPositionVec();
-			Direction sideHit = Direction.getFacingFromVector(
+			Vec3d epos = entity.getPos();
+			Direction sideHit = Direction.getFacing(
 					(float) (epos.x + motionX) - (pos.getX() + 0.5f),
 					(float) (epos.y + motionY) - (pos.getY() + 0.5f),
 					(float) (epos.z + motionZ) - (pos.getZ() + 0.5f));
@@ -65,31 +65,31 @@ public class SpringySlimeModule extends Module {
 				case X:
 					if (Math.abs(motionX) < 0.1)
 						return;
-					motionX = 0.8 * Math.min(Math.abs(motionX), 0.25) * sideHit.getXOffset();
+					motionX = 0.8 * Math.min(Math.abs(motionX), 0.25) * sideHit.getOffsetX();
 					break;
 				case Y:
 					if (Math.abs(motionY) < 0.1)
 						return;
-					motionY = 0.8 * Math.min(Math.abs(motionY), 0.25) * sideHit.getYOffset();
+					motionY = 0.8 * Math.min(Math.abs(motionY), 0.25) * sideHit.getOffsetY();
 					break;
 				case Z:
 					if (Math.abs(motionZ) < 0.1)
 						return;
-					motionZ = 0.8 * Math.min(Math.abs(motionZ), 0.25) * sideHit.getZOffset();
+					motionZ = 0.8 * Math.min(Math.abs(motionZ), 0.25) * sideHit.getOffsetZ();
 					break;
 			}
 
-			entity.setMotion(motionX, motionY, motionZ);
+			entity.setVelocity(motionX, motionY, motionZ);
 
-			((AbstractArrowEntity) entity).inGround = true;
+			((PersistentProjectileEntity) entity).inGround = true;
 		}
 	}
 
-	public static void onEntityCollision(Entity entity, Vector3d attempted, Vector3d actual) {
+	public static void onEntityCollision(Entity entity, Vec3d attempted, Vec3d actual) {
 		if (!ModuleLoader.INSTANCE.isModuleEnabled(SpringySlimeModule.class))
 			return;
 
-		if (entity.isDiscrete() || (entity instanceof PlayerEntity && ((PlayerEntity) entity).abilities.isFlying))
+		if (entity.isSneaky() || (entity instanceof PlayerEntity && ((PlayerEntity) entity).abilities.flying))
 			return;
 
 		double attemptedX = attempted.x;
@@ -102,7 +102,7 @@ public class SpringySlimeModule extends Module {
 		double height = entity.getHeight();
 		double width = entity.getWidth();
 		
-		Vector3d pos = entity.getPositionVec();
+		Vec3d pos = entity.getPos();
 
 		double minX = pos.x - width / 2;
 		double minY = pos.y;
@@ -141,7 +141,7 @@ public class SpringySlimeModule extends Module {
 		double v2 = baseValue + clampedAttempt;
 		double minV = Math.min(v1, v2);
 		double maxV = Math.max(v1, v2);
-		Direction impactedSide = Direction.getFacingFromAxis(dV < 0 ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE, axis);
+		Direction impactedSide = Direction.get(dV < 0 ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE, axis);
 
 		int lowXBound = (int) Math.floor(axial(axis, minV, minX, minX));
 		int highXBound = (int) Math.floor(axial(axis, maxV, maxX, maxX));
@@ -151,7 +151,7 @@ public class SpringySlimeModule extends Module {
 		int highZBound = (int) Math.floor(axial(axis, maxZ, maxZ, maxV));
 
 		boolean restoredZ = false;
-		for (BlockPos position : BlockPos.getAllInBoxMutable(lowXBound, lowYBound, lowZBound,
+		for (BlockPos position : BlockPos.iterate(lowXBound, lowYBound, lowZBound,
 				highXBound, highYBound, highZBound)) {
 			restoredZ = applyCollision(entity, position, impactedSide, restoredZ);
 		}
@@ -161,9 +161,9 @@ public class SpringySlimeModule extends Module {
 		BlockState state = entity.world.getBlockState(position);
 		if (isSlime(state)) {
 			if (impacted == Direction.UP && entity instanceof ItemEntity)
-				entity.func_230245_c_(false); // setOnGround
+				entity.setOnGround(false); // setOnGround
 
-			Vector3d motion = entity.getMotion();
+			Vec3d motion = entity.getVelocity();
 			double motionX = motion.x;
 			double motionY = motion.y;
 			double motionZ = motion.z;
@@ -174,7 +174,7 @@ public class SpringySlimeModule extends Module {
 						restoredMotion = true;
 						motionX = motionRecorder.get().x;
 					}
-					motionX = Math.abs(motionX) * impacted.getXOffset();
+					motionX = Math.abs(motionX) * impacted.getOffsetX();
 					if (!(entity instanceof LivingEntity))
 						motionX *= 0.8;
 					break;
@@ -183,7 +183,7 @@ public class SpringySlimeModule extends Module {
 						restoredMotion = true;
 						motionY = motionRecorder.get().y;
 					}
-					motionY = Math.abs(motionY) * impacted.getYOffset();
+					motionY = Math.abs(motionY) * impacted.getOffsetY();
 					if (!(entity instanceof LivingEntity))
 						motionY *= 0.8;
 					break;
@@ -192,13 +192,13 @@ public class SpringySlimeModule extends Module {
 						restoredMotion = true;
 						motionZ = motionRecorder.get().z;
 					}
-					motionZ = Math.abs(motionZ) * impacted.getZOffset();
+					motionZ = Math.abs(motionZ) * impacted.getOffsetZ();
 					if (!(entity instanceof LivingEntity))
 						motionZ *= 0.8;
 					break;
 			}
 
-			entity.setMotion(motionX, motionY, motionZ);
+			entity.setVelocity(motionX, motionY, motionZ);
 		}
 
 

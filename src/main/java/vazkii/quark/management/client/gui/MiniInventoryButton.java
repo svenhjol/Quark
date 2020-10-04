@@ -4,41 +4,39 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screen.recipebook.RecipeBookProvider;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.TranslatableText;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.recipebook.IRecipeShownListener;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
 import vazkii.quark.base.client.TopLayerTooltipHandler;
 import vazkii.quark.base.handler.MiscUtil;
 
-public class MiniInventoryButton extends Button {
+public class MiniInventoryButton extends ButtonWidget {
 
 	private final Consumer<List<String>> tooltip;
 	private final int type;
-	private final ContainerScreen<?> parent;
+	private final HandledScreen<?> parent;
 	private final int startX;
 
 	private BooleanSupplier shiftTexture = () -> false;
 
-	public MiniInventoryButton(ContainerScreen<?> parent, int type, int x, int y, Consumer<List<String>> tooltip, IPressable onPress) {
-		super(parent.getGuiLeft() + x, parent.getGuiTop() + y, 10, 10, new StringTextComponent(""), onPress);
+	public MiniInventoryButton(HandledScreen<?> parent, int type, int x, int y, Consumer<List<String>> tooltip, PressAction onPress) {
+		super(parent.getGuiLeft() + x, parent.getGuiTop() + y, 10, 10, new LiteralText(""), onPress);
 		this.parent = parent;
 		this.type = type;
 		this.tooltip = tooltip;
 		this.startX = x;
 	}
 
-	public MiniInventoryButton(ContainerScreen<?> parent, int type, int x, int y, String tooltip, IPressable onPress) {
-		this(parent, type, x, y, (t) -> t.add(I18n.format(tooltip)), onPress);
+	public MiniInventoryButton(HandledScreen<?> parent, int type, int x, int y, String tooltip, PressAction onPress) {
+		this(parent, type, x, y, (t) -> t.add(I18n.translate(tooltip)), onPress);
 	}
 
 	public MiniInventoryButton setTextureShift(BooleanSupplier func) {
@@ -48,7 +46,7 @@ public class MiniInventoryButton extends Button {
 
 	@Override
 	public void render(MatrixStack matrix, int p_render_1_, int p_render_2_, float p_render_3_) {
-		if(parent instanceof IRecipeShownListener)
+		if(parent instanceof RecipeBookProvider)
 			x = parent.getGuiLeft() + startX;
 
 		super.render(matrix, p_render_1_, p_render_2_, p_render_3_);
@@ -56,29 +54,29 @@ public class MiniInventoryButton extends Button {
 
 	@Override
 	public void renderButton(MatrixStack matrix, int mouseX, int mouseY, float pticks) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		mc.getTextureManager().bindTexture(MiscUtil.GENERAL_ICONS);
 		RenderSystem.color4f(1.0F, 1.0F, 1.0F, alpha);
 		RenderSystem.disableLighting();
 		RenderSystem.enableBlend();
-		RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-		RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
+		RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
 
 		int u = type * width;
-		int v = 25 + (isHovered ? height : 0);
+		int v = 25 + (hovered ? height : 0);
 		if(shiftTexture.getAsBoolean())
 			v += (height * 2);
 
-		blit(matrix, x, y, u, v, width, height);
+		drawTexture(matrix, x, y, u, v, width, height);
 
-		if(isHovered)
+		if(hovered)
 			TopLayerTooltipHandler.setTooltip(getTooltip(), mouseX, mouseY);
 	}
 
 	@Override
-	protected IFormattableTextComponent getNarrationMessage() {
+	protected MutableText getNarrationMessage() {
 		List<String> tooltip = getTooltip();
-		return tooltip.isEmpty() ? new StringTextComponent("") : new TranslationTextComponent("gui.narrate.button", getTooltip().get(0));
+		return tooltip.isEmpty() ? new LiteralText("") : new TranslatableText("gui.narrate.button", getTooltip().get(0));
 	}
 
 	public List<String> getTooltip() {

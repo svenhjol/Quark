@@ -1,28 +1,30 @@
 package vazkii.quark.oddities.module;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScreenManager;
+import net.minecraft.block.Material;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.item.ModelPredicateProviderRegistry;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemModelsProperties;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Rarity;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Rarity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.GuiOpenEvent;
@@ -60,31 +62,31 @@ public class BackpackModule extends Module {
 	public static Item backpack;
 	public static Item ravager_hide;
 	
-    public static ContainerType<BackpackContainer> container;
+    public static ScreenHandlerType<BackpackContainer> container;
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static boolean backpackRequested;
 
 	@Override
 	public void construct() {
 		backpack = new BackpackItem(this);
-		ravager_hide = new QuarkItem("ravager_hide", this, new Item.Properties().rarity(Rarity.RARE).group(ItemGroup.MATERIALS)).setCondition(() -> enableRavagerHide);
+		ravager_hide = new QuarkItem("ravager_hide", this, new Item.Settings().rarity(Rarity.RARE).group(ItemGroup.MATERIALS)).setCondition(() -> enableRavagerHide);
 		
 		container = IForgeContainerType.create(BackpackContainer::fromNetwork);
 		RegistryHelper.register(container, "backpack");
 		
-		new QuarkBlock("bonded_ravager_hide", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.create(Material.WOOL, DyeColor.BLACK)
-				.hardnessAndResistance(1F)
-				.sound(SoundType.CLOTH))
+		new QuarkBlock("bonded_ravager_hide", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.of(Material.WOOL, DyeColor.BLACK)
+				.strength(1F)
+				.sounds(BlockSoundGroup.WOOL))
 		.setCondition(() -> enableRavagerHide);
 	}
 	
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientSetup() {
-		ScreenManager.registerFactory(container, BackpackInventoryScreen::new);
+		HandledScreens.register(container, BackpackInventoryScreen::new);
 		
-		ItemModelsProperties.func_239418_a_(backpack, new ResourceLocation("has_items"), 
+		ModelPredicateProviderRegistry.register(backpack, new Identifier("has_items"), 
 				(stack, world, entity) -> (!BackpackModule.superOpMode && BackpackItem.doesBackpackHaveItems(stack)) ? 1 : 0);
 	}
 	
@@ -98,17 +100,17 @@ public class BackpackModule extends Module {
 				chance--;
 				amount++;
 			}
-			if(chance > 0 && entity.world.rand.nextDouble() < chance)
+			if(chance > 0 && entity.world.random.nextDouble() < chance)
 				amount++;
 			
-			event.getDrops().add(new ItemEntity(entity.world, entity.getPosX(), entity.getPosY(), entity.getPosZ(), new ItemStack(ravager_hide, amount)));
+			event.getDrops().add(new ItemEntity(entity.world, entity.getX(), entity.getY(), entity.getZ(), new ItemStack(ravager_hide, amount)));
 		}
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void onOpenGUI(GuiOpenEvent event) {
-		PlayerEntity player = Minecraft.getInstance().player;
+		PlayerEntity player = MinecraftClient.getInstance().player;
 		if(player != null && isInventoryGUI(event.getGui()) && !player.isCreative() && isEntityWearingBackpack(player)) {
 			requestBackpack();
 			event.setCanceled(true);
@@ -116,9 +118,9 @@ public class BackpackModule extends Module {
 	}
 	
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void clientTick(ClientTickEvent event) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		if(isInventoryGUI(mc.currentScreen) && !backpackRequested && isEntityWearingBackpack(mc.player)) {
 			requestBackpack();
 			backpackRequested = true;
@@ -131,17 +133,17 @@ public class BackpackModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void removeCurseTooltip(ItemTooltipEvent event) {
 		if(!superOpMode && event.getItemStack().getItem() instanceof BackpackItem)
-			for(ITextComponent s : event.getToolTip())
-				if(s.getString().equals(Enchantments.BINDING_CURSE.getDisplayName(1).getString())) {
+			for(Text s : event.getToolTip())
+				if(s.getString().equals(Enchantments.BINDING_CURSE.getName(1).getString())) {
 					event.getToolTip().remove(s);
 					return;
 				}
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	private static boolean isInventoryGUI(Screen gui) {
 		return gui != null && gui.getClass() == InventoryScreen.class;
 	}
@@ -149,7 +151,7 @@ public class BackpackModule extends Module {
 	public static boolean isEntityWearingBackpack(Entity e) {
 		if(e instanceof LivingEntity) {
 			LivingEntity living = (LivingEntity) e;
-			ItemStack chestArmor = living.getItemStackFromSlot(EquipmentSlotType.CHEST);
+			ItemStack chestArmor = living.getEquippedStack(EquipmentSlot.CHEST);
 			return chestArmor.getItem() instanceof BackpackItem;
 		}
 
@@ -159,7 +161,7 @@ public class BackpackModule extends Module {
 	public static boolean isEntityWearingBackpack(Entity e, ItemStack stack) {
 		if(e instanceof LivingEntity) {
 			LivingEntity living = (LivingEntity) e;
-			ItemStack chestArmor = living.getItemStackFromSlot(EquipmentSlotType.CHEST);
+			ItemStack chestArmor = living.getEquippedStack(EquipmentSlot.CHEST);
 			return chestArmor == stack;
 		}
 

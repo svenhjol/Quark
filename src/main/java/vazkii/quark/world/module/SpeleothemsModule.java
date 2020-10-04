@@ -5,8 +5,7 @@ import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.world.gen.GenerationStage.Decoration;
+import net.minecraft.world.gen.GenerationStep.Feature;
 import vazkii.quark.base.module.LoadModule;
 import vazkii.quark.base.module.Module;
 import vazkii.quark.base.module.ModuleCategory;
@@ -54,7 +53,7 @@ public class SpeleothemsModule extends Module {
 	
 	@Override
 	public void setup() {
-		WorldGenHandler.addGenerator(this, new SpeleothemGenerator(dimensions, Generator.NO_COND), Decoration.UNDERGROUND_DECORATION, WorldGenWeights.SPELEOTHEMS);
+		WorldGenHandler.addGenerator(this, new SpeleothemGenerator(dimensions, Generator.NO_COND), Feature.UNDERGROUND_DECORATION, WorldGenWeights.SPELEOTHEMS);
 	}
 
 }

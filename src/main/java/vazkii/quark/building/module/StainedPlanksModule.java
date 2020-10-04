@@ -2,8 +2,8 @@ package vazkii.quark.building.module;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.util.DyeColor;
 import vazkii.quark.base.block.QuarkBlock;
 import vazkii.quark.base.handler.VariantHandler;
 import vazkii.quark.base.module.LoadModule;
@@ -16,7 +16,7 @@ public class StainedPlanksModule extends Module {
 	@Override
 	public void construct() {
 		for(DyeColor dye : DyeColor.values())
-			VariantHandler.addSlabAndStairs(new QuarkBlock(dye.getTranslationKey() + "_stained_planks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.from(Blocks.OAK_PLANKS)));
+			VariantHandler.addSlabAndStairs(new QuarkBlock(dye.getName() + "_stained_planks", this, ItemGroup.BUILDING_BLOCKS, Block.Properties.copy(Blocks.OAK_PLANKS)));
 	}
 	
 }

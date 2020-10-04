@@ -16,37 +16,38 @@ import org.lwjgl.opengl.GL11;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.Blocks;
-import net.minecraft.client.GameSettings;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ChatLine;
-import net.minecraft.client.gui.IngameGui;
-import net.minecraft.client.gui.NewChatGui;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.ChatHud;
+import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.client.renderer.texture.AtlasTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.client.util.InputMappings;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.options.GameOptions;
+import net.minecraft.client.render.DiffuseLighting;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.TextureManager;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.ServerPlayNetHandler;
-import net.minecraft.server.management.PlayerList;
+import net.minecraft.network.MessageType;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.server.PlayerManager;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.StringRenderable;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.ChatType;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.util.text.event.HoverEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ClientChatEvent;
@@ -70,19 +71,19 @@ public class ItemSharingModule extends Module {
 	public static boolean renderItemsInChat = true;
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void keyboardEvent(GuiScreenEvent.KeyboardKeyPressedEvent.Pre event) {
-		Minecraft mc = Minecraft.getInstance();
-		GameSettings settings = mc.gameSettings;
-		if(InputMappings.isKeyDown(mc.getMainWindow().getHandle(), settings.keyBindChat.getKey().getKeyCode()) &&
-				event.getGui() instanceof ContainerScreen && Screen.hasShiftDown()) {
-			ContainerScreen gui = (ContainerScreen) event.getGui();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		GameOptions settings = mc.options;
+		if(InputUtil.isKeyPressed(mc.getWindow().getHandle(), settings.keyChat.getKey().getCode()) &&
+				event.getGui() instanceof HandledScreen && Screen.hasShiftDown()) {
+			HandledScreen gui = (HandledScreen) event.getGui();
 
 			Slot slot = gui.getSlotUnderMouse();
 			if(slot != null && slot.inventory != null) {
 				ItemStack stack = slot.getStack();
 
-				if(!stack.isEmpty() && !MinecraftForge.EVENT_BUS.post(new ClientChatEvent(stack.getTextComponent().getString()))) {
+				if(!stack.isEmpty() && !MinecraftForge.EVENT_BUS.post(new ClientChatEvent(stack.toHoverableText().getString()))) {
 					QuarkNetwork.sendToServer(new LinkItemMessage(stack));
 					event.setCanceled(true);
 				}
@@ -95,23 +96,23 @@ public class ItemSharingModule extends Module {
 			return;
 
 		if(!item.isEmpty() && player instanceof ServerPlayerEntity) {
-			ITextComponent comp = item.getTextComponent();
-			ITextComponent fullComp = new TranslationTextComponent("chat.type.text", player.getDisplayName(), comp);
+			Text comp = item.toHoverableText();
+			Text fullComp = new TranslatableText("chat.type.text", player.getDisplayName(), comp);
 
-			PlayerList players = ((ServerPlayerEntity) player).server.getPlayerList();
+			PlayerManager players = ((ServerPlayerEntity) player).server.getPlayerManager();
 
 			ServerChatEvent event = new ServerChatEvent((ServerPlayerEntity) player, comp.getString(), fullComp);
 			if (!MinecraftForge.EVENT_BUS.post(event)) {
-				players.func_232641_a_(fullComp, ChatType.CHAT, player.getUniqueID());
+				players.broadcastChatMessage(fullComp, MessageType.CHAT, player.getUuid());
 
-				ServerPlayNetHandler handler = ((ServerPlayerEntity) player).connection;
-				int threshold = handler.chatSpamThresholdCount;
+				ServerPlayNetworkHandler handler = ((ServerPlayerEntity) player).networkHandler;
+				int threshold = handler.messageCooldown;
 				threshold += 20;
 
-				if (threshold > 200 && !players.canSendCommands(player.getGameProfile()))
-					handler.onDisconnect(new TranslationTextComponent("disconnect.spam"));
+				if (threshold > 200 && !players.isOperator(player.getGameProfile()))
+					handler.onDisconnected(new TranslatableText("disconnect.spam"));
 
-				handler.chatSpamThresholdCount = threshold;
+				handler.messageCooldown = threshold;
 			}
 		}
 
@@ -119,24 +120,24 @@ public class ItemSharingModule extends Module {
 
 	private static int chatX, chatY;
 
-	public static IFormattableTextComponent createStackComponent(ItemStack stack, IFormattableTextComponent component) {
+	public static MutableText createStackComponent(ItemStack stack, MutableText component) {
 		if (!ModuleLoader.INSTANCE.isModuleEnabled(ItemSharingModule.class) || !renderItemsInChat)
 			return component;
 		Style style = component.getStyle();
 		if (stack.getCount() > 64) {
 			ItemStack copyStack = stack.copy();
 			copyStack.setCount(64);
-			style = style.func_240716_a_(new HoverEvent(HoverEvent.Action.field_230551_b_,
-					new HoverEvent.ItemHover(copyStack)));
-			component.func_230530_a_(style);
+			style = style.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
+					new HoverEvent.ItemStackContent(copyStack)));
+			component.setStyle(style);
 		}
 
-		IFormattableTextComponent out = new StringTextComponent("   ");
-		out.func_230530_a_(style);
-		return out.func_230529_a_(component);
+		MutableText out = new LiteralText("   ");
+		out.setStyle(style);
+		return out.append(component);
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	@SubscribeEvent
 	public void getChatPos(RenderGameOverlayEvent.Chat event) {
 		chatX = event.getPosX();
@@ -144,37 +145,37 @@ public class ItemSharingModule extends Module {
 	}
 
 	@SubscribeEvent
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void renderSymbols(RenderGameOverlayEvent.Post event) {
 		if (!renderItemsInChat)
 			return;
 
-		Minecraft mc = Minecraft.getInstance();
-		IngameGui gameGui = mc.ingameGUI;
-		NewChatGui chatGui = gameGui.getChatGUI();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		InGameHud gameGui = mc.inGameHud;
+		ChatHud chatGui = gameGui.getChatHud();
 		if (event.getType() == RenderGameOverlayEvent.ElementType.CHAT) {
 			int updateCounter = gameGui.getTicks();
-			List<ChatLine> lines = chatGui.drawnChatLines;
-			int shift = chatGui.scrollPos;
+			List<ChatHudLine> lines = chatGui.visibleMessages;
+			int shift = chatGui.scrolledLines;
 
 			int idx = shift;
 
-			while (idx < lines.size() && (idx - shift) < chatGui.getLineCount()) {
-				ChatLine line = lines.get(idx);
+			while (idx < lines.size() && (idx - shift) < chatGui.getVisibleLineCount()) {
+				ChatHudLine line = lines.get(idx);
 				String before = "";
 
-				ITextProperties lineProperties = line.func_238169_a_();
+				StringRenderable lineProperties = line.getText();
 
-				if (lineProperties instanceof ITextComponent) {
-					ITextComponent lineComponent = (ITextComponent) lineProperties;
+				if (lineProperties instanceof Text) {
+					Text lineComponent = (Text) lineProperties;
 
-					String currentText = TextFormatting.getTextWithoutFormattingCodes(lineComponent.getString());
+					String currentText = Formatting.strip(lineComponent.getString());
 					if (currentText != null && currentText.startsWith("   "))
 						render(mc, chatGui, updateCounter, before, line, idx - shift, lineComponent);
 					before += currentText;
 
-					for (ITextComponent sibling : lineComponent.getSiblings()) {
-						currentText = TextFormatting.getTextWithoutFormattingCodes(sibling.getString());
+					for (Text sibling : lineComponent.getSiblings()) {
+						currentText = Formatting.strip(sibling.getString());
 						if (currentText != null && currentText.startsWith("   "))
 							render(mc, chatGui, updateCounter, before, line, idx - shift, sibling);
 						before += currentText;
@@ -186,37 +187,37 @@ public class ItemSharingModule extends Module {
 		}
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	private static void render(Minecraft mc, NewChatGui chatGui, int updateCounter, String before, ChatLine line, int lineHeight, ITextComponent component) {
+	@Environment(EnvType.CLIENT)
+	private static void render(MinecraftClient mc, ChatHud chatGui, int updateCounter, String before, ChatHudLine line, int lineHeight, Text component) {
 		Style style = component.getStyle();
 		HoverEvent hoverEvent = style.getHoverEvent();
-		if (hoverEvent != null && hoverEvent.getAction() == HoverEvent.Action.field_230551_b_) {
-			HoverEvent.ItemHover contents = hoverEvent.func_240662_a_(HoverEvent.Action.field_230551_b_);
+		if (hoverEvent != null && hoverEvent.getAction() == HoverEvent.Action.SHOW_ITEM) {
+			HoverEvent.ItemStackContent contents = hoverEvent.getValue(HoverEvent.Action.SHOW_ITEM);
 
-			ItemStack stack = contents != null ? contents.func_240689_a_() : ItemStack.EMPTY;
+			ItemStack stack = contents != null ? contents.asStack() : ItemStack.EMPTY;
 
 			if (stack.isEmpty())
 				stack = new ItemStack(Blocks.BARRIER); // for invalid icon
 
-			int timeSinceCreation = updateCounter - line.getUpdatedCounter();
-			if (chatGui.getChatOpen()) timeSinceCreation = 0;
+			int timeSinceCreation = updateCounter - line.getCreationTick();
+			if (chatGui.isChatFocused()) timeSinceCreation = 0;
 
 			if (timeSinceCreation < 200) {
-				double chatOpacity = mc.gameSettings.chatOpacity * 0.9f + 0.1f;
+				double chatOpacity = mc.options.chatOpacity * 0.9f + 0.1f;
 				float fadeOut = MathHelper.clamp((1 - timeSinceCreation / 200f) * 10, 0, 1);
 				double alpha = fadeOut * fadeOut * chatOpacity;
 
-				int x = chatX + 3 + mc.fontRenderer.getStringWidth(before);
-				int y = chatY - mc.fontRenderer.FONT_HEIGHT * lineHeight;
+				int x = chatX + 3 + mc.textRenderer.getWidth(before);
+				int y = chatY - mc.textRenderer.fontHeight * lineHeight;
 
 				if (alpha > 0) {
-					RenderHelper.enableStandardItemLighting();
+					DiffuseLighting.enable();
 					alphaValue = ((int) (alpha * 255) << 24);
 
 					renderItemIntoGUI(mc, mc.getItemRenderer(), stack, x, y);
 
 					alphaValue = -1;
-					RenderHelper.disableStandardItemLighting();
+					DiffuseLighting.disable();
 				}
 			}
 		}
@@ -231,33 +232,33 @@ public class ItemSharingModule extends Module {
 	public static final int RGB_MASK = 0x00FFFFFF;
 	private static int alphaValue = -1;
 
-	@OnlyIn(Dist.CLIENT)
-	private static void renderItemIntoGUI(Minecraft mc, ItemRenderer render, ItemStack stack, int x, int y) {
-		renderItemModelIntoGUI(mc, render, stack, x, y, render.getItemModelWithOverrides(stack, null, null));
+	@Environment(EnvType.CLIENT)
+	private static void renderItemIntoGUI(MinecraftClient mc, ItemRenderer render, ItemStack stack, int x, int y) {
+		renderItemModelIntoGUI(mc, render, stack, x, y, render.getHeldItemModel(stack, null, null));
 	}
 
-	@OnlyIn(Dist.CLIENT)
-	private static void renderItemModelIntoGUI(Minecraft mc, ItemRenderer render, ItemStack stack, int x, int y, IBakedModel model) {
+	@Environment(EnvType.CLIENT)
+	private static void renderItemModelIntoGUI(MinecraftClient mc, ItemRenderer render, ItemStack stack, int x, int y, BakedModel model) {
 		TextureManager textureManager = mc.getTextureManager();
 
 		RenderSystem.pushMatrix();
-		textureManager.bindTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE);
-		textureManager.getTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE).setBlurMipmapDirect(false, false);
+		textureManager.bindTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEX);
+		textureManager.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEX).setFilter(false, false);
 		RenderSystem.enableRescaleNormal();
 		RenderSystem.enableAlphaTest();
 		RenderSystem.alphaFunc(GL11.GL_GREATER, 0.1F);
 		RenderSystem.enableBlend();
-		RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
 		RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
 		RenderSystem.translatef(x - 2, y - 2, -2);
 		RenderSystem.scalef(0.65f, 0.65f, 0.65f);
-		render.renderItemIntoGUI(stack, 0, 0);
+		render.renderGuiItemIcon(stack, 0, 0);
 		RenderSystem.disableAlphaTest();
 		RenderSystem.disableRescaleNormal();
 		RenderSystem.disableLighting();
 		RenderSystem.popMatrix();
-		textureManager.bindTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE);
-		textureManager.getTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
+		textureManager.bindTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEX);
+		textureManager.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEX).restoreLastBlurMipmap();
 	}
 
 }

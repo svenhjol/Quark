@@ -14,11 +14,11 @@ public class DuskboundBlocksModule extends Module {
 
 	@Override
 	public void construct() {
-		VariantHandler.addSlabAndStairs(new QuarkBlock("duskbound_block", this, ItemGroup.DECORATIONS, Block.Properties.from(Blocks.PURPUR_BLOCK)));
+		VariantHandler.addSlabAndStairs(new QuarkBlock("duskbound_block", this, ItemGroup.DECORATIONS, Block.Properties.copy(Blocks.PURPUR_BLOCK)));
 		
 		new QuarkBlock("duskbound_lantern", this, ItemGroup.DECORATIONS, 
-				Block.Properties.from(Blocks.PURPUR_BLOCK)
-				.func_235838_a_(b -> 15)); // light value
+				Block.Properties.copy(Blocks.PURPUR_BLOCK)
+				.lightLevel(b -> 15)); // light value
 	}
 	
 }

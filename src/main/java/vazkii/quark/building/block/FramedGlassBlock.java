@@ -8,7 +8,7 @@ import vazkii.quark.base.module.Module;
 
 public class FramedGlassBlock extends QuarkGlassBlock {
 
-	public FramedGlassBlock(String regname, Module module, ItemGroup creativeTab, Properties properties) {
+	public FramedGlassBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
 		super(regname, module, creativeTab, properties);
 		
 		RenderLayerHandler.setRenderType(this, RenderTypeSkeleton.CUTOUT);

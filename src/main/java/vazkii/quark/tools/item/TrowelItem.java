@@ -9,19 +9,20 @@ import javax.annotation.Nonnull;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.hit.BlockHitResult;
 import vazkii.arl.util.ItemNBTHelper;
 import vazkii.quark.base.handler.MiscUtil;
 import vazkii.quark.base.item.QuarkItem;
 import vazkii.quark.base.module.Module;
+import vazkii.quark.tools.item.TrowelItem.TrowelBlockItemUseContext;
 import vazkii.quark.tools.module.TrowelModule;
 
 public class TrowelItem extends QuarkItem {
@@ -30,27 +31,27 @@ public class TrowelItem extends QuarkItem {
 	private static final String TAG_LAST_STACK = "last_stack";
 	
 	public TrowelItem(Module module) {
-		super("trowel", module, new Item.Properties()
+		super("trowel", module, new Item.Settings()
 				.maxDamage(255)
 				.group(ItemGroup.TOOLS));
 	}
 	
 	@Nonnull
 	@Override
-	public ActionResultType onItemUse(ItemUseContext context) {
+	public ActionResult useOnBlock(ItemUsageContext context) {
 		PlayerEntity player = context.getPlayer();
 		Hand hand = context.getHand();
 		
 		List<ItemStack> targets = new ArrayList<>();
 		for(int i = 0; i < PlayerInventory.getHotbarSize(); i++) {
-			ItemStack stack = player.inventory.getStackInSlot(i);
+			ItemStack stack = player.inventory.getStack(i);
 			if(!stack.isEmpty() && stack.getItem() instanceof BlockItem)
 				targets.add(stack);
 		}
 		
-		ItemStack ourStack = player.getHeldItem(hand);
+		ItemStack ourStack = player.getStackInHand(hand);
 		if(targets.isEmpty())
-			return ActionResultType.PASS;
+			return ActionResult.PASS;
 
 		long seed = ItemNBTHelper.getLong(ourStack, TAG_PLACING_SEED, 0);
 		Random rand = new Random(seed);
@@ -58,33 +59,33 @@ public class TrowelItem extends QuarkItem {
 		
 		ItemStack target = targets.get(rand.nextInt(targets.size()));
 		int count = target.getCount();
-		ActionResultType result = placeBlock(target, context);
+		ActionResult result = placeBlock(target, context);
 		if(player.isCreative())
 			target.setCount(count);
 		
-		if(result == ActionResultType.SUCCESS) {
-			CompoundNBT cmp = target.serializeNBT();
+		if(result == ActionResult.SUCCESS) {
+			CompoundTag cmp = target.serializeNBT();
 			ItemNBTHelper.setCompound(ourStack, TAG_LAST_STACK, cmp);
 			
-			MiscUtil.damageStack(player, hand, context.getItem(), 1);
+			MiscUtil.damageStack(player, hand, context.getStack(), 1);
 		}
 		
 		return result;
 	}
 	
-	private ActionResultType placeBlock(ItemStack itemstack, ItemUseContext context) {
+	private ActionResult placeBlock(ItemStack itemstack, ItemUsageContext context) {
 		if(itemstack.getItem() instanceof BlockItem) {
 			BlockItem item = (BlockItem) itemstack.getItem();
-			BlockItemUseContext newContext = new TrowelBlockItemUseContext(context, itemstack);
-			return item.tryPlace(newContext);
+			ItemPlacementContext newContext = new TrowelBlockItemUseContext(context, itemstack);
+			return item.place(newContext);
 		}
 
-		return ActionResultType.PASS;
+		return ActionResult.PASS;
 	}
 
 	public static ItemStack getLastStack(ItemStack stack) {
-		CompoundNBT cmp = ItemNBTHelper.getCompound(stack, TAG_LAST_STACK, false);
-		return ItemStack.read(cmp);
+		CompoundTag cmp = ItemNBTHelper.getCompound(stack, TAG_LAST_STACK, false);
+		return ItemStack.fromTag(cmp);
 	}
 	
 	@Override
@@ -92,11 +93,11 @@ public class TrowelItem extends QuarkItem {
 		return TrowelModule.maxDamage;
 	}
 	
-	class TrowelBlockItemUseContext extends BlockItemUseContext {
+	class TrowelBlockItemUseContext extends ItemPlacementContext {
 
-		public TrowelBlockItemUseContext(ItemUseContext context, ItemStack stack) {
+		public TrowelBlockItemUseContext(ItemUsageContext context, ItemStack stack) {
 			super(context.getWorld(), context.getPlayer(), context.getHand(), stack, 
-					new BlockRayTraceResult(context.getHitVec(), context.getFace(), context.getPos(), context.isInside()));
+					new BlockHitResult(context.getHitPos(), context.getSide(), context.getBlockPos(), context.hitsInsideBlock()));
 		}
 		
 	}

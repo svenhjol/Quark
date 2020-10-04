@@ -4,7 +4,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.WorldAccess;
 import vazkii.quark.world.gen.UndergroundBiomeGenerator.Context;
 
 public class OvergrownUndergroundBiome extends BasicUndergroundBiome {
@@ -19,7 +19,7 @@ public class OvergrownUndergroundBiome extends BasicUndergroundBiome {
 			context.world.setBlockState(pos, Blocks.COARSE_DIRT.getDefaultState(), 2);
 		else super.fillFloor(context, pos, state);
 		
-		IWorld world = context.world;
+		WorldAccess world = context.world;
 		if(context.random.nextDouble() < 0.025) {
 			int count = 0;
 			for(int i = 0; i < 20; i++) {
