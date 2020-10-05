@@ -67,3 +67,6 @@ __pycache__
 
 # Web
 web/cached.php
+
+# Other stuff
+logs/latest.log
