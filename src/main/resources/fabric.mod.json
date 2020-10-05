@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "quark",
+  "version": "${version}",
+  "name": "Quark",
+  "description": "Small things.",
+  "authors": [
+    "Vazkii",
+    "Wiiv",
+    "WireSegal",
+    "MCVinnyq"
+  ],
+  "contact": {
+    "sources": "https://github.com/svenhjol/Quark-Fabric",
+    "issues": "https://github.com/svenhjol/Quark-Fabric/issues",
+    "homepage": "https://quark.vazkii.net/"
+  },
+  "license": "Attribution-NonCommercial-ShareAlike 3.0 Unported",
+  "icon": "proxypack.png",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=0.10.0",
+    "fabric": ">=0.18.0",
+    "minecraft": "~1.16.1"
+  }
+}
