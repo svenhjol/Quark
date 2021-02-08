@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+        <listEntry value="/Quark"/>
+    </listAttribute>
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+        <listEntry value="4"/>
+    </listAttribute>
     <mapAttribute key="org.eclipse.debug.core.environmentVariables">
         <mapEntry key="FORGE_GROUP" value="net.minecraftforge"/>
-        <mapEntry key="FORGE_VERSION" value="32.0.108"/>
+        <mapEntry key="FORGE_VERSION" value="35.1.28"/>
         <mapEntry key="MCP_MAPPINGS" value="snapshot_20200703-unofficial-1.16.1"/>
         <mapEntry key="MCP_VERSION" value="20200625.160719"/>
-        <mapEntry key="MC_VERSION" value="1.16.1"/>
+        <mapEntry key="MC_VERSION" value="1.16.3"/>
         <mapEntry key="MOD_CLASSES" value="examplemod%%E:\MCPDev\Quark\bin\main;examplemod%%E:\MCPDev\Quark\bin\main"/>
         <mapEntry key="target" value="fmluserdevserver"/>
     </mapAttribute>
+    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_SHOW_CODEDETAILS_IN_EXCEPTION_MESSAGES" value="true"/>
+    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_CLASSPATH_ONLY_JAR" value="false"/>
     <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.buildship.core.classpathprovider"/>
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="net.minecraftforge.userdev.LaunchTesting"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value=""/>
+    <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="Quark"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="Quark"/>
     <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dforge.logging.console.level=debug -Dforge.logging.markers=SCAN,REGISTRIES,REGISTRYDUMP"/>
     <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="E:\MCPDev\Quark\run"/>

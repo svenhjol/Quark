@@ -3,9 +3,9 @@ package vazkii.quark.base.block;
 import net.minecraft.block.FenceGateBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.NonNullList;
 import vazkii.arl.util.RegistryHelper;
-import vazkii.quark.base.module.Module;
+import vazkii.quark.base.module.QuarkModule;
 
 import javax.annotation.Nullable;
 import java.util.function.BooleanSupplier;
@@ -16,10 +16,10 @@ import java.util.function.BooleanSupplier;
  */
 public class QuarkFenceGateBlock extends FenceGateBlock implements IQuarkBlock {
 
-    private final Module module;
+    private final QuarkModule module;
     private BooleanSupplier enabledSupplier = () -> true;
 
-    public QuarkFenceGateBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
+    public QuarkFenceGateBlock(String regname, QuarkModule module, ItemGroup creativeTab, Properties properties) {
         super(properties);
         this.module = module;
 
@@ -29,9 +29,9 @@ public class QuarkFenceGateBlock extends FenceGateBlock implements IQuarkBlock {
     }
 
     @Override
-    public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
+    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
         if(isEnabled() || group == ItemGroup.SEARCH)
-            super.addStacksForDisplay(group, items);
+            super.fillItemGroup(group, items);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class QuarkFenceGateBlock extends FenceGateBlock implements IQuarkBlock {
 
     @Nullable
     @Override
-    public Module getModule() {
+    public QuarkModule getModule() {
         return module;
     }
 

@@ -10,12 +10,11 @@
  */
 package vazkii.quark.base.network.message;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.IngameGui;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.network.NetworkEvent;
@@ -26,25 +25,28 @@ public class SpamlessChatMessage implements IMessage {
 
 	private static final long serialVersionUID = -4716987873031723456L;
 
-	public Text message;
+	public ITextComponent message;
 	public int id;
 
 	public SpamlessChatMessage() { }
 
-	public SpamlessChatMessage(Text message, int id) {
+	public SpamlessChatMessage(ITextComponent message, int id) {
 		this.message = message;
 		this.id = id;
 	}
 
 	@Override
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public boolean receive(NetworkEvent.Context context) {
-		context.enqueueWork(() -> MinecraftClient.getInstance().inGameHud.getChatHud()
-				.addMessage(message, id));
+		context.enqueueWork(() -> {
+			IngameGui gui = Minecraft.getInstance().ingameGUI;
+			gui.getChatGUI().func_238493_a_(message, id, gui.getTicks(), false); // print message and delete if same ID, called by printChatMessageWithOptionalDeletion
+		});
+		
 		return true;
 	}
 
-	public static void sendToPlayer(PlayerEntity player, int id, Text component) {
+	public static void sendToPlayer(PlayerEntity player, int id, ITextComponent component) {
 		if (player instanceof ServerPlayerEntity)
 			QuarkNetwork.sendToPlayer(new SpamlessChatMessage(component, id), (ServerPlayerEntity) player);
 	}

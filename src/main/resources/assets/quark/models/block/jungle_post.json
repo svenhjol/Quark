@@ -1,0 +1,7 @@
+{
+  "parent": "quark:block/post",
+  "textures": {
+    "top": "quark:block/jungle_post_top",
+	"side": "quark:block/jungle_post"
+  }
+}

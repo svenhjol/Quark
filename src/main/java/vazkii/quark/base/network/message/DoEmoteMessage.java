@@ -1,15 +1,13 @@
 package vazkii.quark.base.network.message;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import vazkii.arl.network.IMessage;
-import vazkii.quark.tweaks.client.emote.EmoteHandler;
+import vazkii.quark.content.tweaks.client.emote.EmoteHandler;
 
 import java.util.UUID;
 
@@ -30,10 +28,10 @@ public class DoEmoteMessage implements IMessage {
 	}
 	
 	@Override
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public boolean receive(Context context) {
 		context.enqueueWork(() -> {
-			World world = MinecraftClient.getInstance().world;
+			World world = Minecraft.getInstance().world;
 			PlayerEntity player = world.getPlayerByUuid(playerUUID);
 			EmoteHandler.putEmote(player, emote, tier);
 		});

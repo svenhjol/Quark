@@ -4,7 +4,9 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.Biome.Category;
 import vazkii.quark.base.module.config.Config;
 import vazkii.quark.base.module.config.ConfigFlagManager;
 
@@ -24,13 +26,8 @@ public class StrictBiomeConfig implements IBiomeConfig {
 	}
 	
 	@Override
-	public boolean canSpawn(Biome b) {
-		return biomeStrings.contains(b.getRegistryName().toString()) != isBlacklist;
-	}
-
-	@Override
-	public void onReload(ConfigFlagManager flagManager) {
-		// NO-OP
+	public boolean canSpawn(ResourceLocation res, Category category) {
+		return biomeStrings.contains(res.toString()) != isBlacklist;
 	}
 
 }

@@ -3,67 +3,71 @@ package vazkii.quark.base.world.config;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
-import net.minecraftforge.common.BiomeDictionary;
+import net.minecraft.world.biome.Biome.Category;
 import vazkii.quark.base.module.config.Config;
 import vazkii.quark.base.module.config.ConfigFlagManager;
-import vazkii.quark.base.module.config.IConfigType;
 
 public class BiomeTypeConfig implements IBiomeConfig {
 
-	@Config(name = "Biome Types")
-	@Config.Restriction({"HOT", "COLD", "SPARSE", "DENSE", "WET", "SAVANNA", "CONIFEROUS", "JUNGLE", "SPOOKY", "DEAD",
-			"LUSH", "NETHER", "END", "MUSHROOM", "MAGICAL", "RARE", "OCEAN", "RIVER", "WATER", "MESA", "FOREST",
-			"PLAINS", "MOUNTAIN", "HILLS", "SWAMP", "SANDY", "SNOWY", "WASTELAND", "BEACH", "VOID"})
-	private List<String> typeStrings;
+	private final Object mutex = new Object();
+	
+	@Config(name = "Biome Categories")
+	@Config.Restriction({"none", "taiga", "extreme_hills", "jungle", "mesa", "plains", "savanna", "icy", "the_end", "beach", "forest",
+			"ocean", "desert", "river", "swamp", "mushroom", "nether"})
+	private List<String> categoryStrings;
 
 	@Config
 	private boolean isBlacklist;
 
-	private List<BiomeDictionary.Type> types;
+	private List<Biome.Category> categories;
 
-	public BiomeTypeConfig(boolean isBlacklist, BiomeDictionary.Type... types) {
+	public BiomeTypeConfig(boolean isBlacklist, Biome.Category... categories) {
 		this.isBlacklist = isBlacklist;
 
-		typeStrings = new LinkedList<>();
-		for (BiomeDictionary.Type s : types)
-			typeStrings.add(s.getName());
+		categoryStrings = new LinkedList<>();
+		for (Biome.Category c : categories)
+			categoryStrings.add(c.getName());
 	}
 
-	public BiomeTypeConfig(boolean isBlacklist, String... types) {
+	public BiomeTypeConfig(boolean isBlacklist, String... categories) {
 		this.isBlacklist = isBlacklist;
 
-		typeStrings = new LinkedList<>();
-		typeStrings.addAll(Arrays.asList(types));
+		categoryStrings = new LinkedList<>();
+		categoryStrings.addAll(Arrays.asList(categories));
 	}
-	
+
 	@Override
-	public boolean canSpawn(Biome b) {
-		if (types == null)
-			updateTypes();
+	public boolean canSpawn(ResourceLocation res, Category category) {
+		synchronized (mutex) {
+			if(categories == null)
+				updateTypes();
+			
+			for(Biome.Category c : categories)
+				if(c.equals(category))
+					return !isBlacklist;
 
-		Set<BiomeDictionary.Type> currentTypes = BiomeDictionary.getTypes(b);
-
-		for (BiomeDictionary.Type type : types)
-			if (currentTypes.contains(type))
-				return !isBlacklist;
-
-		return isBlacklist;
+			return isBlacklist;
+		}
 	}
 
 	@Override
 	public void onReload(ConfigFlagManager flagManager) {
-		updateTypes();
+		synchronized (mutex) {
+			updateTypes();
+		}
 	}
 	
 	public void updateTypes() {
-		types = new LinkedList<>();
-		for (String s : typeStrings) {
-			BiomeDictionary.Type type = BiomeDictionary.Type.getType(s);
-			if (type != null)
-				types.add(type);
+		categories = new LinkedList<>();
+		for (String s : categoryStrings) {
+			Biome.Category category = Biome.Category.byName(s);
+			
+			if (category != null)
+				categories.add(category);
 		}
 	}
+
 }

@@ -7,13 +7,14 @@ import java.util.function.BiPredicate;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.tuple.Pair;
-import net.minecraft.block.entity.BlockEntity;
+
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.SlotItemHandler;
@@ -21,12 +22,12 @@ import net.minecraftforge.items.wrapper.InvWrapper;
 import vazkii.quark.api.ITransferManager;
 import vazkii.quark.api.QuarkCapabilities;
 import vazkii.quark.base.module.ModuleLoader;
-import vazkii.quark.management.module.EasyTransferingModule;
+import vazkii.quark.content.management.module.EasyTransferingModule;
 
 public class InventoryTransferHandler {
 
 	public static void transfer(PlayerEntity player, boolean isRestock, boolean smart) {
-		if(!ModuleLoader.INSTANCE.isModuleEnabled(EasyTransferingModule.class) || player.isSpectator() || !accepts(player.currentScreenHandler, player))
+		if(!ModuleLoader.INSTANCE.isModuleEnabled(EasyTransferingModule.class) || player.isSpectator() || !accepts(player.openContainer, player))
 			return;
 
 		//		if(!useContainer && !player.getEntityWorld().getWorldInfo().getGameRulesInstance().getBoolean(StoreToChests.GAME_RULE)) {
@@ -68,19 +69,19 @@ public class InventoryTransferHandler {
 	//	}
 
 	private static boolean hasProvider(Object te) {
-		return te instanceof BlockEntity && ((BlockEntity) te).getCapability(QuarkCapabilities.TRANSFER).isPresent();
+		return te instanceof TileEntity && ((TileEntity) te).getCapability(QuarkCapabilities.TRANSFER).isPresent();
 	}
 
 	private static ITransferManager getProvider(Object te) {
-		return ((BlockEntity) te).getCapability(QuarkCapabilities.TRANSFER).orElse(null);
+		return ((TileEntity) te).getCapability(QuarkCapabilities.TRANSFER).orElse(null);
 	}
 
 
-	public static boolean accepts(ScreenHandler container, PlayerEntity player) {
+	public static boolean accepts(Container container, PlayerEntity player) {
 		if (hasProvider(container))
 			return getProvider(container).acceptsTransfer(player);
 
-		return container.slots.size() - player.inventory.main.size() >= 27;
+		return container.inventorySlots.size() - player.inventory.mainInventory.size() >= 27;
 	}
 
 	public static class Transfer {
@@ -107,9 +108,9 @@ public class InventoryTransferHandler {
 				smartTransfer();
 			else roughTransfer();
 
-			player.playerScreenHandler.sendContentUpdates();
+			player.container.detectAndSendChanges();
 			//			if(useContainer)
-			player.currentScreenHandler.sendContentUpdates();
+			player.openContainer.detectAndSendChanges();
 		}
 
 		public void smartTransfer() {
@@ -122,12 +123,12 @@ public class InventoryTransferHandler {
 
 					boolean itemEqual = stack.getItem() == stackAt.getItem();
 					boolean damageEqual = stack.getDamage() == stackAt.getDamage();
-					boolean nbtEqual = ItemStack.areTagsEqual(stackAt, stack);
+					boolean nbtEqual = ItemStack.areItemStackTagsEqual(stackAt, stack);
 
 					if(itemEqual && damageEqual && nbtEqual)
 						return true;
 
-					if(stack.isDamageable() && stack.getMaxCount() == 1 && itemEqual && nbtEqual)
+					if(stack.isDamageable() && stack.getMaxStackSize() == 1 && itemEqual && nbtEqual)
 						return true;
 				}
 
@@ -141,9 +142,9 @@ public class InventoryTransferHandler {
 
 		public void locateItemHandlers() {
 			//			if(useContainer) {
-			ScreenHandler c = player.currentScreenHandler;
-			for(Slot s : c.slots) {
-				Inventory inv = s.inventory;
+			Container c = player.openContainer;
+			for(Slot s : c.inventorySlots) {
+				IInventory inv = s.inventory;
 				if(inv != player.inventory) {
 					itemHandlers.add(Pair.of(ContainerWrapper.provideWrapper(s, c), 0.0));
 					break;
@@ -173,13 +174,13 @@ public class InventoryTransferHandler {
 		public void transfer(TransferPredicate predicate) {
 			PlayerInventory inv = player.inventory;
 
-			for(int i = PlayerInventory.getHotbarSize(); i < inv.main.size(); i++) {
-				ItemStack stackAt = inv.getStack(i);
+			for(int i = PlayerInventory.getHotbarSize(); i < inv.mainInventory.size(); i++) {
+				ItemStack stackAt = inv.getStackInSlot(i);
 
 				if(!stackAt.isEmpty()/* && !FavoriteItems.isItemFavorited(stackAt)*/) {
 					ItemStack ret = insert(stackAt, predicate);
-					if(!ItemStack.areEqual(stackAt, ret))
-						inv.setStack(i, ret);
+					if(!ItemStack.areItemStacksEqual(stackAt, ret))
+						inv.setInventorySlotContents(i, ret);
 				}
 			}
 		}
@@ -230,8 +231,8 @@ public class InventoryTransferHandler {
 					ItemStack copy = stackAt.copy();
 					ItemStack ret = insertInHandler(playerInv, copy, predicate);
 
-					if(!ItemStack.areEqual(stackAt, ret)) {
-						inv.extractItem(i, stackAt.getMaxCount(), false);
+					if(!ItemStack.areItemStacksEqual(stackAt, ret)) {
+						inv.extractItem(i, stackAt.getMaxStackSize(), false);
 						if(!ret.isEmpty())
 							inv.insertItem(i, ret, false);
 					}
@@ -242,7 +243,7 @@ public class InventoryTransferHandler {
 
 	public static class PlayerInvWrapper extends InvWrapper {
 
-		public PlayerInvWrapper(Inventory inv) {
+		public PlayerInvWrapper(IInventory inv) {
 			super(inv);
 		}
 
@@ -264,9 +265,9 @@ public class InventoryTransferHandler {
 
 	public static class ContainerWrapper extends InvWrapper {
 
-		private final ScreenHandler container;
+		private final Container container;
 
-		public static IItemHandler provideWrapper(Slot slot, ScreenHandler container) {
+		public static IItemHandler provideWrapper(Slot slot, Container container) {
 			if (slot instanceof SlotItemHandler) {
 				IItemHandler handler = ((SlotItemHandler) slot).getItemHandler();
 				if (hasProvider(handler)) {
@@ -279,13 +280,13 @@ public class InventoryTransferHandler {
 			}
 		}
 
-		public static IItemHandler provideWrapper(Inventory inv, ScreenHandler container) {
+		public static IItemHandler provideWrapper(IInventory inv, Container container) {
 			if(hasProvider(inv))
 				return getProvider(inv).getTransferItemHandler(() -> new ContainerWrapper(inv, container));
 			return new ContainerWrapper(inv, container);
 		}
 
-		private ContainerWrapper(Inventory inv, ScreenHandler container) {
+		private ContainerWrapper(IInventory inv, Container container) {
 			super(inv);
 			this.container = container;
 		}
@@ -294,15 +295,15 @@ public class InventoryTransferHandler {
 		@Override
 		public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
 			Slot containerSlot = getSlot(slot);
-			if(containerSlot == null || !containerSlot.canInsert(stack))
+			if(containerSlot == null || !containerSlot.isItemValid(stack))
 				return stack;
 
 			return super.insertItem(slot, stack, simulate);
 		}
 
 		private Slot getSlot(int slotId) {
-			Inventory inv = getInv();
-			for(Slot slot : container.slots)
+			IInventory inv = getInv();
+			for(Slot slot : container.inventorySlots)
 				if(slot.inventory == inv && slot.getSlotIndex() == slotId)
 					return slot;
 

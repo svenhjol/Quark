@@ -24,6 +24,7 @@
     "quark:duskbound_block",
     "quark:duskbound_block_stairs",
     "quark:duskbound_block_slab",
-    "quark:duskbound_block_vertical_slab"
+    "quark:duskbound_block_vertical_slab",
+    "quark:myalite_crystal"
   ]
 }

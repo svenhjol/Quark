@@ -6,21 +6,21 @@ import java.util.stream.Stream;
 import com.google.common.collect.ImmutableSet;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
-import net.minecraft.world.gen.decorator.Decorator;
-import net.minecraft.world.gen.decorator.NopeDecoratorConfig;
+import net.minecraft.world.IWorld;
+import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.feature.WorldDecoratingHelper;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.Placement;
 
-public class ChunkCornerPlacement extends Decorator<NopeDecoratorConfig> {
+public class ChunkCornerPlacement extends Placement<NoPlacementConfig> {
 
 	public ChunkCornerPlacement() {
-		super(NopeDecoratorConfig.field_24891);
+		super(NoPlacementConfig.field_236555_a_);
 	}
 
-	@Override
-	public Stream<BlockPos> getPositions(WorldAccess worldIn, ChunkGenerator generatorIn, Random random, NopeDecoratorConfig configIn, BlockPos pos) {
+	@Override // getPositions
+	public Stream<BlockPos> func_241857_a(WorldDecoratingHelper wdc, Random random, NoPlacementConfig config, BlockPos pos) {
 		return ImmutableSet.of(pos).stream();
 	}
-
 
 }

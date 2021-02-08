@@ -1,5 +1,6 @@
 {
   "__comment": "Designed by Wire Segal with Cubik Studio - https://cubik.studio",
+  "ambientocclusion": false,
   "textures": {
     "base": "quark:block/inductor_base",
     "magma": "quark:block/inductor_magma",

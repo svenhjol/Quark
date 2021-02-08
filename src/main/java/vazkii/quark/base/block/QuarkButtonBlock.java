@@ -1,16 +1,17 @@
 package vazkii.quark.base.block;
 
-import net.minecraft.block.AbstractButtonBlock;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.collection.DefaultedList;
-import vazkii.arl.util.RegistryHelper;
-import vazkii.quark.base.module.Module;
+import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.function.BooleanSupplier;
+
+import net.minecraft.block.AbstractButtonBlock;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.SoundEvent;
+import vazkii.arl.util.RegistryHelper;
+import vazkii.quark.base.module.QuarkModule;
 
 /**
  * @author WireSegal
@@ -18,10 +19,10 @@ import java.util.function.BooleanSupplier;
  */
 public abstract class QuarkButtonBlock extends AbstractButtonBlock implements IQuarkBlock {
 
-    private final Module module;
+    private final QuarkModule module;
     private BooleanSupplier enabledSupplier = () -> true;
 
-    public QuarkButtonBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
+    public QuarkButtonBlock(String regname, QuarkModule module, ItemGroup creativeTab, Properties properties) {
         super(false, properties);
         this.module = module;
 
@@ -32,15 +33,15 @@ public abstract class QuarkButtonBlock extends AbstractButtonBlock implements IQ
 
     @Nonnull
     @Override
-    protected abstract SoundEvent getClickSound(boolean powered);
+    protected abstract SoundEvent getSoundEvent(boolean powered);
 
-    @Override // tickRate
-    public abstract int getPressTicks();
+    @Override 
+    public abstract int getActiveDuration();
     
     @Override
-    public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
+    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
         if(isEnabled() || group == ItemGroup.SEARCH)
-            super.addStacksForDisplay(group, items);
+            super.fillItemGroup(group, items);
     }
 
     @Override
@@ -56,7 +57,7 @@ public abstract class QuarkButtonBlock extends AbstractButtonBlock implements IQ
 
     @Nullable
     @Override
-    public Module getModule() {
+    public QuarkModule getModule() {
         return module;
     }
 

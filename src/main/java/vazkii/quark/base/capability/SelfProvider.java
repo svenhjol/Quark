@@ -14,8 +14,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Direction;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.LazyOptional;
@@ -36,13 +36,13 @@ public class SelfProvider<V> implements ICapabilityProvider {
 		return new SelfProvider<>(capability, (V) self);
 	}
 
-	public static <V> void attachItem(Identifier location,
+	public static <V> void attachItem(ResourceLocation location,
 									  Capability<V> capability,
 									  AttachCapabilitiesEvent<ItemStack> event) {
 		event.addCapability(location, provide(capability, event.getObject().getItem()));
 	}
 
-	public static <V, C extends ICapabilityProvider> void attach(Identifier location,
+	public static <V, C extends ICapabilityProvider> void attach(ResourceLocation location,
 																 Capability<V> capability,
 																 AttachCapabilitiesEvent<C> event) {
 		event.addCapability(location, provide(capability, event.getObject()));

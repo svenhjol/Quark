@@ -1,5 +1,6 @@
 var selectedEntry = "home";
 var selectedCategory = "automation";
+var selectedVersion = "";
 var transitioning = false;
 
 $(function() {
@@ -12,6 +13,7 @@ $(function() {
 		}
 	}
 
+	updateSelectedVersion(false);
 	updateEntry(changed, false);
 	updateCategory(false);
 	updateBtt();
@@ -102,6 +104,8 @@ $('#button-btt').click(function() {
 	scrollTo(0, null);
 });
 
+$('#version-dropdown').change(updateSelectedVersion);
+
 function updateEntry(changed, setHash) {
 	var dataSelector = `[data-entry=${selectedEntry}]`;
 
@@ -158,6 +162,31 @@ function updateBtt() {
 	var top = window.pageYOffset || document.documentElement.scrollTop;
 	var bttVisible = top > 200;
 	$('#btt-holder').attr('data-enabled', bttVisible);
+}
+
+function updateSelectedVersion() {
+	selectedVersion = $('#version-dropdown').val();
+
+	$('.feature').each(function(i) {
+		var f = $(this);
+		var added = f.attr('data-added');
+		var removed = f.is('[data-removed]') ? f.attr('data-removed') : '9999';
+
+		var enabled = selectedVersion >= added && selectedVersion < removed;
+		var wasEnabled = !f.is('.feature-removed');
+		if(enabled != wasEnabled) {
+			if(enabled)
+				f.removeClass('feature-removed');
+			else f.addClass('feature-removed');
+		}
+	});
+
+	$('.feature-count-num').each(function(i) {
+		var c = $(this);
+		var parent = c.parent().parent();
+		var count = parent.children('.feature-list').first().children('.feature:not(.feature-removed)').length;
+		c.text(count);
+	});
 }
 
 // https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array

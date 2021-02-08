@@ -17,7 +17,7 @@
   "conditions": [
     {
       "type": "quark:flag",
-      "flag": "%flag%"
+      "flag": "blue_nether_bricks"
     }
   ]
 } 

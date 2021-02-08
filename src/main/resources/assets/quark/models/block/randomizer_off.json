@@ -1,5 +1,6 @@
 {
 	"__comment": "Designed by Wiiv with Cubik Studio - https://cubik.studio",
+    "ambientocclusion": false,
 	"textures": {
 		"particle": "block/smooth_stone",
 		"slab": "block/smooth_stone",
@@ -8,7 +9,6 @@
 	},
 	"elements": [ 	 
 		{
-			"__comment": "Element",
 			"from": [ 0, 0, 0 ],
 			"to": [ 16, 2, 16 ],
 			"faces": {
@@ -21,7 +21,6 @@
 			}
 		},
 		{
-			"__comment": "Element",
 			"from": [ 7, 2, 12 ],
 			"to": [ 9, 7, 14 ],
 			"faces": {
@@ -33,7 +32,6 @@
 			}
 		},
 		{
-			"__comment": "Element",
 			"from": [ 2, 2, 7 ],
 			"to": [ 4, 7, 9 ],
 			"faces": {
@@ -45,7 +43,6 @@
 			}
 		},
 		{
-			"__comment": "Element",
 			"from": [ 12, 2, 7 ],
 			"to": [ 14, 7, 9 ],
 			"faces": {
@@ -57,7 +54,6 @@
 			}
 		},
 		{
-			"__comment": "Element",
 			"from": [ 6, 2, 6 ],
 			"to": [ 10, 4, 10 ],
 			"faces": {

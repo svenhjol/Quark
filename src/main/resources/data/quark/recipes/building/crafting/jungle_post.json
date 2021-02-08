@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "F",
+    "F",
+    "F"
+  ],
+  "key": {
+    "F": {
+      "item": "minecraft:jungle_fence"
+    }
+  },
+  "result": {
+    "item": "quark:jungle_post",
+    "count": 3
+  },
+  "conditions": [
+    {
+      "type": "quark:flag",
+      "flag": "wooden_posts"
+    }
+  ]
+}

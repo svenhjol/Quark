@@ -22,7 +22,7 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.Items;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biomes;
 import net.minecraftforge.registries.ForgeRegistryEntry;
@@ -39,7 +39,7 @@ public final class OverrideRegistryHandler {
 	}
 
 	private static void registerBlockItem(Block block, @Nullable ItemGroup group) {
-		Item.Settings props = new Item.Settings();
+		Item.Properties props = new Item.Properties();
 		if(group != null)
 			props = props.group(group);
 		
@@ -51,12 +51,8 @@ public final class OverrideRegistryHandler {
 		register(item, Items.class, baseName);
 	}
 
-	public static void registerBiome(Biome item, String baseName) {
-		register(item, Biomes.class, baseName);
-	}
-
 	public static <T extends ForgeRegistryEntry<T>> void register(T obj, Class<?> registryType, String baseName) {
-		Identifier regName = new Identifier("minecraft", baseName);
+		ResourceLocation regName = new ResourceLocation("minecraft", baseName);
 		try {
 			Field field = ForgeRegistryEntry.class.getDeclaredField("registryName");
 			field.setAccessible(true);
@@ -70,7 +66,7 @@ public final class OverrideRegistryHandler {
 		for (Field declared : registryType.getDeclaredFields()) {
 			if (Modifier.isStatic(declared.getModifiers()) && obj.getClass().isAssignableFrom(declared.getType())) {
 				try {
-					IForgeRegistryEntry fieldVal = (IForgeRegistryEntry) declared.get(null);
+					IForgeRegistryEntry<?> fieldVal = (IForgeRegistryEntry) declared.get(null);
 					if (regName.equals(fieldVal.getRegistryName())) {
 						if (obj instanceof Block && fieldVal instanceof Block) {
 							Map<Block, Item> itemMap = GameData.getBlockItemMap();

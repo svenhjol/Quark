@@ -3,17 +3,18 @@ package vazkii.quark.base.module.config;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import net.minecraft.loot.ILootSerializer;
+import net.minecraft.loot.LootConditionType;
+import net.minecraft.loot.LootContext;
+import net.minecraft.loot.conditions.ILootCondition;
+
 import javax.annotation.Nonnull;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.condition.LootConditionType;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.util.JsonSerializer;
 
 /**
  * @author WireSegal
  * Created at 1:23 PM on 8/24/19.
  */
-public class FlagLootCondition implements LootCondition {
+public class FlagLootCondition implements ILootCondition {
 
     private final ConfigFlagManager manager;
     private final String flag;
@@ -31,27 +32,26 @@ public class FlagLootCondition implements LootCondition {
 
 	@Nonnull
     @Override
-	public LootConditionType getType() {
+	public LootConditionType func_230419_b_() {
 		return ConfigFlagManager.flagConditionType;
 	}
 
     
-    public static class Serializer implements JsonSerializer<FlagLootCondition> {
+    public static class Serializer implements ILootSerializer<FlagLootCondition> {
         private final ConfigFlagManager manager;
 
         public Serializer(ConfigFlagManager manager) {
             this.manager = manager;
         }
 
-
         @Override
-        public void func_230424_a_(@Nonnull JsonObject json, @Nonnull FlagLootCondition value, @Nonnull JsonSerializationContext context) {
+        public void serialize(@Nonnull JsonObject json, @Nonnull FlagLootCondition value, @Nonnull JsonSerializationContext context) {
             json.addProperty("flag", value.flag);
         }
 
         @Nonnull
         @Override
-        public FlagLootCondition fromJson(@Nonnull JsonObject json, @Nonnull JsonDeserializationContext context) {
+        public FlagLootCondition deserialize(@Nonnull JsonObject json, @Nonnull JsonDeserializationContext context) {
             return new FlagLootCondition(manager, json.getAsJsonPrimitive("flag").getAsString());
         }
     }

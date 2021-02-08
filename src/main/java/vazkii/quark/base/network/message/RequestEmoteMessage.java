@@ -1,6 +1,6 @@
 package vazkii.quark.base.network.message;
 
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import vazkii.arl.network.IMessage;
 import vazkii.quark.base.handler.ContributorRewardHandler;
@@ -23,7 +23,7 @@ public class RequestEmoteMessage implements IMessage {
 		ServerPlayerEntity player = context.getSender();
 		if (player != null && player.server != null)
 			context.enqueueWork(() -> QuarkNetwork.sendToAllPlayers(
-					new DoEmoteMessage(emote, player.getUuid(), ContributorRewardHandler.getTier(player)),
+					new DoEmoteMessage(emote, player.getUniqueID(), ContributorRewardHandler.getTier(player)),
 					player.server));
 		return true;
 	}

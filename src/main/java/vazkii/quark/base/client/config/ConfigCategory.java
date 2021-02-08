@@ -2,40 +2,56 @@ package vazkii.quark.base.client.config;
 
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.LiteralText;
-import org.apache.commons.lang3.text.WordUtils;
-import vazkii.quark.base.client.screen.CheckboxButton;
-import vazkii.quark.base.client.screen.QCategoryScreen;
-import vazkii.quark.base.client.screen.WidgetWrapper;
-import vazkii.quark.base.module.ModuleCategory;
 
-public class ConfigCategory extends AbstractConfigElement {
+import org.apache.commons.lang3.text.WordUtils;
+
+import net.minecraft.client.resources.I18n;
+import vazkii.quark.api.config.IConfigCategory;
+import vazkii.quark.api.config.IConfigElement;
+import vazkii.quark.api.config.IConfigObject;
+import vazkii.quark.base.client.config.external.ExternalCategory;
+import vazkii.quark.base.client.config.gui.CategoryScreen;
+import vazkii.quark.base.client.config.gui.WidgetWrapper;
+import vazkii.quark.base.client.config.gui.widget.IWidgetProvider;
+import vazkii.quark.base.client.config.gui.widget.PencilButton;
+
+public class ConfigCategory extends AbstractConfigElement implements IConfigCategory, IWidgetProvider {
 
 	public final List<IConfigElement> subElements = new LinkedList<>();
-	
-	private Map<String, ConfigObject<Boolean>> moduleOptions = new HashMap<>();
 	
 	private final String path;
 	private final int depth;
 	private boolean dirty = false;
 	
-	public ConfigCategory(String name, String comment, ConfigCategory parent) {
+	public ConfigCategory(String name, String comment, IConfigCategory parent) {
 		super(name, comment, parent);
 		
-		if(parent == null) {
+		if(parent == null || (parent instanceof ExternalCategory)) {
 			path = name;
 			depth = 0;
 		} else {
-			path = String.format("%s.%s", parent.path, name);
-			depth = 1 + parent.depth;
+			path = String.format("%s.%s", parent.getPath(), name);
+			depth = 1 + parent.getDepth();
 		}
+	}
+	
+	@Override
+	public String getPath() {
+		return path;
+	}
+	
+	@Override
+	public int getDepth() {
+		return depth;
+	}
+	
+	@Override
+	public List<IConfigElement> getSubElements() {
+		return subElements;
 	}
 	
 	@Override
@@ -44,6 +60,7 @@ public class ConfigCategory extends AbstractConfigElement {
 		return WordUtils.capitalize(getName().replaceAll("_", " "));
 	}
 
+	@Override
 	public void updateDirty() {
 		dirty = false;
 		for(IConfigElement sub : subElements)
@@ -77,34 +94,36 @@ public class ConfigCategory extends AbstractConfigElement {
 		subElements.forEach(e -> e.reset(hard));		
 	}
 	
-	public ConfigCategory addCategory(String name, String comment) {
-		ConfigCategory newCategory = new ConfigCategory(name, comment, this);
-		subElements.add(newCategory);
-		return newCategory;
+	@Override
+	public IConfigCategory addCategory(String name, String comment) {
+		return addCategory(new ConfigCategory(name, comment, this));
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <T> void addObject(String name, T default_, Supplier<T> getter, String comment, Predicate<Object> restriction) {
-		ConfigObject<T> obj = new ConfigObject<T>(name, comment, default_, getter, this); 
+	public IConfigCategory addCategory(IConfigCategory category) {
+		subElements.add(category);
+		return category;
+	}
+	
+	@Override
+	public <T> IConfigObject<T> addEntry(String name, T default_, Supplier<T> getter, String comment, Predicate<Object> restriction) {
+		IConfigObject<T> obj = ConfigObject.create(name, comment, default_, getter, restriction, this); 
+		addEntry(obj, default_);
+		return obj;
+	}
+	
+	public <T> void addEntry(IConfigObject<T> obj, T default_) {
 		subElements.add(obj);
-		
-		if(parent == null && default_ instanceof Boolean)
-			moduleOptions.put(name, (ConfigObject<Boolean>) obj);
 	}
 	
-	@SuppressWarnings("deprecation")
-	public ConfigObject<Boolean> getModuleOption(ModuleCategory category) {
-		return moduleOptions.get(WordUtils.capitalizeFully(category.name));
-	}
-	
+	@Override
 	public void close() {
 		subElements.removeIf(e -> e instanceof ConfigCategory && ((ConfigCategory) e).subElements.isEmpty());
 		Collections.sort(subElements);
 	}
 
 	@Override
-	public void addWidgets(QCategoryScreen parent, List<WidgetWrapper> widgets) {
-		widgets.add(new WidgetWrapper(new ButtonWidget(230, 3, 20, 20, new LiteralText("->"), parent.categoryLink(this))));
+	public void addWidgets(CategoryScreen parent, List<WidgetWrapper> widgets) {
+		widgets.add(new WidgetWrapper(new PencilButton(230, 3, parent.categoryLink(this))));
 	}
 
 	@Override
@@ -120,7 +139,7 @@ public class ConfigCategory extends AbstractConfigElement {
 	@Override
 	public String getSubtitle() {
 		int size = subElements.size();
-		return size == 1 ? "1 child" : String.format("%d children", subElements.size());
+		return size == 1 ? I18n.format("quark.gui.config.onechild") : I18n.format("quark.gui.config.nchildren", subElements.size());
 	}
 
 	@Override

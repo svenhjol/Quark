@@ -1,21 +1,21 @@
 package vazkii.quark.base.block;
 
-import net.minecraft.block.PillarBlock;
+import net.minecraft.block.RotatedPillarBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.NonNullList;
 import vazkii.arl.util.RegistryHelper;
-import vazkii.quark.base.module.Module;
+import vazkii.quark.base.module.QuarkModule;
 
 import javax.annotation.Nullable;
 import java.util.function.BooleanSupplier;
 
-public class QuarkPillarBlock extends PillarBlock implements IQuarkBlock {
+public class QuarkPillarBlock extends RotatedPillarBlock implements IQuarkBlock {
 
-	private final Module module;
+	private final QuarkModule module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkPillarBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
+	public QuarkPillarBlock(String regname, QuarkModule module, ItemGroup creativeTab, Properties properties) {
 		super(properties);
 		this.module = module;
 
@@ -25,14 +25,14 @@ public class QuarkPillarBlock extends PillarBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
+	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.addStacksForDisplay(group, items);
+			super.fillItemGroup(group, items);
 	}
 
 	@Nullable
 	@Override
-	public Module getModule() {
+	public QuarkModule getModule() {
 		return module;
 	}
 

@@ -39,7 +39,11 @@
 
 			if(!$hide_count) {
 				div('feature-count');
-					write("($count Features)");
+					write("(");
+						span("feature-count-num");
+							write($count);
+						pop();
+					write(" Features)");
 				pop();
 			}
 
@@ -79,7 +83,15 @@
 			return;
 		}
 
-		div('feature');
+		$added_ver = array_key_exists('added', $feature) ? $feature['added'] : "1.14";
+		$removed_ver = array_key_exists('removed', $feature) ? $feature['removed'] : '';
+		$data = $removed_ver ? array('data-added' => $added_ver, 'data-removed' => $removed_ver) : array('data-added' => $added_ver);
+
+		$class = 'feature';
+		if($removed_ver)
+			$class .= ' feature-removed';
+
+		div($class, $data);
 			div('feature-image');
 				img("img/features/$category_name/{$feature['image']}");
 			pop();
@@ -88,15 +100,19 @@
 				div('feature-header');
 					div('feature-title');
 						write($feature['name']);
-						if(array_key_exists('removed', $feature) && $feature['removed']) {
-							span('feature-removed');
-								write(' (Removed)');
-							pop();
-						}
 					pop();
 
 					div('feature-version');
-						write($feature['versions']);
+						if(array_key_exists('custom_version', $feature))
+							write($feature['custom_version']);
+						else {
+							write($added_ver);
+
+							if($removed_ver) {
+								write('-');
+								write($removed_ver);
+							} else write('+');
+						}
 					pop();
 				pop();
 

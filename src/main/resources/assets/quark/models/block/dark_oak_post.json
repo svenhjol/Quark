@@ -1,0 +1,7 @@
+{
+  "parent": "quark:block/post",
+  "textures": {
+    "top": "quark:block/dark_oak_post_top",
+	"side": "quark:block/dark_oak_post"
+  }
+}

@@ -1,8 +1,8 @@
 package vazkii.quark.base.network;
 
-import net.minecraft.network.Packet;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.IPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraftforge.fml.network.NetworkDirection;
 import vazkii.arl.network.IMessage;
 import vazkii.arl.network.NetworkHandler;
@@ -21,9 +21,10 @@ import vazkii.quark.base.network.message.RequestEmoteMessage;
 import vazkii.quark.base.network.message.SetLockProfileMessage;
 import vazkii.quark.base.network.message.SortInventoryMessage;
 import vazkii.quark.base.network.message.SpamlessChatMessage;
-import vazkii.quark.base.network.message.SwapItemsMessage;
+import vazkii.quark.base.network.message.SwapArmorMessage;
 import vazkii.quark.base.network.message.SyncChainMessage;
 import vazkii.quark.base.network.message.UpdateAfkMessage;
+import vazkii.quark.base.network.message.WithdrawSeedsMessage;
 
 public final class QuarkNetwork {
 
@@ -42,11 +43,12 @@ public final class QuarkNetwork {
 		network.register(UpdateAfkMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(LinkItemMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(OpenBoatChestMessage.class, NetworkDirection.PLAY_TO_SERVER);
-		network.register(SwapItemsMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(ChangeHotbarMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(SetLockProfileMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(HandleBackpackMessage.class, NetworkDirection.PLAY_TO_SERVER);
 		network.register(MatrixEnchanterOperationMessage.class, NetworkDirection.PLAY_TO_SERVER);
+		network.register(WithdrawSeedsMessage.class, NetworkDirection.PLAY_TO_SERVER);
+		network.register(SwapArmorMessage.class, NetworkDirection.PLAY_TO_SERVER);
 
 		network.register(DoEmoteMessage.class, NetworkDirection.PLAY_TO_CLIENT);
 		network.register(SpamlessChatMessage.class, NetworkDirection.PLAY_TO_CLIENT);
@@ -68,10 +70,10 @@ public final class QuarkNetwork {
 	}
 	
 	public static void sendToAllPlayers(IMessage msg, MinecraftServer server) {
-		sendToPlayers(msg, server.getPlayerManager().getPlayerList());
+		sendToPlayers(msg, server.getPlayerList().getPlayers());
 	}
 
-	public static Packet<?> toVanillaPacket(IMessage msg, NetworkDirection direction) {
+	public static IPacket<?> toVanillaPacket(IMessage msg, NetworkDirection direction) {
 		return network.channel.toVanillaPacket(msg, direction);
 	}
 	

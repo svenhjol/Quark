@@ -1,21 +1,23 @@
 package vazkii.quark.base.block;
 
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
-import vazkii.arl.block.BasicBlock;
-import vazkii.arl.util.RegistryHelper;
-import vazkii.quark.base.module.Module;
+import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nullable;
-import java.util.function.BooleanSupplier;
+
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
+import vazkii.arl.block.BasicBlock;
+import vazkii.arl.util.RegistryHelper;
+import vazkii.quark.base.module.QuarkModule;
 
 public class QuarkBlock extends BasicBlock implements IQuarkBlock {
 	
-	private final Module module;
+	private final QuarkModule module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkBlock(String regname, Module module, ItemGroup creativeTab, Settings properties) {
+	public QuarkBlock(String regname, QuarkModule module, ItemGroup creativeTab, Properties properties) {
 		super(regname, properties);
 		this.module = module;
 		
@@ -24,9 +26,9 @@ public class QuarkBlock extends BasicBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {
+	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.addStacksForDisplay(group, items);
+			super.fillItemGroup(group, items);
 	}
 
 	@Override
@@ -42,8 +44,14 @@ public class QuarkBlock extends BasicBlock implements IQuarkBlock {
 
 	@Nullable
 	@Override
-	public Module getModule() {
+	public QuarkModule getModule() {
 		return module;
 	}
 
+	public static interface Constructor<T extends Block> {
+		
+		public T make(String regname, QuarkModule module, ItemGroup creativeTab, Properties properties);
+		
+	}
+	
 }

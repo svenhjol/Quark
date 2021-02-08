@@ -1,82 +1,211 @@
-plugins {
-    id 'fabric-loom' version '0.4-SNAPSHOT'
-    id 'maven-publish'
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
+        jcenter()
+        mavenCentral()
+        maven { url = 'https://oss.sonatype.org/content/groups/public/' }
+        maven { url = 'https://maven.fabricmc.net/' }
+    }
+    dependencies {
+        classpath("me.ramidzkh:yarnforge-plugin")
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7-SNAPSHOT'
+    }
 }
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+apply plugin: 'yarnforge-plugin'
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+ext.configFile = file('build.properties')
+ext.config = parseConfig(configFile)
 
-archivesBaseName = project.archives_base_name
-version = project.mod_version
-group = project.maven_group
+version = "${config.version}-${config.build_number}"
+group = "vazkii.${config.mod_id}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = config.mod_name
+
+compileJava.options.compilerArgs << "-Xlint:all,-classfile,-processing,-deprecation"
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+if (System.getenv('BUILD_NUMBER') != null) {
+    version += "." + System.getenv('BUILD_NUMBER')
+}
 
 minecraft {
-//    accessWidener = file("src/main/resources/quark.accesswidener")
-}
+    // The mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   Snapshot are built nightly.
+    // stable_#            Stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
 
-dependencies {
-    //to change the versions see the gradle.properties file
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    mappings channel: "${config.mapping_channel}", version: "${config.mapping_version}"
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            workingDirectory project.file('run')
+            arg "-mixin.config=quark.mixins.json"
 
-    // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
-    // You may need to force-disable transitiveness on them.
-    implementation 'com.google.code.findbugs:jsr305:3.0.2'
-}
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
 
-processResources {
-    inputs.property "version", project.version
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
 
-    from(sourceSets.main.resources.srcDirs) {
-        include "fabric.mod.json"
-        expand "version": project.version
-    }
-
-    from(sourceSets.main.resources.srcDirs) {
-        exclude "fabric.mod.json"
-    }
-}
-
-// ensure that the encoding is set to UTF-8, no matter what the system default is
-// this fixes some edge cases with special characters not displaying correctly
-// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
-}
-
-// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-// if it is present.
-// If you remove this task, sources will not be generated.
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = "sources"
-    from sourceSets.main.allSource
-}
-
-jar {
-    from "LICENSE"
-}
-
-// configure the maven publication
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            // add all the jars that should be included when publishing to maven
-            artifact(remapJar) {
-                builtBy remapJar
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
             }
-            artifact(sourcesJar) {
-                builtBy remapSourcesJar
+        }
+
+        server {
+            workingDirectory project.file('run')
+            arg "-mixin.config=quark.mixins.json"
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
             }
         }
     }
+}
 
-    // select the repositories you want to publish to
-    repositories {
-        // uncomment to publish to the local maven
-        // mavenLocal()
+mixin {
+    add sourceSets.main, 'quark.mixins.refmap.json'
+}
+
+repositories {
+    maven {
+        // for AutoRegLib
+        name "blamejared"
+        url "http://maven.blamejared.com/"
+    }
+    maven {
+        // for JEI
+        name "progwml6"
+        url "http://dvs1.progwml6.com/files/maven"
+    }
+    maven {
+        // for Mappings
+        name "gigaherz"
+        url "http://dogforce-games.com/maven/"
     }
 }
+
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${config.mc_version}-${config.forge_version}"
+
+    compile fg.deobf("vazkii.autoreglib:AutoRegLib:${config.arl_version}")
+  
+    compileOnly fg.deobf("mezz.jei:jei-${config.mc_version}:${config.jei_version}:api")
+    runtimeOnly fg.deobf("mezz.jei:jei-${config.mc_version}:${config.jei_version}")
+
+}
+
+processResources {
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'META-INF/mods.toml'
+
+        // replace version and mcversion
+        expand 'version': project.version
+    }
+
+    // copy everything else, thats not the mods.toml
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'META-INF/mods.toml', '**/psd/**'
+    }
+}
+
+task incrementBuildNumber {
+    doFirst {
+        config.build_number = (config.build_number.toString().toInteger()) + 1
+        configFile.withWriter {
+            config.toProperties().store(it, "")
+        }
+    }
+
+    //file('web/versions.ini').append("\n${version}=${minecraft.version}")
+    //file("${config.dir_repo}/version/${minecraft.version}.txt").write("${version}")
+}
+
+import java.util.regex.Pattern
+task sortArtifacts(type: Copy) {
+    from jar.destinationDir
+    into config.dir_output
+    //Put each jar with a classifier in a subfolder with the classifier as its name
+    eachFile {
+        //This matcher is used to get the classifier of the jar
+        def matcher = Pattern.compile(Pattern.quote("$config.mod_name-$version") + "-(?<classifier>\\w+).jar").matcher(it.name)
+        //Only change the destination for full matches, i.e jars with classifiers
+        if (matcher.matches())
+        {
+            def classifier = matcher.group('classifier')
+            /* Set the relative path to change the destination, since 
+             * Gradle doesn't seem to like the absolute path being set*/
+            it.relativePath = it.relativePath.parent.append(false, classifier, it.name)
+        }
+    }
+}
+
+def parseConfig(File config) {
+    config.withReader {
+        def prop = new Properties()
+        prop.load(it)
+        return (new ConfigSlurper().parse(prop))
+    }
+}
+
+jar {
+    //rename the default output, for some better... sanity with scipts
+    archiveName = "${baseName}-${version}.${extension}"
+
+     manifest {
+        attributes([
+            "Specification-Title": "${config.mod_id}",
+            "Specification-Vendor": "vazkii",
+            "Specification-Version": "1", // We are version 1 of ourselves
+            "Implementation-Title": "${config.mod_id}",
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"vazkii",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            "MixinConfigs": "quark.mixins.json"
+        ])
+    }
+
+    exclude "**/*.bat"
+    exclude "**/*.psd"
+    exclude "**/*.exe"
+    exclude "**/unused"
+    exclude "**/genscripts"
+}
+
+//artifacts {
+//    archives deobfJar
+//}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "file://" + (System.getenv("local_maven") != null ? System.getenv("local_maven") : System.getenv("bamboo_local_maven")))
+        }
+    }
+}
+
+defaultTasks 'clean', 'build', 'sortArtifacts', 'incrementBuildNumber'

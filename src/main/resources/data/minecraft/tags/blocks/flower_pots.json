@@ -9,9 +9,11 @@
     "quark:potted_cocoa_bean",
     "quark:potted_glowshroom",
     "quark:potted_grass",
+    "quark:potted_large_fern",
     "quark:potted_lavender_blossom_sapling",
     "quark:potted_lilac",
     "quark:potted_melon",
+    "quark:potted_nether_sprouts",
     "quark:potted_nether_wart",
     "quark:potted_orange_blossom_sapling",
     "quark:potted_peony",
@@ -22,6 +24,10 @@
     "quark:potted_sea_pickle",
     "quark:potted_sugar_cane",
     "quark:potted_sunflower",
+    "quark:potted_tall_grass",
+    "quark:potted_twisting_vines",
+    "quark:potted_vine",
+    "quark:potted_weeping_vines",
     "quark:potted_wheat",
     "quark:potted_yellow_blossom_sapling"
   ]

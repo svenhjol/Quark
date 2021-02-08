@@ -1,8 +1,8 @@
 package vazkii.quark.base.handler;
 
 import com.google.common.collect.Lists;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
 import net.minecraftforge.registries.GameData;
 import vazkii.arl.util.RegistryHelper;
 
@@ -55,7 +55,7 @@ public class QuarkSounds {
     }
 
     public static SoundEvent register(String name) {
-        Identifier loc = GameData.checkPrefix(name, false);
+        ResourceLocation loc = GameData.checkPrefix(name, false);
         SoundEvent event = new SoundEvent(loc);
         event.setRegistryName(loc);
         REGISTRY_DEFERENCE.add(event);

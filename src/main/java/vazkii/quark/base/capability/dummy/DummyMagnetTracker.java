@@ -2,9 +2,10 @@ package vazkii.quark.base.capability.dummy;
 
 import java.util.Collection;
 import java.util.Collections;
+
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.vector.Vector3i;
 import vazkii.quark.api.IMagnetTracker;
 
 /**
@@ -13,8 +14,8 @@ import vazkii.quark.api.IMagnetTracker;
  */
 public class DummyMagnetTracker implements IMagnetTracker {
     @Override
-    public Vec3i getNetForce(BlockPos pos) {
-        return Vec3i.ZERO;
+    public Vector3i getNetForce(BlockPos pos) {
+        return Vector3i.NULL_VECTOR;
     }
 
     @Override

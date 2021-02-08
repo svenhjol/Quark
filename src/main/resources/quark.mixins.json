@@ -1,0 +1,42 @@
+{
+  "minVersion": "0.8",
+  "required": true,
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "quark.mixins.refmap.json",
+  "package": "vazkii.quark.mixin",
+  "mixins": [
+    "AbstractMinecartEntityMixin",
+    "BlockItemMixin",
+    "BoatEntityMixin",
+    "DamageEnchantmentMixin",
+    "DamageSourceMixin",
+    "EnchantmentHelperMixin",
+    "EnchantmentMixin",
+    "EntityMixin",
+    "ItemStackMixin",
+    "PiercingEnchantmentMixin",
+    "PistonBlockMixin",
+    "PistonTileEntityMixin",
+    "ServerWorldMixin",
+    "TemptGoalMixin",
+    "TrapDoorBlockMixin",
+    "StructurePieceMixin",
+    "StructureStartMixin",
+    "TemplateMixin"
+  ],
+  "client": [
+    "client.BipedArmorLayerMixin",
+    "client.BipedModelMixin",
+    "client.ElytraLayerMixin",
+    "client.EntityRendererManagerMixin",
+    "client.ItemRendererMixin",
+    "client.PistonTileEntityRendererMixin",
+    "client.RenderTypeBuffersMixin",
+    "client.ScreenMixin",
+    "client.ContainerScreenMixin",
+    "client.TridentRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,6 +1,7 @@
 modLoader="javafml"
 loaderVersion="[28,)"
 issueTrackerURL="https://github.com/Vazkii/Quark"
+license="https://github.com/Vazkii/Quark/blob/master/LICENSE.md"
 
 [[mods]]
 modId="quark"
@@ -14,13 +15,13 @@ Small things.
 [[dependencies.quark]]
     modId="autoreglib"
     mandatory=true
-    versionRange="[1.4-34,)"
+    versionRange="[1.6-47,)"
     ordering="AFTER"
     side="BOTH"
 
 [[dependencies.quark]]
     modId="forge"
     mandatory=true
-    versionRange="[28.1.61,)"
+    versionRange="[35.1.28,)"
     ordering="AFTER"
     side="BOTH"

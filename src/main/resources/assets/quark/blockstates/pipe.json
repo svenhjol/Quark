@@ -1,172 +1,55 @@
 {
     "multipart": [
         {   
-        	"when": { "north": "pipe|terminal" },
+        	"when": { "north": true },
             "apply": { "model": "quark:block/pipe_side" }
         },
         {   
-        	"when": { "south": "pipe|terminal" },
+        	"when": { "south": true },
             "apply": { "model": "quark:block/pipe_side", "y": 180 }
         },
         {   
-        	"when": { "east": "pipe|terminal" },
+        	"when": { "east": true },
             "apply": { "model": "quark:block/pipe_side", "y": 90 }
         },
         {   
-        	"when": { "west": "pipe|terminal" },
+        	"when": { "west": true },
             "apply": { "model": "quark:block/pipe_side", "y": 270 }
         },
-		{   
-        	"when": { "down": "pipe|terminal" },
+		    {   
+        	"when": { "down": true },
             "apply": { "model": "quark:block/pipe_side", "x": 90 }
         },
         {   
-        	"when": { "up": "pipe|terminal" },
+        	"when": { "up": true },
             "apply": { "model": "quark:block/pipe_side", "x": 270 }
         },
-
-        {   
-        	"when": { "north": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector" }
-        },
-        {   
-        	"when": { "south": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector", "y": 180 }
-        },
-        {   
-        	"when": { "east": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector", "y": 90 }
-        },
-        {   
-        	"when": { "west": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector", "y": 270 }
-        },
-        {   
-        	"when": { "down": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector", "x": 90 }
-        },
-        {   
-        	"when": { "up": "terminal" },
-            "apply": { "model": "quark:block/pipe_connector", "x": 270 }
-        },
-
-        {   
-        	"when": { "north": "prop" },
-            "apply": { "model": "quark:block/pipe_prop" }
-        },
-        {   
-        	"when": { "south": "prop" },
-            "apply": { "model": "quark:block/pipe_prop", "y": 180 }
-        },
-        {   
-        	"when": { "east": "prop" },
-            "apply": { "model": "quark:block/pipe_prop", "y": 90 }
-        },
-        {   
-        	"when": { "west": "prop" },
-            "apply": { "model": "quark:block/pipe_prop", "y": 270 }
-        },
-        {   
-        	"when": { "down": "prop" },
-            "apply": { "model": "quark:block/pipe_prop", "x": 90 }
-        },
-        {   
-        	"when": { "up": "prop" },
-            "apply": { "model": "quark:block/pipe_prop", "x": 270 }
-        },
-
-      {
-        "when": {
-          "north": "none",
-          "south": "pipe|terminal",
-          "east": "none|prop",
-          "west": "none|prop",
-          "up": "none|prop",
-          "down": "none|prop"
-        },
-        "apply": { "model": "quark:block/pipe_flare" }
-      },
-      {
-        "when": {
-          "north": "pipe|terminal",
-          "south": "none",
-          "east": "none|prop",
-          "west": "none|prop",
-          "up": "none|prop",
-          "down": "none|prop"
-        },
-        "apply": { "model": "quark:block/pipe_flare", "y": 180 }
-      },
-      {
-        "when": {
-          "north": "none|prop",
-          "south": "none|prop",
-          "east": "none",
-          "west": "pipe|terminal",
-          "up": "none|prop",
-          "down": "none|prop"
-        },
-        "apply": { "model": "quark:block/pipe_flare", "y": 90 }
-      },
-      {
-        "when": {
-          "north": "none|prop",
-          "south": "none|prop",
-          "east": "pipe|terminal",
-          "west": "none",
-          "up": "none|prop",
-          "down": "none|prop"
-        },
-        "apply": { "model": "quark:block/pipe_flare", "y": 270 }
-      },
-      {
-        "when": {
-          "north": "none|prop",
-          "south": "none|prop",
-          "east": "none|prop",
-          "west": "none|prop",
-          "up": "pipe|terminal",
-          "down": "none"
-        },
-        "apply": { "model": "quark:block/pipe_flare", "x": 90 }
-      },
-      {
-        "when": {
-          "north": "none|prop",
-          "south": "none|prop",
-          "east": "none|prop",
-          "west": "none|prop",
-          "up": "none",
-          "down": "pipe|terminal"
-        },
-        "apply": { "model": "quark:block/pipe_flare", "x": 270 }
-      },
       {
         "when": {
           "OR": [
             {
-              "north": "none",
-              "south": "none|prop"
+              "north": false,
+              "south": false
             },
             {
-              "north": "none",
-              "south": "pipe|terminal",
-              "east": "pipe|terminal"
+              "north": false,
+              "south": true,
+              "east": true
             },
             {
-              "north": "none",
-              "south": "pipe|terminal",
-              "west": "pipe|terminal"
+              "north": false,
+              "south": true,
+              "west": true
             },
             {
-              "north": "none",
-              "south": "pipe|terminal",
-              "up": "pipe|terminal"
+              "north": false,
+              "south": true,
+              "up": true
             },
             {
-              "north": "none",
-              "south": "pipe|terminal",
-              "down": "pipe|terminal"
+              "north": false,
+              "south": true,
+              "down": true
             }
           ]
         },
@@ -177,28 +60,28 @@
         "when": {
           "OR": [
             {
-              "south": "none",
-              "north": "none|prop"
+              "south": false,
+              "north": false
             },
             {
-              "south": "none",
-              "north": "pipe|terminal",
-              "east": "pipe|terminal"
+              "south": false,
+              "north": true,
+              "east": true
             },
             {
-              "south": "none",
-              "north": "pipe|terminal",
-              "west": "pipe|terminal"
+              "south": false,
+              "north": true,
+              "west": true
             },
             {
-              "south": "none",
-              "north": "pipe|terminal",
-              "up": "pipe|terminal"
+              "south": false,
+              "north": true,
+              "up": true
             },
             {
-              "south": "none",
-              "north": "pipe|terminal",
-              "down": "pipe|terminal"
+              "south": false,
+              "north": true,
+              "down": true
             }
           ]
         },
@@ -209,28 +92,28 @@
         "when": {
           "OR": [
             {
-              "east": "none",
-              "west": "none|prop"
+              "east": false,
+              "west": false
             },
             {
-              "east": "none",
-              "west": "pipe|terminal",
-              "north": "pipe|terminal"
+              "east": false,
+              "west": true,
+              "north": true
             },
             {
-              "east": "none",
-              "west": "pipe|terminal",
-              "south": "pipe|terminal"
+              "east": false,
+              "west": true,
+              "south": true
             },
             {
-              "east": "none",
-              "west": "pipe|terminal",
-              "up": "pipe|terminal"
+              "east": false,
+              "west": true,
+              "up": true
             },
             {
-              "east": "none",
-              "west": "pipe|terminal",
-              "down": "pipe|terminal"
+              "east": false,
+              "west": true,
+              "down": true
             }
           ]
         },
@@ -241,28 +124,28 @@
         "when": {
           "OR": [
             {
-              "west": "none",
-              "east": "none|prop"
+              "west": false,
+              "east": false
             },
             {
-              "west": "none",
-              "east": "pipe|terminal",
-              "north": "pipe|terminal"
+              "west": false,
+              "east": true,
+              "north": true
             },
             {
-              "west": "none",
-              "east": "pipe|terminal",
-              "south": "pipe|terminal"
+              "west": false,
+              "east": true,
+              "south": true
             },
             {
-              "west": "none",
-              "east": "pipe|terminal",
-              "up": "pipe|terminal"
+              "west": false,
+              "east": true,
+              "up": true
             },
             {
-              "west": "none",
-              "east": "pipe|terminal",
-              "down": "pipe|terminal"
+              "west": false,
+              "east": true,
+              "down": true
             }
           ]
         },
@@ -273,28 +156,28 @@
         "when": {
           "OR": [
             {
-              "down": "none",
-              "up": "none|prop"
+              "down": false,
+              "up": false
             },
             {
-              "down": "none",
-              "up": "pipe|terminal",
-              "east": "pipe|terminal"
+              "down": false,
+              "up": true,
+              "east": true
             },
             {
-              "down": "none",
-              "up": "pipe|terminal",
-              "west": "pipe|terminal"
+              "down": false,
+              "up": true,
+              "west": true
             },
             {
-              "down": "none",
-              "up": "pipe|terminal",
-              "north": "pipe|terminal"
+              "down": false,
+              "up": true,
+              "north": true
             },
             {
-              "down": "none",
-              "up": "pipe|terminal",
-              "south": "pipe|terminal"
+              "down": false,
+              "up": true,
+              "south": true
             }
           ]
         },
@@ -305,28 +188,28 @@
         "when": {
           "OR": [
             {
-              "up": "none",
-              "down": "none|prop"
+              "up": false,
+              "down": false
             },
             {
-              "up": "none",
-              "down": "pipe|terminal",
-              "east": "pipe|terminal"
+              "up": false,
+              "down": true,
+              "east": true
             },
             {
-              "up": "none",
-              "down": "pipe|terminal",
-              "west": "pipe|terminal"
+              "up": false,
+              "down": true,
+              "west": true
             },
             {
-              "up": "none",
-              "down": "pipe|terminal",
-              "north": "pipe|terminal"
+              "up": false,
+              "down": true,
+              "north": true
             },
             {
-              "up": "none",
-              "down": "pipe|terminal",
-              "south": "pipe|terminal"
+              "up": false,
+              "down": true,
+              "south": true
             }
           ]
         },

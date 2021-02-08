@@ -1,7 +1,7 @@
 package vazkii.quark.base.network.message;
 
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import vazkii.arl.network.IMessage;
@@ -31,11 +31,11 @@ public class ChangeHotbarMessage implements IMessage {
 		return true;
 	}
 	
-	public void swap(Inventory inv, int slot1, int slot2) {
-		ItemStack stack1 = inv.getStack(slot1);
-		ItemStack stack2 = inv.getStack(slot2);
-		inv.setStack(slot2, stack1);
-		inv.setStack(slot1, stack2);
+	public void swap(IInventory inv, int slot1, int slot2) {
+		ItemStack stack1 = inv.getStackInSlot(slot1);
+		ItemStack stack2 = inv.getStackInSlot(slot2);
+		inv.setInventorySlotContents(slot2, stack1);
+		inv.setInventorySlotContents(slot1, stack2);
 	}
 	
 }

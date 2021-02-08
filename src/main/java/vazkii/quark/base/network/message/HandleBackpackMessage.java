@@ -1,13 +1,13 @@
 package vazkii.quark.base.network.message;
 
-import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import net.minecraftforge.fml.network.NetworkHooks;
 import vazkii.arl.network.IMessage;
-import vazkii.quark.oddities.container.BackpackContainer;
+import vazkii.quark.addons.oddities.container.BackpackContainer;
 
 public class HandleBackpackMessage implements IMessage {
 
@@ -26,12 +26,16 @@ public class HandleBackpackMessage implements IMessage {
 		ServerPlayerEntity player = context.getSender();
 		context.enqueueWork(() -> {
 			if(open) {
-				ItemStack stack = player.getEquippedStack(EquipmentSlot.CHEST);
-				if(stack.getItem() instanceof NamedScreenHandlerFactory)
-					NetworkHooks.openGui(player, (NamedScreenHandlerFactory) stack.getItem(), player.getBlockPos()); // getPosition
+				ItemStack stack = player.getItemStackFromSlot(EquipmentSlotType.CHEST);
+				if(stack.getItem() instanceof INamedContainerProvider) {
+					ItemStack holding = player.inventory.getItemStack();
+					player.inventory.setItemStack(ItemStack.EMPTY);
+					NetworkHooks.openGui(player, (INamedContainerProvider) stack.getItem(), player.getPosition());
+					player.inventory.setItemStack(holding);
+				}
 			} else {
 				BackpackContainer.saveCraftingInventory(player);
-				player.currentScreenHandler = player.playerScreenHandler;
+				player.openContainer = player.container;
 			}
 		});
 

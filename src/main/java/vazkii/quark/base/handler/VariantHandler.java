@@ -4,14 +4,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import com.google.common.base.Functions;
-
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.FlowerPotBlock;
-import net.minecraft.block.Material;
-import net.minecraft.util.Identifier;
+import net.minecraft.block.material.Material;
+import net.minecraft.util.ResourceLocation;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.block.IQuarkBlock;
 import vazkii.quark.base.block.QuarkSlabBlock;
@@ -47,24 +45,26 @@ public class VariantHandler {
 		WALLS.add(new QuarkWallBlock(block));
 	}
 
-	public static void addFlowerPot(Block block, String name, Function<Block.Properties, Block.Properties> propertiesFunc) {
-		Block.Properties props = Block.Properties.of(Material.SUPPORTED).strength(0F);
+	public static FlowerPotBlock addFlowerPot(Block block, String name, Function<Block.Properties, Block.Properties> propertiesFunc) {
+		Block.Properties props = Block.Properties.create(Material.MISCELLANEOUS).hardnessAndResistance(0F);
 		props = propertiesFunc.apply(props);
 		
-		Block potted = new FlowerPotBlock(() -> (FlowerPotBlock) Blocks.FLOWER_POT, block::getBlock, props);
+		FlowerPotBlock potted = new FlowerPotBlock(() -> (FlowerPotBlock) Blocks.FLOWER_POT, block::getBlock, props);
 		RenderLayerHandler.setRenderType(potted, RenderTypeSkeleton.CUTOUT);
-		Identifier resLoc = block.getBlock().getRegistryName();
+		ResourceLocation resLoc = block.getBlock().getRegistryName();
 		if (resLoc == null)
-			resLoc = new Identifier("missingno");
+			resLoc = new ResourceLocation("missingno");
 		
 		RegistryHelper.registerBlock(potted, "potted_" + name, false);
 		((FlowerPotBlock)Blocks.FLOWER_POT).addPlant(resLoc, () -> potted);
+		
+		return potted;
 	}
 	
-	public static AbstractBlock.Settings realStateCopy(IQuarkBlock parent) {
-		AbstractBlock.Settings props = AbstractBlock.Settings.copy(parent.getBlock());
+	public static AbstractBlock.Properties realStateCopy(IQuarkBlock parent) {
+		AbstractBlock.Properties props = AbstractBlock.Properties.from(parent.getBlock());
 		if(parent instanceof IVariantsShouldBeEmissive)
-			props = props.emissiveLighting((s, r, p) -> true);
+			props = props.setEmmisiveRendering((s, r, p) -> true);
 		
 		return props;
 	}

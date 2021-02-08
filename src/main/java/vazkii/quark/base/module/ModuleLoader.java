@@ -1,37 +1,50 @@
 package vazkii.quark.base.module;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.TextureStitchEvent;
-import vazkii.quark.base.Quark;
-import vazkii.quark.base.module.config.ConfigResolver;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import com.google.common.base.Preconditions;
+
+import net.minecraft.block.Block;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
+import net.minecraftforge.event.TickEvent.Phase;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.event.lifecycle.ParallelDispatchEvent;
+import vazkii.quark.base.Quark;
+import vazkii.quark.base.block.IQuarkBlock;
+import vazkii.quark.base.item.IQuarkItem;
+import vazkii.quark.base.module.config.ConfigResolver;
 
 public final class ModuleLoader {
 	
 	public static final ModuleLoader INSTANCE = new ModuleLoader(); 
 	
-	private Map<Class<? extends Module>, Module> foundModules = new HashMap<>();
+	private Map<Class<? extends QuarkModule>, QuarkModule> foundModules = new HashMap<>();
 	
 	private ConfigResolver config;
+	private boolean clientTicked = false;
+	private ParallelDispatchEvent event;
 	
 	private ModuleLoader() { }
 	
 	public void start() {
 		findModules();
-		dispatch(Module::construct);
-		dispatch(Module::modulesStarted);
+		dispatch(QuarkModule::construct);
+		dispatch(QuarkModule::modulesStarted);
 		resolveConfigSpec();
 	}
 	
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void clientStart() {
-		dispatch(Module::constructClient);
+		dispatch(QuarkModule::constructClient);
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 	
 	private void findModules() {
@@ -47,55 +60,94 @@ public final class ModuleLoader {
 	
 	public void configChanged() {
 		config.configChanged();
-		dispatch(Module::configChanged);
+		dispatch(QuarkModule::configChanged);
 	}
 
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void configChangedClient() {
-		dispatch(Module::configChangedClient);
+		dispatch(QuarkModule::configChangedClient);
 	}
 	
-	public void setup() {
-		dispatch(Module::earlySetup);
+	public void setup(ParallelDispatchEvent event) {
+		this.event = event;
+		dispatch(QuarkModule::earlySetup);
 		Quark.proxy.handleQuarkConfigChange();
-		dispatch(Module::setup);
+		dispatch(QuarkModule::setup);
+		event = null;
 	}
 
-	@Environment(EnvType.CLIENT)
-	public void clientSetup() {
-		dispatch(Module::clientSetup);
+	@OnlyIn(Dist.CLIENT)
+	public void clientSetup(ParallelDispatchEvent event) {
+		this.event = event;
+		dispatch(QuarkModule::clientSetup);
+		event = null;
 	}
 
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void modelRegistry() {
-		dispatch(Module::modelRegistry);
+		dispatch(QuarkModule::modelRegistry);
 	}
 
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void textureStitch(TextureStitchEvent.Pre event) {
 		dispatch(m -> m.textureStitch(event));
 	}
 
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void postTextureStitch(TextureStitchEvent.Post event) {
 		dispatch(m -> m.postTextureStitch(event));
 	}
 	
-	public void loadComplete() {
-		dispatch(Module::loadComplete);
+	public void loadComplete(ParallelDispatchEvent event) {
+		this.event = event;
+		dispatch(QuarkModule::loadComplete);
+		event = null;
 	}
 	
-	private void dispatch(Consumer<Module> run) {
+	@OnlyIn(Dist.CLIENT)
+	@SubscribeEvent
+	public void firstClientTick(ClientTickEvent event) {
+		if(!clientTicked && event.phase == Phase.END) {
+			dispatch(m -> m.firstClientTick());
+			clientTicked = true;
+		}
+	}
+	
+	private void dispatch(Consumer<QuarkModule> run) {
 		foundModules.values().forEach(run);
 	}
 	
-	public boolean isModuleEnabled(Class<? extends Module> moduleClazz) {
-		Module module = getModuleInstance(moduleClazz);
+	void enqueue(Runnable r) {
+		Preconditions.checkNotNull(event);
+		event.enqueueWork(r);
+	}
+	
+	public boolean isModuleEnabled(Class<? extends QuarkModule> moduleClazz) {
+		QuarkModule module = getModuleInstance(moduleClazz);
 		return module != null && module.enabled;
 	}
 	
-	public Module getModuleInstance(Class<? extends Module> moduleClazz) {
+	public QuarkModule getModuleInstance(Class<? extends QuarkModule> moduleClazz) {
 		return foundModules.get(moduleClazz);
+	}
+	
+	public boolean isItemEnabled(Item i) {
+		if(i instanceof IQuarkItem) {
+			IQuarkItem qi = (IQuarkItem) i;
+			if(!qi.isEnabled())
+				return false;
+		}
+		else if(i instanceof BlockItem) {
+			BlockItem bi = (BlockItem) i;
+			Block b = bi.getBlock();
+			if(b instanceof IQuarkBlock) {
+				IQuarkBlock qb = (IQuarkBlock) b;
+				if(!qb.isEnabled())
+					return false;
+			}
+		}
+		
+		return true;
 	}
 	
 }

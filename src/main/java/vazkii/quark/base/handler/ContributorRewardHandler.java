@@ -15,13 +15,12 @@ import java.util.WeakHashMap;
 
 import com.google.common.collect.ImmutableSet;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.PlayerListEntry;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.AbstractClientPlayerEntity;
+import net.minecraft.client.network.play.NetworkPlayerInfo;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -49,11 +48,11 @@ public class ContributorRewardHandler {
 	private static final Map<String, Integer> tiers = new HashMap<>();
 
 	public static int localPatronTier = 0;
-	public static String featuredPatron = "";
+	public static String featuredPatron = "N/A";
 
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public static void getLocalName() {
-		name = MinecraftClient.getInstance().getSession().getUsername().toLowerCase(Locale.ROOT);
+		name = Minecraft.getInstance().getSession().getUsername().toLowerCase(Locale.ROOT);
 	}
 
 	public static void init() {
@@ -74,16 +73,16 @@ public class ContributorRewardHandler {
 	}
 	
 	@SubscribeEvent
-	@Environment(EnvType.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public static void onRenderPlayer(RenderPlayerEvent.Post event) {
 		PlayerEntity player = event.getPlayer();
-		String uuid = PlayerEntity.getUuidFromProfile(player.getGameProfile()).toString();
+		String uuid = PlayerEntity.getUUID(player.getGameProfile()).toString();
 		if(player instanceof AbstractClientPlayerEntity && DEV_UUID.contains(uuid) && !done.contains(uuid)) {
 			AbstractClientPlayerEntity clientPlayer = (AbstractClientPlayerEntity) player;
-			if(clientPlayer.canRenderCapeTexture()) {
-				PlayerListEntry info = ((AbstractClientPlayerEntity) player).cachedScoreboardEntry;
-				Map<MinecraftProfileTexture.Type, Identifier> textures = info.textures;
-				Identifier loc = new Identifier("quark", "textures/misc/dev_cape.png");
+			if(clientPlayer.hasPlayerInfo()) {
+				NetworkPlayerInfo info = ((AbstractClientPlayerEntity) player).playerInfo;
+				Map<MinecraftProfileTexture.Type, ResourceLocation> textures = info.playerTextures;
+				ResourceLocation loc = new ResourceLocation("quark", "textures/misc/dev_cape.png");
 				textures.put(MinecraftProfileTexture.Type.CAPE, loc);
 				textures.put(MinecraftProfileTexture.Type.ELYTRA, loc);
 				done.add(uuid);
@@ -92,7 +91,7 @@ public class ContributorRewardHandler {
 	}
 
 	@SubscribeEvent
-	@Environment(EnvType.SERVER)
+	@OnlyIn(Dist.DEDICATED_SERVER)
 	public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
 		ContributorRewardHandler.init();
 	}

@@ -1,5 +1,5 @@
 {
-    "parent": "block/flower_pot_cross",
+    "parent": "block/tinted_flower_pot_cross",
     "textures": {
         "plant": "quark:block/potted/sugar_cane"
     }

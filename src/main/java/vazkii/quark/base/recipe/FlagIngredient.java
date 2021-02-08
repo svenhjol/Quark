@@ -4,8 +4,8 @@ import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.recipe.Ingredient;
+import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
 import vazkii.quark.base.module.config.ConfigFlagManager;
 
@@ -35,18 +35,18 @@ public class FlagIngredient extends Ingredient {
 
     @Override
     @Nonnull
-    public ItemStack[] getMatchingStacksClient() {
+    public ItemStack[] getMatchingStacks() {
         if (!isEnabled())
             return new ItemStack[0];
-        return parent.getMatchingStacksClient();
+        return parent.getMatchingStacks();
     }
 
     @Override
     @Nonnull
-    public IntList getIds() {
+    public IntList getValidItemStacksPacked() {
         if (!isEnabled())
             return IntLists.EMPTY_LIST;
-        return parent.getIds();
+        return parent.getValidItemStacksPacked();
     }
 
     @Override
@@ -86,20 +86,20 @@ public class FlagIngredient extends Ingredient {
 
         @Nonnull
         @Override
-        public FlagIngredient parse(@Nonnull PacketByteBuf buffer) {
-            return new FlagIngredient(Ingredient.fromPacket(buffer), buffer.readString());
+        public FlagIngredient parse(@Nonnull PacketBuffer buffer) {
+            return new FlagIngredient(Ingredient.read(buffer), buffer.readString());
         }
 
         @Nonnull
         @Override
         public FlagIngredient parse(@Nonnull JsonObject json) {
-            Ingredient value = Ingredient.fromJson(json.get("value"));
+            Ingredient value = Ingredient.deserialize(json.get("value"));
             String flag = json.getAsJsonPrimitive("flag").getAsString();
             return new FlagIngredient(value, flag);
         }
 
         @Override
-        public void write(@Nonnull PacketByteBuf buffer, @Nonnull FlagIngredient ingredient) {
+        public void write(@Nonnull PacketBuffer buffer, @Nonnull FlagIngredient ingredient) {
             ingredient.parent.write(buffer);
             buffer.writeString(ingredient.flag);
         }

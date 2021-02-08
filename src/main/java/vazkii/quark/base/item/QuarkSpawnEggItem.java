@@ -1,22 +1,23 @@
 package vazkii.quark.base.item;
 
+import java.util.function.BooleanSupplier;
+
+import javax.annotation.Nonnull;
+
 import net.minecraft.entity.EntityType;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.SpawnEggItem;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.NonNullList;
 import vazkii.arl.util.RegistryHelper;
-import vazkii.quark.base.module.Module;
+import vazkii.quark.base.module.QuarkModule;
 
-import javax.annotation.Nonnull;
-import java.util.function.BooleanSupplier;
+public class QuarkSpawnEggItem extends SpawnEggItem implements IQuarkItem {
 
-public class QuarkSpawnEggItem extends SpawnEggItem {
-
-	private final Module module;
+	private final QuarkModule module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkSpawnEggItem(EntityType<?> type, int primaryColor, int secondaryColor, String regname, Module module, Settings properties) {
+	public QuarkSpawnEggItem(EntityType<?> type, int primaryColor, int secondaryColor, String regname, QuarkModule module, Properties properties) {
 		super(type, primaryColor, secondaryColor, properties);
 
 		RegistryHelper.registerItem(this, regname);
@@ -24,19 +25,25 @@ public class QuarkSpawnEggItem extends SpawnEggItem {
 	}
 
 	@Override
-	public void appendStacks(@Nonnull ItemGroup group, @Nonnull DefaultedList<ItemStack> items) {
+	public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
 		if(isEnabled() || group == ItemGroup.SEARCH)
-			super.appendStacks(group, items);
+			super.fillItemGroup(group, items);
 	}
 
+	@Override
 	public QuarkSpawnEggItem setCondition(BooleanSupplier enabledSupplier) {
 		this.enabledSupplier = enabledSupplier;
 		return this;
 	}
 
+	@Override
+	public QuarkModule getModule() {
+		return module;
+	}
 
-	public boolean isEnabled() {
-		return module != null && module.enabled && enabledSupplier.getAsBoolean();
+	@Override
+	public boolean doesConditionApply() {
+		return enabledSupplier.getAsBoolean();
 	}
 
 }

@@ -8,3 +8,5 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+includeBuild("C:\\Users\\Steve\\OneDrive\\Desktop\\Minecraft Modding Folder\\yarnforge-plugin")
+

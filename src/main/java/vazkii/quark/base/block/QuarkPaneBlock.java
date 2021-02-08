@@ -8,18 +8,18 @@ import net.minecraft.block.Block;
 import net.minecraft.block.PaneBlock;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.NonNullList;
 import vazkii.arl.util.RegistryHelper;
 import vazkii.quark.base.handler.RenderLayerHandler;
 import vazkii.quark.base.handler.RenderLayerHandler.RenderTypeSkeleton;
-import vazkii.quark.base.module.Module;
+import vazkii.quark.base.module.QuarkModule;
 
 public class QuarkPaneBlock extends PaneBlock implements IQuarkBlock {
 	
-	public final Module module;
+	public final QuarkModule module;
 	private BooleanSupplier enabledSupplier = () -> true;
 
-	public QuarkPaneBlock(String name, Module module, Block.Properties properties, RenderTypeSkeleton renderType) {
+	public QuarkPaneBlock(String name, QuarkModule module, Block.Properties properties, RenderTypeSkeleton renderType) {
 		super(properties);
 
 		this.module = module;
@@ -31,14 +31,14 @@ public class QuarkPaneBlock extends PaneBlock implements IQuarkBlock {
 	}
 
 	@Override
-	public void addStacksForDisplay(ItemGroup group, DefaultedList<ItemStack> items) {	
+	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {	
 		if(group == ItemGroup.SEARCH || isEnabled())
-			super.addStacksForDisplay(group, items);
+			super.fillItemGroup(group, items);
 	}
 
 	@Nullable
 	@Override
-	public Module getModule() {
+	public QuarkModule getModule() {
 		return module;
 	}
 
